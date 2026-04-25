@@ -15,13 +15,20 @@ import os
 import requests
 import time
 import threading
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+# 中国时区 (UTC+8)
+CHINA_TZ = timezone(timedelta(hours=8))
+
+def get_china_time():
+    """获取中国标准时间"""
+    return datetime.now(CHINA_TZ)
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
 # ====================== AI API 全局配置 ======================
 ZHIPU_API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
-# 🔒 安全提示：生产环境必须使用环境变量，不要硬编码 API Key
+# 🔒 安全修复：必须使用环境变量，禁止硬编码 API Key
 ZHIPU_API_KEY = os.getenv("ZHIPU_API_KEY")
 ZHIPU_API_KEY_TEXT = os.getenv("ZHIPU_API_KEY_TEXT")
 
@@ -73,6 +80,20 @@ INGREDIENT_MAP = {
 # ====================== 数据持久化 ======================
 def load_data():
     """加载本地数据"""
+    # Vercel 环境使用内存存储（只读文件系统）
+    if os.getenv('VERCEL'):
+        return getattr(load_data, '_memory_data', {
+            'nickname': '', 
+            'waste_reduced': 0, 
+            'water_saved': 0, 
+            'co2_reduced': 0,
+            'population_group': 'adults',
+            'daily_intake_records': [],
+            'fridge_inventory': [],
+            'generation_count': 0
+        })
+    
+    # 本地环境使用文件存储
     if os.path.exists('fgai_local_data.json'):
         try:
             with open('fgai_local_data.json', 'r', encoding='utf-8') as f:
@@ -92,8 +113,17 @@ def load_data():
 
 def save_data(data):
     """保存本地数据"""
-    with open('fgai_local_data.json', 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    # Vercel 环境使用内存存储（只读文件系统）
+    if os.getenv('VERCEL'):
+        load_data._memory_data = data
+        return
+    
+    # 本地环境使用文件存储
+    try:
+        with open('fgai_local_data.json', 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ 保存数据失败: {e}")
 
 # ====================== AI API 调用 ======================
 def _call_zhipu_api(url, api_key, prompt, max_retries):
@@ -389,7 +419,7 @@ def generate_nutrition_report(user_intake, population_group):
     
     # 基本信息
     report += "## 【基本信息】\n\n"
-    report += f"- **评估日期**: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+    report += f"- **评估日期**: {get_china_time().strftime('%Y-%m-%d %H:%M')}\n"
     report += f"- **人群分类**: {group_name}\n"
     
     # 计算总摄入量
@@ -1212,8 +1242,8 @@ def save_intake():
     """保存摄入数据"""
     data = request.json
     intake_record = {
-        'date': datetime.now().strftime('%Y-%m-%d'),
-        'time': datetime.now().strftime('%H:%M'),
+        'date': get_china_time().strftime('%Y-%m-%d'),
+        'time': get_china_time().strftime('%H:%M'),
         'vegetables': data.get('vegetables', 0),
         'fruits': data.get('fruits', 0),
         'meat': data.get('meat', 0),
@@ -1227,7 +1257,7 @@ def save_intake():
     current_data['daily_intake_records'].append(intake_record)
     
     # 关键修改：今日只保留最新3条记录，多余的移到历史
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = get_china_time().strftime('%Y-%m-%d')
     all_records = current_data['daily_intake_records']
     today_records = [r for r in all_records if r.get('date') == today]
     
@@ -1265,8 +1295,7 @@ def save_intake():
     standard = get_nutrition_standard(population_group)
     
     if standard:
-        # 🔑 关键修复：使用正确的字段名 daily_requirements
-        daily_recs = standard.get('daily_requirements', standard.get('daily_recommendations', {}))
+        daily_recs = standard['daily_recommendations']
         
         # 检查蔬菜
         veg_rec = daily_recs.get('vegetables', {})
@@ -1381,7 +1410,7 @@ def add_fridge_item():
         'quantity': data.get('quantity', 0),
         'unit': data.get('unit', 'g'),
         'expiry_date': data.get('expiry_date', ''),
-        'added_date': datetime.now().strftime('%Y-%m-%d')
+        'added_date': get_china_time().strftime('%Y-%m-%d')
     }
     
     current_data = load_data()
@@ -1422,7 +1451,7 @@ def edit_intake_record(index):
     records = current_data.get('daily_intake_records', [])
     
     # 筛选今日记录
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = get_china_time().strftime('%Y-%m-%d')
     today_records = [r for r in records if r.get('date') == today]
     
     if 0 <= index < len(today_records):
@@ -1449,7 +1478,7 @@ def delete_intake_record(index):
     records = current_data.get('daily_intake_records', [])
     
     # 筛选今日记录
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = get_china_time().strftime('%Y-%m-%d')
     today_records = [r for r in records if r.get('date') == today]
     
     if 0 <= index < len(today_records):
@@ -1472,7 +1501,7 @@ def update_intake_record(index):
     records = current_data.get('daily_intake_records', [])
     
     # 筛选今日记录
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = get_china_time().strftime('%Y-%m-%d')
     today_records = [r for r in records if r.get('date') == today]
     
     if 0 <= index < len(today_records):
@@ -1506,7 +1535,7 @@ def get_7days_history():
     
     # 获取近7天的日期
     from datetime import timedelta
-    today = datetime.now()
+    today = get_china_time()
     dates = [(today - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
     
     # 按日期分组统计
@@ -1994,7 +2023,7 @@ def generate_daily_recommendation_route():
     fridge_items = current_data.get('fridge_inventory', [])
     
     # 获取用户今日总摄入数据
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = get_china_time().strftime('%Y-%m-%d')
     all_records = current_data.get('daily_intake_records', [])
     today_records = [r for r in all_records if r.get('date') == today]
     
