@@ -1,0 +1,4155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title data-i18n="app.title">FoodGuardian AI - 智能食谱助手</title>
+    <style>
+        /* ==================== 全局样式 ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            /* 主色调 - 深绿+暖棕创新配色 */
+            --primary: #2D3A2B;  /* 深绿色 - 更现代 */
+            --primary-light: #4A5D47;
+            --secondary: #A67C52;  /* 暖棕色 - 食物主题 */
+            --secondary-light: #C9A87C;
+            --tertiary: #E8D5B7;
+            --accent: #D4A574;  /* 强调色 */
+            
+            /* 背景色 - 暖色调渐变 */
+            --background: #F8F5F0;
+            --background-gradient-start: #FAF8F5;
+            --background-gradient-end: #F0EBE3;
+            --card-bg: #FFFFFF;
+            --sidebar-bg: #2D3A2B;
+            
+            /* 卡片样式 */
+            --card-border: rgba(45, 58, 43, 0.08);
+            --card-shadow: 0 4px 20px rgba(45, 58, 43, 0.08);
+            --card-shadow-hover: 0 8px 32px rgba(45, 58, 43, 0.15);
+            
+            /* 文字颜色 */
+            --text-primary: #1A1A1A;
+            --text-secondary: #5A5A5A;
+            --text-muted: #8A8A8A;
+            --text-light: #FFFFFF;
+            
+            /* 功能色 */
+            --danger: #E74C3C;
+            --success: #27AE60;
+            --warning: #F39C12;
+            --info: #3498DB;
+            
+            /* 阴影效果 - 更柔和 */
+            --shadow-sm: 0 2px 12px rgba(45, 58, 43, 0.06);
+            --shadow: 0 4px 20px rgba(45, 58, 43, 0.08);
+            --shadow-lg: 0 8px 32px rgba(45, 58, 43, 0.12);
+            --shadow-hover: 0 12px 48px rgba(45, 58, 43, 0.16);
+            
+            /* 边框圆角 - 更大的圆角 */
+            --radius-sm: 14px;
+            --radius: 20px;
+            --radius-lg: 28px;
+            --radius-xl: 36px;
+            
+            /* 字体 */
+            --font-serif: 'Georgia', 'Times New Roman', 'Noto Serif SC', serif;
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: linear-gradient(135deg, var(--background-gradient-start) 0%, var(--background-gradient-end) 100%);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+            padding-bottom: 80px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ==================== 顶部导航栏 - 创新设计 ==================== */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            background: rgba(250, 248, 245, 0.92);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            box-shadow: 0 1px 0 rgba(45, 58, 43, 0.06);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            border-bottom: none;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .logo {
+            font-family: var(--font-serif);
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+            position: relative;
+        }
+
+        .logo::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 2px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .logo:hover::after {
+            opacity: 1;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius);
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--primary);
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(45, 58, 43, 0.08);
+            transform: translate(-50%, -50%);
+            transition: width 0.5s, height 0.5s;
+        }
+
+        .action-btn:hover::before {
+            width: 150%;
+            height: 150%;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+            border-color: rgba(45, 58, 43, 0.15);
+        }
+
+        .action-btn:active {
+            transform: scale(0.96) translateY(0);
+        }
+
+        /* ==================== 页面容器 ==================== */
+        .page-container {
+            margin-top: 80px;
+            padding: 20px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .page {
+            display: none;
+            animation: fadeInUp 0.4s ease-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ==================== 卡片样式 - 创新分层设计 ==================== */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid var(--card-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(166, 124, 82, 0.03) 0%, transparent 70%);
+            pointer-events: none;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--card-shadow-hover);
+            border-color: rgba(45, 58, 43, 0.15);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card:hover::after {
+            transform: translate(-10%, 10%);
+        }
+
+        .card-title {
+            font-family: var(--font-serif);
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            line-height: 1.3;
+        }
+
+        .card-subtitle {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        /* ==================== 统计卡片 - 创新渐变设计 ==================== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin: 24px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: var(--radius-xl);
+            padding: 36px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 8px 32px rgba(45, 58, 43, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 250%;
+            height: 250%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            bottom: -20%;
+            left: -20%;
+            width: 150%;
+            height: 150%;
+            background: radial-gradient(circle, rgba(166, 124, 82, 0.2) 0%, transparent 70%);
+            animation: pulse 5s ease-in-out infinite reverse;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.6; }
+            50% { transform: scale(1.15) translate(5%, -5%); opacity: 0.9; }
+        }
+
+        .stat-card:hover {
+            transform: translateY(-12px) scale(1.02);
+            box-shadow: 0 16px 48px rgba(45, 58, 43, 0.25);
+        }
+
+        .stat-value {
+            font-family: var(--font-serif);
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+            letter-spacing: -1px;
+        }
+
+        .stat-label {
+            font-size: 15px;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+            font-weight: 500;
+        }
+
+        /* ==================== 输入框样式 - 现代化设计 ==================== */
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            letter-spacing: 0.3px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 18px 24px;
+            border: 2px solid rgba(45, 58, 43, 0.12);
+            border-radius: var(--radius);
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--text-primary);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            outline: none;
+            font-family: var(--font-sans);
+        }
+
+        .input-field:focus {
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(45, 58, 43, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .input-field::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* ==================== 滑块样式 ==================== */
+        .slider-container {
+            margin: 20px 0;
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid var(--primary);
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(166, 124, 82, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+            box-shadow: 0 6px 16px rgba(166, 124, 82, 0.4);
+        }
+
+        .slider::-webkit-slider-thumb:active {
+            transform: scale(0.9);
+        }
+
+        /* ==================== 按钮样式 - 创新渐变效果 ==================== */
+        .btn {
+            padding: 18px 36px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.3px;
+            font-family: var(--font-sans);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(45, 58, 43, 0.25);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 28px rgba(45, 58, 43, 0.35);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--primary);
+            border: 2px solid rgba(45, 58, 43, 0.15);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-secondary:hover {
+            background: white;
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-secondary:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* ==================== 单选按钮组 - 创新设计 ==================== */
+        .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin: 20px 0;
+        }
+
+        .radio-item {
+            flex: 1;
+            min-width: 130px;
+        }
+
+        .radio-item input[type="radio"] {
+            display: none;
+        }
+
+        .radio-label {
+            display: block;
+            padding: 16px 20px;
+            background: var(--card-bg);
+            border: 2px solid var(--card-border);
+            border-radius: var(--radius);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            font-size: 15px;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+            color: var(--text-secondary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .radio-label::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: -1;
+        }
+
+        .radio-label::after {
+            content: '✓';
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            font-size: 16px;
+            color: white;
+            opacity: 0;
+            transform: scale(0) rotate(-45deg);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 2;
+        }
+
+        .radio-item input[type="radio"]:checked + .radio-label {
+            color: white;
+            border-color: transparent;
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 8px 24px rgba(166, 124, 82, 0.35);
+        }
+
+        .radio-item input[type="radio"]:checked + .radio-label::before {
+            opacity: 1;
+        }
+
+        .radio-item input[type="radio"]:checked + .radio-label::after {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+        }
+
+        .radio-label:hover {
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+            color: var(--primary);
+        }
+
+        /* ==================== 底部TabBar - 创新悬浮设计 ==================== */
+        .tab-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 64px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            box-shadow: 0 8px 32px rgba(45, 58, 43, 0.12), 0 2px 8px rgba(45, 58, 43, 0.06);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+            padding: 0 8px;
+            border-radius: var(--radius-xl);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            width: calc(100% - 40px);
+            max-width: 600px;
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+
+        .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            padding: 8px 6px;
+            border-radius: 16px;
+            min-height: 48px;
+        }
+
+        .tab-icon {
+            font-size: 22px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            filter: grayscale(40%) opacity(0.7);
+            position: relative;
+            line-height: 1;
+        }
+
+        .tab-icon::before {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            background: radial-gradient(circle, rgba(45, 58, 43, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.4s ease;
+        }
+
+        .tab-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: all 0.3s ease;
+            letter-spacing: 0.2px;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        .tab-item.active .tab-icon {
+            transform: scale(1.15) translateY(-2px);
+            filter: grayscale(0%) opacity(1);
+        }
+
+        .tab-item.active .tab-icon::before {
+            opacity: 1;
+            transform: scale(1.4);
+        }
+
+        .tab-item.active .tab-label {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .tab-item.active::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 32px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 2px;
+            animation: tabIndicator 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes tabIndicator {
+            from { width: 0; opacity: 0; }
+            to { width: 32px; opacity: 1; }
+        }
+
+        .tab-item:hover {
+            background: rgba(45, 58, 43, 0.06);
+        }
+
+        /* Hover效果 - 类似苹果的放大动画 */
+        .tab-item:hover .tab-icon {
+            transform: scale(1.25) translateY(-4px);
+            filter: grayscale(0%) opacity(1);
+        }
+
+        .tab-item:hover .tab-icon::before {
+            opacity: 1;
+            transform: scale(1.6);
+        }
+
+        .tab-item:hover .tab-label {
+            color: var(--primary);
+            font-weight: 600;
+            transform: translateY(-2px);
+        }
+
+        .tab-item:active {
+            transform: scale(0.92);
+        }
+
+        /* ==================== 加载动画 ==================== */
+        .loading {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(166, 124, 82, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ==================== 结果展示区 - 创新卡片式设计 ==================== */
+        .result-box {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            margin-top: 20px;
+            border: 1px solid var(--card-border);
+            line-height: 1.8;
+            white-space: normal;  /* 🔑 关键修复：改为normal，避免格式问题 */
+            word-wrap: break-word;  /* 🔑 长单词自动换行 */
+            overflow-wrap: break-word;  /* 🔑 兼容各种浏览器 */
+            animation: resultSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: visible;  /* 🔑 关键修复：改为visible，允许内容完整显示 */
+            max-height: none;  /* 🔑 移除高度限制 */
+        }
+
+        /* 美化滚动条样式 */
+        .result-box::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .result-box::-webkit-scrollbar-track {
+            background: rgba(45, 58, 43, 0.05);
+            border-radius: 4px;
+        }
+
+        .result-box::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .result-box::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, var(--primary-light) 0%, var(--accent) 100%);
+        }
+
+        /* 左侧颜色条 - 使用绝对定位确保完整显示 */
+        .result-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+            border-radius: 4px 0 0 4px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .result-box::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(45, 58, 43, 0.02) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        @keyframes resultSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* ==================== Markdown 格式化样式 ==================== */
+        .result-box h2,
+        .result-box h3,
+        .result-box h4 {
+            color: var(--primary);
+            margin-top: 24px;
+            margin-bottom: 12px;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        .result-box h2 {
+            font-size: 20px;
+            border-bottom: 2px solid var(--secondary-light);
+            padding-bottom: 8px;
+            margin-top: 28px;
+        }
+
+        .result-box h3 {
+            font-size: 18px;
+            color: var(--secondary);
+        }
+
+        .result-box h4 {
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+
+        .result-box ul,
+        .result-box ol {
+            margin-left: 24px;
+            margin-bottom: 12px;
+        }
+
+        .result-box li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+        }
+
+        .result-box strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .result-box em {
+            color: var(--secondary);
+            font-style: italic;
+        }
+
+        .result-box p {
+            margin-bottom: 12px;
+            line-height: 1.9;
+        }
+
+        /* 特殊标记样式 */
+        .result-box .status-ok {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .result-box .status-warning {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .result-box .status-error {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        /* ==================== Toast提示 - 现代化设计 ==================== */
+        .toast {
+            position: fixed;
+            top: 88px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-120px);
+            background: rgba(45, 58, 43, 0.95);
+            color: white;
+            padding: 16px 32px;
+            border-radius: var(--radius);
+            font-size: 15px;
+            font-weight: 600;
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: 0 12px 40px rgba(45, 58, 43, 0.3), 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            letter-spacing: 0.3px;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* ==================== 响应式设计 ==================== */
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 15px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .stat-value {
+                font-size: 28px;
+            }
+        }
+
+        /* ==================== 欢迎横幅 - 创新渐变设计 ==================== */
+        .welcome-banner {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 50%, var(--secondary) 100%);
+            border-radius: var(--radius-xl);
+            padding: 40px;
+            color: white;
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 16px 48px rgba(45, 58, 43, 0.25), 0 4px 16px rgba(45, 58, 43, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .welcome-banner::before {
+            content: '🌱';
+            position: absolute;
+            right: 32px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 100px;
+            opacity: 0.12;
+            filter: blur(3px);
+            animation: floatEmoji 6s ease-in-out infinite;
+        }
+
+        .welcome-banner::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 300%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        @keyframes floatEmoji {
+            0%, 100% { transform: translateY(-50%) translateX(0); }
+            50% { transform: translateY(-55%) translateX(-10px); }
+        }
+
+        .welcome-banner:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 56px rgba(45, 58, 43, 0.3), 0 8px 24px rgba(45, 58, 43, 0.2);
+        }
+
+        .welcome-title {
+            font-family: var(--font-serif);
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            letter-spacing: -0.8px;
+            line-height: 1.2;
+            position: relative;
+            z-index: 1;
+        }
+
+        .welcome-subtitle {
+            font-size: 17px;
+            opacity: 0.95;
+            line-height: 1.6;
+            position: relative;
+            z-index: 1;
+            font-weight: 400;
+        }
+
+        /* ==================== 标签 - 现代化胶囊设计 ==================== */
+        .tag {
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(45, 58, 43, 0.06);
+            color: var(--primary);
+            border-radius: 28px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1.5px solid rgba(45, 58, 43, 0.1);
+            letter-spacing: 0.2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tag::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 0;
+        }
+
+        .tag span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .tag:hover {
+            background: rgba(45, 58, 43, 0.1);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(45, 58, 43, 0.15);
+            border-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        /* ==================== 进度条 - 创新渐变动画 ==================== */
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(45, 58, 43, 0.08);
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: inset 0 2px 4px rgba(45, 58, 43, 0.06);
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 50%, var(--secondary) 100%);
+            border-radius: 8px;
+            transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            box-shadow: 0 2px 8px rgba(45, 58, 43, 0.2);
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.3) 50%,
+                transparent 100%
+            );
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* ==================== 徽章 - 创新脉冲设计 ==================== */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 26px;
+            height: 26px;
+            padding: 0 10px;
+            background: linear-gradient(135deg, var(--danger) 0%, #C0392B 100%);
+            color: white;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 700;
+            box-shadow: 0 3px 12px rgba(231, 76, 60, 0.35), 0 1px 3px rgba(231, 76, 60, 0.2);
+            animation: badgePulse 2.5s ease-in-out infinite;
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.3px;
+        }
+
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 3px 12px rgba(231, 76, 60, 0.35); }
+            50% { transform: scale(1.08); box-shadow: 0 5px 16px rgba(231, 76, 60, 0.45); }
+        }
+
+        /* ==================== 分隔线 - 渐变优雅设计 ==================== */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(45, 58, 43, 0.15) 50%, transparent 100%);
+            margin: 28px 0;
+        }
+
+        /* ==================== 图标按钮组 - 现代化设计 ==================== */
+        .icon-btn-group {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .icon-btn {
+            width: 52px;
+            height: 52px;
+            border-radius: var(--radius);
+            background: var(--card-bg);
+            border: 2px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .icon-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .icon-btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .icon-btn:hover {
+            background: white;
+            border-color: var(--primary-light);
+            transform: translateY(-4px) scale(1.08);
+            box-shadow: 0 8px 24px rgba(45, 58, 43, 0.2);
+        }
+
+        .icon-btn:hover::before {
+            opacity: 0.08;
+        }
+
+        .icon-btn:active {
+            transform: scale(0.92);
+        }
+    </style>
+    <!-- 🌐 国际化模块 -->
+    <script src="/static/js/i18n.js"></script>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="top-bar">
+        <div class="logo">🍽️ FoodGuardian AI</div>
+        <div class="top-actions">
+            <!-- 🌐 语言切换按钮 -->
+            <button class="action-btn" id="lang-switcher" onclick="toggleLanguage()" title="切换语言">
+                <span id="current-lang-flag">🇨🇳</span>
+            </button>
+            <button class="action-btn" onclick="openImageRecognition()" title="拍照识菜">📸</button>
+            <button class="action-btn" onclick="switchPage('voice')" title="语音交互">🎤</button>
+        </div>
+    </div>
+
+    <!-- 页面容器 -->
+    <div class="page-container">
+        <!-- 首页 -->
+        <div id="page-home" class="page active">
+            <div class="welcome-banner">
+                <div class="welcome-title" data-i18n="home.welcome_title">让每一口都不被浪费</div>
+                <div class="welcome-subtitle" data-i18n="home.welcome_subtitle">智能食谱 + 环保量化,让家庭用餐更绿色 🌍</div>
+            </div>
+
+            <div class="tags-container">
+                <span class="tag" data-i18n="home.tag_realtime">实时环保 impact</span>
+                <span class="tag" data-i18n="home.tag_eco_priority">环保优先</span>
+                <span class="tag" data-i18n="home.tag_family_classroom">适合家庭与课堂演示</span>
+                <span class="tag" data-i18n="home.tag_local_storage">本地数据存储</span>
+            </div>
+
+            <!-- 用户档案卡片 -->
+            <div class="card">
+                <div class="card-title" data-i18n="home.profile_title">👤 你的绿色档案</div>
+                <div class="card-subtitle" data-i18n="home.profile_subtitle">设置一个昵称,我们会在本机悄悄为你记录每一次节约。</div>
+                
+                <div class="input-group">
+                    <label class="input-label" data-i18n="home.nickname_label">环保昵称(仅保存在本机)</label>
+                    <input type="text" id="nickname-input" class="input-field" data-i18n-placeholder="home.nickname_placeholder" placeholder="输入你的昵称...">
+                </div>
+                
+                <button class="btn btn-primary" onclick="saveNickname()" data-i18n="home.save_nickname">
+                    💾 保存昵称
+                </button>
+                
+                <div id="welcome-message" style="margin-top: 16px; color: var(--text-secondary);"></div>
+            </div>
+
+            <!-- 人群选择卡片 -->
+            <div class="card">
+                <div class="card-title" data-i18n="home.population_label">🏷️ 选择您的人群标签</div>
+                <div class="card-subtitle" data-i18n="home.population_subtitle">不同人群有不同的营养摄入标准</div>
+                
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" name="population" id="pop-adults" value="adults" checked>
+                        <label for="pop-adults" class="radio-label">成年人<br><small>18-60岁</small></label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" name="population" id="pop-teens" value="teens">
+                        <label for="pop-teens" class="radio-label">青少年<br><small>13-17岁</small></label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" name="population" id="pop-children" value="children">
+                        <label for="pop-children" class="radio-label">儿童<br><small>6-12岁</small></label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" name="population" id="pop-elderly" value="elderly">
+                        <label for="pop-elderly" class="radio-label">老年人<br><small>60岁以上</small></label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" name="population" id="pop-all" value="all">
+                        <label for="pop-all" class="radio-label">以上皆是<br><small>所有人群</small></label>
+                    </div>
+                </div>
+                
+                <!-- 开始按钮（原版有，Web版缺失） -->
+                <button class="btn btn-primary" onclick="switchPage('recipes')" style="width: 100%; margin-top: 20px; height: 45px; font-size: 16px;" data-i18n="home.start_button">
+                    🍳 开始使用智能食谱
+                </button>
+            </div>
+
+            <!-- 累计环保贡献 -->
+            <div class="card">
+                <div class="card-title" data-i18n="home.eco_contribution_title">🌱 你的累计环保贡献</div>
+                <div class="card-subtitle" data-i18n="home.eco_contribution_subtitle">仅在本机统计 · 可随时清零</div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-waste">0 g</div>
+                        <div class="stat-label" data-i18n="home.waste_reduced_label">减少食物浪费</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-water">0 L</div>
+                        <div class="stat-label" data-i18n="home.water_saved_label">节约水资源</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-co2">0 g</div>
+                        <div class="stat-label" data-i18n="home.co2_reduced_label">减少碳排放</div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-secondary" onclick="resetStats()" style="width: 100%; margin-bottom: 20px;" data-i18n="home.reset_stats_button">
+                    🔄 清零统计
+                </button>
+            </div>
+
+            <!-- 今日饮食推荐 -->
+            <div class="card">
+                <div class="card-title" data-i18n="home.daily_recommendation_title">🍽️ 今日饮食推荐</div>
+                <div class="card-subtitle" data-i18n="home.daily_recommendation_subtitle">基于您的营养状况和冰箱食材,AI 为您生成专属饮食建议</div>
+                
+                <button class="btn btn-primary" onclick="generateDailyRecommendation()" id="daily-rec-btn" style="width: 100%; margin-bottom: 20px;" data-i18n="home.generate_daily_rec_button">
+                    ✨ AI 生成今日推荐
+                </button>
+                
+                <div id="daily-recommendation-result" style="display: none;">
+                    <div id="daily-recommendation-content" class="result-box"></div>
+                </div>
+            </div>
+
+            <!-- 食材重量查询 -->
+            <div class="card">
+                <div class="card-title" data-i18n="home.food_weight_query_title">⚖️ 食材重量查询</div>
+                <div class="card-subtitle" data-i18n="home.food_weight_query_subtitle">💡 输入食材名称，查询常见食物的近似重量（帮助您估算摄入量）</div>
+                
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <input type="text" id="food-query-input" class="input-field" data-i18n-placeholder="home.food_weight_placeholder" placeholder="例如：苹果、米饭、鸡蛋..." style="flex: 1;">
+                    <button class="btn btn-primary" onclick="queryFoodWeight()" style="white-space: nowrap;" data-i18n="home.query_button">🔍 查询</button>
+                </div>
+                
+                <div id="food-query-result" style="display: none;">
+                    <div id="food-query-content" class="result-box"></div>
+                </div>
+            </div>
+
+            <!-- 今日摄入记录录入 -->
+            <div class="card">
+                <div class="card-title" data-i18n="home.intake_record_title">📝 今日饮食摄入记录</div>
+                <div class="card-subtitle" data-i18n="home.intake_record_subtitle">请录入您今日已摄入的各类食材重量(克)</div>
+                
+                <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
+                    <div class="input-group">
+                        <label class="input-label" data-i18n="home.vegetables_label">🥬 蔬菜 (g)</label>
+                        <input type="number" id="intake-vegetables-home" class="input-field" placeholder="0" min="0" value="0">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" data-i18n="home.fruits_label">🍎 水果 (g)</label>
+                        <input type="number" id="intake-fruits-home" class="input-field" placeholder="0" min="0" value="0">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" data-i18n="home.meat_label">🥩 肉类 (g)</label>
+                        <input type="number" id="intake-meat-home" class="input-field" placeholder="0" min="0" value="0">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" data-i18n="home.eggs_label">🥚 蛋类 (g)</label>
+                        <input type="number" id="intake-eggs-home" class="input-field" placeholder="0" min="0" value="0">
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-top: 16px;">
+                    <button class="btn btn-primary" onclick="saveIntakeHome()" style="flex: 1;" data-i18n="home.save_intake_home_button">💾 保存记录</button>
+                    <button class="btn btn-secondary" onclick="performNutritionAssessmentFromHome()" style="flex: 1;" data-i18n="home.assess_now_button">🔍 立即评估</button>
+                </div>
+                
+                <!-- 评估报告展示区（新增） -->
+                <div id="home-assessment-result" style="display: none; margin-top: 20px;">
+                    <div style="background: rgba(255,140,66,0.05); border-left: 4px solid var(--primary); padding: 16px; border-radius: 8px;">
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 12px;" data-i18n="home.assessment_report_title">📊 营养评估报告</div>
+                        <div id="home-assessment-content" style="white-space: pre-wrap; color: var(--text-secondary); line-height: 1.8; font-size: 14px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 今日摄入概览表格 -->
+            <div class="card">
+                <div class="card-title" data-i18n="home.today_overview_title">📊 今日摄入概览</div>
+                <div class="card-subtitle" data-i18n="home.today_overview_subtitle">💡 提示:可直接在表格中修改摄入数据,支持删除单条记录</div>
+                
+                <div id="today-intake-table" style="margin-top: 16px;"></div>
+                
+                <button class="btn btn-secondary" onclick="view7DaysHistory()" style="width: 100%; margin-top: 16px;" data-i18n="home.view_7days_button">
+                    📅 查看近 7 天记录
+                </button>
+            </div>
+        </div>
+
+        <!-- 智能食谱页 -->
+        <div id="page-recipes" class="page">
+            <div class="card">
+                <div class="card-title" data-i18n="recipe.title">🍳 智能食谱生成器</div>
+                <div class="card-subtitle" data-i18n="recipe.subtitle">选择就餐人数和食材,我们将为你推荐刚刚好的份量。</div>
+                
+                <!-- 就餐人数 -->
+                <div class="input-group">
+                    <label class="input-label">就餐人数: <span id="people-count">3</span> 人</label>
+                    <input type="range" class="slider" id="people-slider" min="1" max="20" value="3" oninput="updatePeopleCount(this.value); updateImpactRealtime()">
+                </div>
+
+                <!-- 用餐类型 -->
+                <div class="input-group">
+                    <label class="input-label" data-i18n="recipe.meal_type_label">用餐类型</label>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" name="meal-type" id="meal-home" value="home" checked>
+                            <label for="meal-home" class="radio-label" data-i18n="recipe.home_cooking_label">家常菜</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" name="meal-type" id="meal-healthy" value="healthy">
+                            <label for="meal-healthy" class="radio-label" data-i18n="recipe.healthy_label">健康餐</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" name="meal-type" id="meal-vegetarian" value="vegetarian">
+                            <label for="meal-vegetarian" class="radio-label" data-i18n="recipe.vegetarian_label">素食</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" name="meal-type" id="meal-banquet" value="banquet">
+                            <label for="meal-banquet" class="radio-label" data-i18n="recipe.banquet_label">宴客菜</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 自定义食材 -->
+                <div class="input-group">
+                    <label class="input-label" data-i18n="recipe.ingredients_label">主要食材(多种食材用英文逗号分隔)</label>
+                    <input type="text" id="custom-ingredients" class="input-field" data-i18n-placeholder="recipe.ingredients_placeholder_extended" placeholder="例如: 番茄,鸡蛋,土豆">
+                </div>
+
+                <!-- 使用冰箱食材选项 -->
+                <div style="margin: 16px 0;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="use-fridge" style="width: 18px; height: 18px;">
+                        <span data-i18n="recipe.use_fridge_checkbox">✅ 同时使用冰箱现有食材</span>
+                    </label>
+                </div>
+
+                <!-- 饭量系数 -->
+                <div class="input-group">
+                    <label class="input-label">个人饭量系数: <span id="appetite-value">1.0</span></label>
+                    <input type="range" class="slider" id="appetite-slider" min="0.7" max="1.4" step="0.1" value="1.0" oninput="updateAppetiteValue(this.value); updateImpactRealtime()">
+                    <div class="card-subtitle" style="margin-top: 8px;" data-i18n="recipe.appetite_subtitle">如果你家人饭量偏大/偏小,可以微调基础份量系数。</div>
+                </div>
+
+                <!-- 食谱生成计数器 -->
+                <div style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border-radius: var(--radius); padding: 16px; margin: 16px 0; border-left: 4px solid var(--success);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 24px;">📊</span>
+                            <div>
+                                <div style="font-weight: 600; color: var(--primary); font-size: 16px;" data-i18n="recipe.generation_progress_title">食谱生成进度</div>
+                                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;" data-i18n="recipe.generation_progress_subtitle">每生成3次后自动进行营养评估</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 28px; font-weight: 700; color: var(--success);" id="generation-counter-display">0</div>
+                            <div style="font-size: 12px; color: var(--text-muted);" data-i18n="recipe.times_unit">/ 3 次</div>
+                        </div>
+                    </div>
+                    <!-- 进度条 -->
+                    <div style="background: rgba(255,255,255,0.6); border-radius: 10px; height: 8px; overflow: hidden; margin-top: 8px;">
+                        <div id="generation-progress-bar" style="background: linear-gradient(90deg, var(--success), #66BB6A); height: 100%; width: 0%; transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1); border-radius: 10px;"></div>
+                    </div>
+                </div>
+
+                <!-- 操作按钮组 -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
+                    <button class="btn btn-primary" onclick="generateRecipe()" id="generate-btn" style="width: 100%;" data-i18n="recipe.generate_recipe_button">
+                        ✨ 生成环保菜单
+                    </button>
+                    <button class="btn" onclick="resetGenerationCounter()" style="width: 100%; background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); color: #E65100; border: 2px solid #FF9800; font-weight: 600;" data-i18n="recipe.reset_counter_button">
+                        🔄 一键还原
+                    </button>
+                </div>
+            </div>
+
+            <!-- 结果展示 -->
+            <div id="recipe-result" style="display: none;">
+                <div class="card">
+                    <div class="card-title" data-i18n="recipe.impact_quantification_title">📊 本次环保影响量化</div>
+                    <div class="card-subtitle" data-i18n="recipe.impact_subtitle">以下数据基于 FAO 和 Water Footprint Network 公开研究中的平均换算系数。</div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="impact-waste">0 g</div>
+                            <div class="stat-label" data-i18n="recipe.food_waste_reduced">减少食物浪费</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="impact-water">0 L</div>
+                            <div class="stat-label" data-i18n="recipe.water_saved">节约水资源</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="impact-co2">0 g</div>
+                            <div class="stat-label" data-i18n="recipe.carbon_reduced">减少碳排放</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title" data-i18n="recipe.recommended_menu_title">🍽️ 推荐菜单与份量</div>
+                    <div id="recipe-content" class="result-box"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 营养分析页 -->
+        <div id="page-nutrition" class="page">
+            <div class="card">
+                <div class="card-title" data-i18n="nutrition.ai_analysis_title">🔍 智能营养分析</div>
+                <div class="card-subtitle" data-i18n="nutrition.ai_analysis_subtitle">AI 驱动的营养成分检测与健康影响评估</div>
+                
+                <div class="input-group">
+                    <label class="input-label" data-i18n="nutrition.input_label">请输入食材或食谱名称</label>
+                    <input type="text" id="nutrition-input" class="input-field" data-i18n-placeholder="nutrition.input_placeholder" placeholder="例如：土豆炖牛肉、西红柿炒鸡蛋">
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label" data-i18n="nutrition.people_num_label">就餐人数</label>
+                    <input type="number" id="nutrition-people" class="input-field" value="3" min="1" max="20">
+                </div>
+                
+                <button class="btn btn-primary" onclick="analyzeNutrition()" id="analyze-nutrition-btn" style="width: 100%; margin-top: 20px;" data-i18n="nutrition.analyze_button">
+                    🔍 AI 营养分析
+                </button>
+                
+                <div style="margin-top: 20px; padding: 15px; background: rgba(255,140,66,0.1); border-radius: 10px;">
+                    <div style="font-weight: 600; color: var(--primary); margin-bottom: 8px;" data-i18n="nutrition.analysis_content_title">💡 分析内容：</div>
+                    <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.8;">
+                        <div data-i18n="nutrition.analysis_item_calories">• 热量、蛋白质、脂肪、碳水化合物</div>
+                        <div data-i18n="nutrition.analysis_item_vitamins">• 维生素、矿物质含量</div>
+                        <div data-i18n="nutrition.analysis_item_balance">• 营养均衡评估</div>
+                        <div data-i18n="nutrition.analysis_item_advice">• 健康饮食建议</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="nutrition-result" style="display: none;">
+                <div class="card">
+                    <div class="card-title" data-i18n="nutrition.analysis_result_title">📊 营养分析结果</div>
+                    <div id="nutrition-analysis-content" class="result-box"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI助手页 -->
+        <div id="page-chat" class="page">
+            <div class="card">
+                <div class="card-title" data-i18n="chat.title">🤖 AI 对话助手</div>
+                <div class="card-subtitle" data-i18n="chat.subtitle">有任何关于食谱、营养、烹饪的问题,都可以问我!</div>
+                
+                <!-- 快捷问题（原版有，Web版缺失） -->
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 8px;" data-i18n="chat.quick_questions_title">💡 常见问题：</div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="askQuickQuestion('chat.question_potato_sprout')" style="flex: none; padding: 8px 12px; font-size: 13px;" data-i18n="chat.question_potato_sprout">土豆发芽了能吃吗？</button>
+                        <button class="btn btn-secondary" onclick="askQuickQuestion('chat.question_vegetable_storage')" style="flex: none; padding: 8px 12px; font-size: 13px;" data-i18n="chat.question_vegetable_storage">如何保存蔬菜？</button>
+                        <button class="btn btn-secondary" onclick="askQuickQuestion('chat.question_meat_alternative')" style="flex: none; padding: 8px 12px; font-size: 13px;" data-i18n="chat.question_meat_alternative">肉类替代品？</button>
+                        <button class="btn btn-secondary" onclick="askQuickQuestion('chat.question_remove_fishy')" style="flex: none; padding: 8px 12px; font-size: 13px;" data-i18n="chat.question_remove_fishy">怎么去除腥味？</button>
+                    </div>
+                </div>
+                
+                <div id="chat-messages" style="min-height: 450px; max-height: 650px; overflow-y: auto; margin: 20px 0; padding: 20px; background: rgba(255, 255, 255, 0.7); border-radius: 16px; border: 1px solid var(--card-border);"></div>
+                
+                <div style="display: flex; gap: 12px;">
+                    <input type="text" id="chat-input" class="input-field" data-i18n-placeholder="chat.input_placeholder" placeholder="输入您的问题..." style="flex: 1;" onkeypress="if(event.key==='Enter') sendChat()">
+                    <button class="btn btn-primary" onclick="sendChat()" data-i18n="chat.send_button">发送</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 智能冰箱页 -->
+        <div id="page-fridge" class="page">
+            <div class="card">
+                <div class="card-title" data-i18n="fridge.title">🧊 智能冰箱管理</div>
+                <div class="card-subtitle" data-i18n="fridge.subtitle">记录冰箱食材,避免过期浪费</div>
+                
+                <div class="input-group">
+                    <label class="input-label" data-i18n="fridge.name_label">食材名称</label>
+                    <input type="text" id="fridge-name" class="input-field" data-i18n-placeholder="fridge.name_placeholder" placeholder="例如: 番茄">
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label" data-i18n="fridge.quantity_label">数量 (克)</label>
+                    <input type="number" id="fridge-quantity" class="input-field" data-i18n-placeholder="fridge.quantity_placeholder" placeholder="500" min="0">
+                </div>
+                
+                <button class="btn btn-primary" onclick="addFridgeItem()" style="width: 100%;" data-i18n="fridge.add_button">
+                    ➕ 添加食材
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-title" data-i18n="fridge.inventory_title">📦 当前库存</div>
+                <div id="fridge-list"></div>
+            </div>
+        </div>
+
+        <!-- 采购清单页 -->
+        <div id="page-shopping" class="page">
+            <div class="card">
+                <div class="card-title" data-i18n="shopping.title">🛒 智能采购清单</div>
+                <div class="card-subtitle" data-i18n="shopping.subtitle">想吃什么菜？AI 帮你生成购物清单</div>
+                
+                <div class="input-group">
+                    <label class="input-label" data-i18n="shopping.dishes_label">我想吃这些菜...</label>
+                    <input type="text" id="shopping-dishes" class="input-field" data-i18n-placeholder="shopping.dishes_placeholder" placeholder="例如：红烧肉、麻婆豆腐、西红柿蛋汤">
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label" data-i18n="shopping.people_label">就餐人数</label>
+                    <input type="number" id="shopping-people" class="input-field" value="3" min="1" max="20" style="width: 100px;">
+                </div>
+                
+                <div style="margin: 16px 0;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="shopping-budget" checked style="width: 18px; height: 18px;">
+                        <span data-i18n="shopping.budget_checkbox">💰 估算预算</span>
+                    </label>
+                </div>
+                
+                <button class="btn btn-primary" onclick="generateShoppingList()" id="shopping-btn" style="width: 100%;" data-i18n="shopping.generate_button">
+                    📝 生成购物清单
+                </button>
+            </div>
+            
+            <!-- 结果展示区 - 独立卡片 -->
+            <div id="shopping-result-container" class="card" style="display: none; margin-top: 16px;">
+                <div class="card-title" data-i18n="shopping.result_title">📋 采购清单结果</div>
+                <div id="shopping-result" style="overflow: visible;">
+                </div>
+            </div>
+        </div>
+
+        <!-- 关于页 -->
+        <div id="page-about" class="page">
+            <div class="card">
+                <div class="card-title" data-i18n="about.title">ℹ️ 关于 FoodGuardian AI</div>
+                <div class="card-subtitle" data-i18n="about.subtitle">本项目专注"技术 + 教育 + 环保"的结合。</div>
+                
+                <div style="line-height: 2; color: var(--text-secondary);">
+                    <p data-i18n="about.description">🍽️ 智能食谱与环保教育平台</p>
+                    <p data-i18n="about.copyright">© 2026 保留所有权利 · 内容仅用于教育与科普目的。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部TabBar -->
+    <div class="tab-bar">
+        <div class="tab-item active" onclick="switchPage('home')">
+            <div class="tab-icon">🏠</div>
+            <div class="tab-label" data-i18n="nav.home">首页</div>
+        </div>
+        <div class="tab-item" onclick="switchPage('recipes')">
+            <div class="tab-icon">🍳</div>
+            <div class="tab-label" data-i18n="nav.recipe">智能食谱</div>
+        </div>
+        <div class="tab-item" onclick="switchPage('nutrition')">
+            <div class="tab-icon">🥗</div>
+            <div class="tab-label" data-i18n="nav.nutrition">营养分析</div>
+        </div>
+        <div class="tab-item" onclick="switchPage('chat')">
+            <div class="tab-icon">🤖</div>
+            <div class="tab-label" data-i18n="nav.chat">AI助手</div>
+        </div>
+        <div class="tab-item" onclick="switchPage('voice')">
+            <div class="tab-icon">🎤</div>
+            <div class="tab-label" data-i18n="nav.voice">语音交互</div>
+        </div>
+        <div class="tab-item" onclick="switchPage('fridge')">
+            <div class="tab-icon">🧊</div>
+            <div class="tab-label" data-i18n="nav.fridge">智能冰箱</div>
+        </div>
+        <div class="tab-item" onclick="switchPage('shopping')">
+            <div class="tab-icon">🛒</div>
+            <div class="tab-label" data-i18n="nav.shopping">采购清单</div>
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- 7天历史记录模态框 -->
+    <div id="history-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: center;">
+        <div style="background: white; border-radius: 20px; padding: 30px; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">📅 近 7 天摄入记录</h2>
+                <button onclick="closeHistoryModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">❌</button>
+            </div>
+            <div id="history-content"></div>
+        </div>
+    </div>
+
+    <!-- 拍照识菜模态框 -->
+    <div id="image-recognition-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: center;">
+        <div style="background: white; border-radius: 24px; padding: 0; max-width: 900px; width: 95%; max-height: 90vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <!-- 头部 -->
+            <div style="background: linear-gradient(135deg, var(--primary), var(--secondary)); padding: 24px 30px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin: 0; color: white; font-size: 24px;">📸 拍照识菜</h2>
+                    <div style="color: rgba(255,255,255,0.9); font-size: 14px; margin-top: 4px;">上传食材图片，AI 自动识别</div>
+                </div>
+                <button onclick="closeImageRecognitionModal()" style="background: rgba(255,255,255,0.2); border: none; width: 36px; height: 36px; border-radius: 50%; color: white; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">✕</button>
+            </div>
+            
+            <!-- 内容区 -->
+            <div style="padding: 30px; overflow-y: auto; max-height: calc(90vh - 100px); display: flex; flex-direction: column;">
+                <!-- 图片预览区 -->
+                <div id="image-preview-area" style="width: 100%; min-height: 350px; max-height: 450px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px; display: flex; justify-content: center; align-items: center; margin-bottom: 24px; border: 3px dashed var(--primary); transition: all 0.3s; overflow: hidden; position: relative; flex-shrink: 0;">
+                    <div style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                        <div style="font-size: 72px; margin-bottom: 16px; opacity: 0.6;">📷</div>
+                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">点击上传或拖拽图片到此处</div>
+                        <div style="font-size: 13px; color: var(--text-secondary); opacity: 0.7;">支持 JPG、PNG、WebP 格式</div>
+                    </div>
+                </div>
+                
+                <!-- 按钮区 -->
+                <div style="display: flex; gap: 16px; justify-content: center; align-items: center; margin-bottom: 24px; flex-wrap: nowrap;">
+                    <input type="file" id="image-upload-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                    <button class="btn btn-primary" onclick="document.getElementById('image-upload-input').click()" style="flex: 1; min-width: 0; padding: 14px 20px; font-size: 15px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;">
+                        <span>📤</span>
+                        <span>选择图片</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="takePhotoWithCamera()" style="flex: 1; min-width: 0; padding: 14px 20px; font-size: 15px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;">
+                        <span>📷</span>
+                        <span>拍照</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="recognizeImage()" id="recognize-btn" style="flex: 1; min-width: 0; padding: 14px 20px; font-size: 15px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;">
+                        <span>🔍</span>
+                        <span>开始识别</span>
+                    </button>
+                </div>
+                
+                <!-- 识别结果 -->
+                <div id="recognition-result" style="display: none;">
+                    <div style="background: linear-gradient(135deg, rgba(255,140,66,0.1) 0%, rgba(255,179,71,0.1) 100%); border-radius: 16px; padding: 24px; border-left: 4px solid var(--primary);">
+                        <div style="font-weight: 700; font-size: 18px; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <span>✨</span>
+                            <span>识别结果</span>
+                        </div>
+                        
+                        <!-- 🆕 可编辑的食材输入框 -->
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600;" data-i18n="camera.recognized_label">📝 识别到的食材（可编辑）：</label>
+                            <textarea id="recognized-ingredients-input" style="width: 100%; min-height: 80px; padding: 12px; border: 2px solid var(--separator); border-radius: 10px; font-size: 15px; resize: vertical; outline: none; transition: all 0.3s;" data-i18n-placeholder="camera.recognized_placeholder" placeholder="例如：西红柿,鸡蛋,青椒"></textarea>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 6px; opacity: 0.8;" data-i18n="camera.edit_hint">💡 提示：如果识别不准确，您可以手动修改，用逗号分隔</div>
+                        </div>
+                        
+                        <!-- 确认按钮 -->
+                        <button onclick="confirmRecognizedIngredients()" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 16px; border-radius: 12px; margin-top: 12px;" data-i18n="camera.confirm_button">
+                            ✅ 确认并录入摄入数据
+                        </button>
+                        
+                        <div id="recognition-content" style="color: var(--text-primary); line-height: 1.8; font-size: 15px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--separator);"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 语音交互页 -->
+    <div id="page-voice" class="page">
+        <div class="card">
+            <div class="card-title" data-i18n="voice.interaction_title">🎤 语音交互 - 说话问 AI</div>
+            <div class="card-subtitle" data-i18n="voice.interaction_subtitle">语音转文字 · 一键问 AI</div>
+            
+            <!-- 语音输入显示区 -->
+            <div style="background: rgba(255,255,255,0.5); border-radius: 15px; padding: 20px; margin-bottom: 20px; min-height: 250px;">
+                <div style="font-weight: 600; margin-bottom: 10px; color: var(--text-primary);" data-i18n="voice.voice_input_label">📢 语音输入</div>
+                <textarea id="voice-input-display" style="width: 100%; min-height: 200px; border: none; background: transparent; font-size: 16px; resize: vertical; outline: none;" data-i18n-placeholder="voice.voice_input_placeholder" placeholder="正在初始化，请稍候..."></textarea>
+            </div>
+            
+            <!-- 录音进度条 -->
+            <div id="recording-progress" style="display: none; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <span id="recording-label" style="font-weight: 600; color: var(--primary);" data-i18n="voice.recording_label">🎙️ 正在录音...</span>
+                    <span id="recording-time" style="color: var(--text-secondary);"></span>
+                </div>
+                <div class="progress-bar">
+                    <div id="recording-progress-fill" class="progress-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+            
+            <!-- 按钮区 -->
+            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="startVoiceRecording()" id="record-btn" style="height: 80px; width: 200px; font-size: 20px;" data-i18n="voice.record_button">🎤 按住说话</button>
+                <button class="btn btn-secondary" onclick="stopRecordingEarly()" id="early-stop-btn" style="display: none;" data-i18n="voice.early_stop_button">✅ 确定（提前结束）</button>
+            </div>
+            
+            <!-- 确认按钮组（识别成功后显示） -->
+            <div id="voice-confirm-buttons" style="display: none; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="confirmAndAskAI()" data-i18n="voice.confirm_button">✅ 确定（向 AI 提问）</button>
+                <button class="btn btn-secondary" onclick="editVoiceText()" data-i18n="voice.edit_button">✏️ 修改文字</button>
+                <button class="btn btn-secondary" onclick="cancelVoiceRecording()" data-i18n="voice.cancel_button">❌ 取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 全局状态 ====================
+        let appData = {
+            nickname: '',
+            population_group: 'adults',
+            waste_reduced: 0,
+            water_saved: 0,
+            co2_reduced: 0,
+            daily_intake_records: [],
+            fridge_inventory: [],
+            generation_count: 0  // 🔑 关键修复：添加计数器字段
+        };
+
+        /**
+         * 🔑 关键修复：更新人群标签（因为包含HTML标签，不能用data-i18n）
+         * 同时更新就餐人数和饭量系数标签
+         */
+        function updatePopulationLabels() {
+            const lang = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
+            
+            // 1. 更新人群标签
+            const labels = {
+                'zh-CN': {
+                    adults: '成年人<br><small>18-60岁</small>',
+                    teens: '青少年<br><small>13-17岁</small>',
+                    children: '儿童<br><small>6-12岁</small>',
+                    elderly: '老年人<br><small>60岁以上</small>',
+                    all: '以上皆是<br><small>所有人群</small>'
+                },
+                'en-US': {
+                    adults: 'Adults<br><small>18-60 years</small>',
+                    teens: 'Teens<br><small>13-17 years</small>',
+                    children: 'Children<br><small>6-12 years</small>',
+                    elderly: 'Elderly<br><small>60+ years</small>',
+                    all: 'All Groups<br><small>All Populations</small>'
+                }
+            };
+            
+            const currentLabels = labels[lang] || labels['zh-CN'];
+            
+            // 更新每个标签
+            document.querySelector('label[for="pop-adults"]').innerHTML = currentLabels.adults;
+            document.querySelector('label[for="pop-teens"]').innerHTML = currentLabels.teens;
+            document.querySelector('label[for="pop-children"]').innerHTML = currentLabels.children;
+            document.querySelector('label[for="pop-elderly"]').innerHTML = currentLabels.elderly;
+            document.querySelector('label[for="pop-all"]').innerHTML = currentLabels.all;
+            
+            // 2. 🔑 关键修复：同时更新就餐人数和饭量系数标签
+            const peopleValue = document.getElementById('people-slider').value;
+            const appetiteValue = document.getElementById('appetite-slider').value;
+            
+            // 更新就餐人数标签
+            const peopleSlider = document.getElementById('people-slider');
+            const peopleLabel = peopleSlider.closest('.input-group').querySelector('.input-label');
+            if (lang === 'en-US') {
+                peopleLabel.innerHTML = `Number of People: <span id="people-count">${peopleValue}</span>`;
+            } else {
+                peopleLabel.innerHTML = `就餐人数: <span id="people-count">${peopleValue}</span> 人`;
+            }
+            
+            // 更新饭量系数标签
+            const appetiteSlider = document.getElementById('appetite-slider');
+            const appetiteLabel = appetiteSlider.closest('.input-group').querySelector('.input-label');
+            if (lang === 'en-US') {
+                appetiteLabel.innerHTML = `Personal Appetite Coefficient: <span id="appetite-value">${appetiteValue}</span>`;
+            } else {
+                appetiteLabel.innerHTML = `个人饭量系数: <span id="appetite-value">${appetiteValue}</span>`;
+            }
+            
+            console.log(`🏷️ 人群标签及滑块标签已更新为: ${lang}`);
+        }
+
+        // ==================== 初始化 ====================
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 🌐 先初始化国际化模块
+            if (window.i18n) {
+                await window.i18n.init();
+                console.log('✅ i18n initialized');
+                
+                // 监听语言切换事件
+                window.addEventListener('languageChanged', (e) => {
+                    console.log(`🌐 Language changed to: ${e.detail.language}`);
+                    // 重新加载数据以应用新语言
+                    loadData();
+                    // 🔑 关键修复：更新人群标签（因为包含HTML标签）
+                    updatePopulationLabels();
+                });
+            }
+            
+            await loadData();
+            setupEventListeners();
+            
+            // 🔑 关键修复：初始化人群标签
+            updatePopulationLabels();
+            
+            // 初始化计数器显示
+            setTimeout(() => {
+                const initialCount = appData.generation_count || 0;
+                updateGenerationCounterDisplay(initialCount);
+                console.log(`📊 初始化计数器: ${initialCount}/3`);
+            }, 100);
+        });
+
+        // ==================== 通用错误处理 ====================
+        
+        // 🔑 新增：安全的API调用辅助函数
+        async function safeApiCall(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    method: options.method || 'POST',
+                    headers: { 'Content-Type': 'application/json', ...options.headers },
+                    body: options.body ? JSON.stringify(options.body) : undefined
+                });
+                
+                // 检查HTTP状态码
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`❌ API请求失败 [${response.status}]:`, errorText.substring(0, 200));
+                    throw new Error(`服务器错误 (${response.status}): ${response.statusText}`);
+                }
+                
+                // 尝试解析JSON
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return await response.json();
+                } else {
+                    const text = await response.text();
+                    console.error('❌ 非JSON响应:', text.substring(0, 200));
+                    throw new Error('服务器返回了非JSON格式的响应');
+                }
+            } catch (error) {
+                console.error(`❌ API调用异常 [${url}]:`, error);
+                throw error;
+            }
+        }
+        
+        function handleApiError(errorMsg) {
+            // 错误消息国际化映射
+            const errorMap = {
+                '服务器错误': 'error_server',
+                'AI 回复失败': 'error_ai_reply',
+                'AI 生成失败': 'error_ai_generate',
+                'AI 查询失败': 'error_ai_query',
+                '索引无效': 'error_invalid_index',
+                '请输入食材名称': 'error_input_required',
+                '请提供食材列表': 'error_input_list_required',
+                '请上传图片': 'error_upload_required',
+                '识别失败': 'error_recognition_failed',
+                '未找到音频文件': 'error_audio_not_found',
+                '音频文件过大': 'error_audio_too_large',
+                '网络连接失败': 'error_network',
+                '未知错误': 'error_unknown'
+            };
+            
+            // 尝试匹配错误消息
+            for (const [cnPattern, i18nKey] of Object.entries(errorMap)) {
+                if (errorMsg.includes(cnPattern)) {
+                    const msg = window.i18n ? window.i18n.t(`common.${i18nKey}`) : errorMsg;
+                    return `❌ ${msg}`;
+                }
+            }
+            
+            // 如果无法匹配，直接返回原始错误
+            return `❌ ${errorMsg}`;
+        }
+
+        function setupEventListeners() {
+            // 人群选择监听
+            document.querySelectorAll('input[name="population"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    appData.population_group = this.value;
+                    saveData();
+                    showToast(`已切换至: ${this.nextElementSibling.textContent.trim().split('\n')[0]}`);
+                });
+            });
+            
+            // 🌐 初始化语言切换按钮显示
+            updateLanguageSwitcher();
+        }
+        
+        // 🌐 语言切换功能
+        async function toggleLanguage() {
+            if (!window.i18n) {
+                console.warn('i18n not initialized');
+                return;
+            }
+            
+            const currentLang = window.i18n.getCurrentLanguage();
+            const newLang = currentLang === 'zh-CN' ? 'en-US' : 'zh-CN';
+            
+            await window.i18n.switchLanguage(newLang);
+            updateLanguageSwitcher();
+            showToast(`🌐 Language switched to ${window.i18n.getLanguageDisplayName(newLang)}`);
+        }
+        
+        // 🌐 更新语言切换按钮显示
+        function updateLanguageSwitcher() {
+            if (!window.i18n) return;
+            
+            const currentLang = window.i18n.getCurrentLanguage();
+            const flagElement = document.getElementById('current-lang-flag');
+            if (flagElement) {
+                flagElement.textContent = window.i18n.getLanguageFlag(currentLang);
+            }
+        }
+
+        // ==================== 数据持久化 ====================
+        async function loadData() {
+            try {
+                const response = await fetch('/api/data');
+                const result = await response.json();
+                if (result.success) {
+                    appData = result.data;
+                    updateUI();
+                    
+                    // 🆕 关键修复：每次加载数据后，自动刷新摄入表格
+                    await loadTodayIntakeTable();
+                    
+                    return appData;  // 关键修复：返回数据
+                }
+            } catch (error) {
+                console.error('加载数据失败:', error);
+            }
+            return appData;  // 出错时也返回当前数据
+        }
+
+        async function saveData() {
+            try {
+                await fetch('/api/data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(appData)
+                });
+            } catch (error) {
+                console.error('保存数据失败:', error);
+            }
+        }
+
+        function updateUI() {
+            // 更新昵称
+            document.getElementById('nickname-input').value = appData.nickname || '';
+            updateWelcomeMessage();
+            
+            // 更新人群选择
+            const popRadio = document.querySelector(`input[name="population"][value="${appData.population_group}"]`);
+            if (popRadio) popRadio.checked = true;
+            
+            // 更新统计数据
+            document.getElementById('stat-waste').textContent = `${appData.waste_reduced || 0} g`;
+            document.getElementById('stat-water').textContent = `${appData.water_saved || 0} L`;
+            document.getElementById('stat-co2').textContent = `${appData.co2_reduced || 0} g`;
+        }
+
+        // ==================== 页面切换 ====================
+        function switchPage(pageName) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // 显示目标页面
+            document.getElementById(`page-${pageName}`).classList.add('active');
+            
+            // 更新TabBar状态
+            document.querySelectorAll('.tab-item').forEach((item, index) => {
+                item.classList.remove('active');
+            });
+            
+            const tabIndex = ['home', 'recipes', 'nutrition', 'chat', 'voice', 'fridge', 'shopping'].indexOf(pageName);
+            if (tabIndex !== -1) {
+                document.querySelectorAll('.tab-item')[tabIndex].classList.add('active');
+            }
+            
+            // 滚动到顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // 特殊页面处理：切换到冰箱页面时自动加载库存
+            if (pageName === 'fridge') {
+                loadFridgeItems();
+            }
+        }
+
+        // ==================== 首页功能 ====================
+        function updateWelcomeMessage() {
+            const welcomeEl = document.getElementById('welcome-message');
+            if (appData.nickname) {
+                const msgTemplate = window.i18n ? window.i18n.t('common.welcome_back_message') : '欢迎回来,{name}!今天也一起为地球省下一点点资源吧。';
+                welcomeEl.textContent = msgTemplate.replace('{name}', appData.nickname);
+            } else {
+                welcomeEl.textContent = '';
+            }
+        }
+
+        async function saveNickname() {
+            const nickname = document.getElementById('nickname-input').value.trim();
+            if (!nickname) {
+                // 🌐 使用国际化文本
+                const msg = window.i18n ? window.i18n.t('common.nickname_required') : '请输入一个昵称';
+                showToast(msg);
+                return;
+            }
+            
+            appData.nickname = nickname;
+            await saveData();
+            updateWelcomeMessage();
+            // 🌐 使用国际化文本
+            const msg = window.i18n ? window.i18n.t('common.nickname_saved') : '✅ 昵称已保存';
+            showToast(msg);
+        }
+
+        function resetStats() {
+            // 🌐 使用国际化文本
+            const confirmText = window.i18n ? window.i18n.t('common.confirm_reset') : '确定要清零本机的所有环保统计吗?此操作不可恢复。';
+            if (confirm(confirmText)) {
+                appData.waste_reduced = 0;
+                appData.water_saved = 0;
+                appData.co2_reduced = 0;
+                saveData();
+                updateUI();
+                // 🌐 使用国际化文本
+                const msg = window.i18n ? window.i18n.t('common.stats_reset_success') : '✅ 统计已重置';
+                showToast(msg);
+            }
+        }
+
+        // ==================== 智能食谱功能 ====================
+        /**
+         * 🔑 关键修复：更新就餐人数显示（支持多语言）
+         */
+        function updatePeopleCount(value) {
+            const lang = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
+            const slider = document.getElementById('people-slider');
+            const label = slider.closest('.input-group').querySelector('.input-label');
+            
+            if (lang === 'en-US') {
+                label.innerHTML = `Number of People: <span id="people-count">${value}</span>`;
+            } else {
+                label.innerHTML = `就餐人数: <span id="people-count">${value}</span> 人`;
+            }
+        }
+
+        /**
+         * 🔑 关键修复：更新饭量系数显示（支持多语言）
+         */
+        function updateAppetiteValue(value) {
+            const lang = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
+            const slider = document.getElementById('appetite-slider');
+            const label = slider.closest('.input-group').querySelector('.input-label');
+            
+            if (lang === 'en-US') {
+                label.innerHTML = `Personal Appetite Coefficient: <span id="appetite-value">${value}</span>`;
+            } else {
+                label.innerHTML = `个人饭量系数: <span id="appetite-value">${value}</span>`;
+            }
+        }
+
+        // ==================== 食谱生成计数器功能 ====================
+        
+        /**
+         * 将 Markdown 文本转换为 HTML
+         */
+        function formatMarkdown(text) {
+            if (!text) return '';
+            
+            let html = text;
+            
+            // 转换标题 (##, ###, ####)
+            html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            
+            // 转换粗体 (**text** 或 __text__)
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+            
+            // 转换斜体 (*text* 或 _text_)
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+            
+            // 转换无序列表 (- item 或 * item)
+            html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+            
+            // 将连续的 <li> 包裹在 <ul> 中
+            html = html.replace(/((?:<li>.+<\/li>\n?)+)/g, '<ul>$1</ul>');
+            
+            // 转换有序列表 (1. item)
+            html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+            
+            // 转换换行符为 <br>
+            html = html.replace(/\n/g, '<br>');
+            
+            // 清理多余的 <br> 标签
+            html = html.replace(/(<br>){3,}/g, '<br><br>');
+            
+            return html;
+        }
+
+        /**
+         * 更新计数器UI显示
+         */
+        function updateGenerationCounterDisplay(count) {
+            const counterDisplay = document.getElementById('generation-counter-display');
+            const progressBar = document.getElementById('generation-progress-bar');
+            
+            if (counterDisplay) {
+                counterDisplay.textContent = count;
+            }
+            
+            if (progressBar) {
+                // 计算进度百分比（0-3次）
+                const percentage = Math.min((count / 3) * 100, 100);
+                progressBar.style.width = percentage + '%';
+                
+                // 根据进度改变颜色
+                if (count === 0) {
+                    progressBar.style.background = 'linear-gradient(90deg, #BDBDBD, #9E9E9E)';
+                } else if (count < 3) {
+                    progressBar.style.background = 'linear-gradient(90deg, var(--success), #66BB6A)';
+                } else {
+                    progressBar.style.background = 'linear-gradient(90deg, #FF9800, #FFC107)';
+                }
+            }
+            
+            console.log(`📊 当前生成次数: ${count}/3`);
+        }
+
+        /**
+         * 一键还原：重置生成计数器 + 清空今日摄入记录
+         */
+        async function resetGenerationCounter() {
+            try {
+                // 确认对话框
+                const confirmTitle = window.i18n ? window.i18n.t('recipe.reset_counter_button') : '🔄 一键还原';
+                const confirmMessage = window.i18n 
+                    ? `确定要重置食谱生成进度吗？\n\n这将：\n1. 清除当前的生成进度（从第0次重新开始）\n2. 清空今日所有饮食摄入记录\n\n此操作不可恢复！`
+                    : '确定要重置食谱生成进度吗？\n\n这将：\n1. 清除当前的生成进度（从第0次重新开始）\n2. 清空今日所有饮食摄入记录\n\n此操作不可恢复！';
+                
+                if (!confirm(confirmMessage)) {
+                    return;
+                }
+                
+                console.log('\n🔄 [一键还原] 开始重置...');
+                
+                // 🔑 关键修复：直接使用全局 appData，不要创建局部变量
+                await loadData();  // 这会更新全局 appData
+                
+                // 1. 重置计数器为0
+                appData.generation_count = 0;
+                console.log('   ✅ 计数器已重置为0');
+                
+                // 2. 🆕 关键修复：清空今日的摄入记录
+                const today = new Date().toISOString().split('T')[0];
+                const allRecords = appData.daily_intake_records || [];
+                const recordsToRemove = allRecords.filter(r => r.date === today);
+                
+                if (recordsToRemove.length > 0) {
+                    // 移除今日的所有记录
+                    appData.daily_intake_records = allRecords.filter(r => r.date !== today);
+                    console.log(`   ✅ 已清空今日摄入记录: ${recordsToRemove.length}条`);
+                    console.log('   📊 今日记录详情:', recordsToRemove);
+                } else {
+                    console.log('   ℹ️ 今日无摄入记录，无需清空');
+                }
+                
+                // 保存数据
+                await saveData();
+                
+                // 更新UI显示
+                updateGenerationCounterDisplay(0);
+                
+                // 🆕 刷新摄入概览表格（如果存在）
+                if (typeof loadTodayIntakeTable === 'function') {
+                    await loadTodayIntakeTable();
+                    console.log('   ✅ 已刷新摄入概览表格');
+                }
+                
+                showToast(window.i18n ? window.i18n.t('common.full_reset_success') : '✅ 已完全重置！现在从第0次开始重新计算');
+                console.log('🔄 [一键还原] 完成\n');
+                
+            } catch (error) {
+                console.error('❌ 重置失败:', error);
+                showToast(window.i18n ? window.i18n.t('common.reset_failed') : '❌ 重置失败，请重试');
+            }
+        }
+
+        // 实时计算环保数据
+        async function updateImpactRealtime() {
+            const customIngredients = document.getElementById('custom-ingredients').value.trim();
+            if (!customIngredients) return; // 没有食材不计算
+            
+            const peopleNum = parseInt(document.getElementById('people-slider').value);
+            const appetite = parseFloat(document.getElementById('appetite-slider').value);
+            
+            // 如果结果区域已经显示，则实时更新
+            const resultDiv = document.getElementById('recipe-result');
+            if (resultDiv.style.display === 'none') return;
+            
+            try {
+                // 🌐 获取当前语言
+                const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
+                
+                const response = await fetch('/api/generate_recipe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        custom_ingredients: customIngredients,
+                        people_num: peopleNum,
+                        meal_type: document.querySelector('input[name="meal-type"]:checked').value,
+                        appetite: appetite,
+                        use_fridge: document.getElementById('use-fridge').checked,
+                        language: currentLanguage  // 🌐 传递语言参数
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success && result.impact) {
+                    // 只更新环保数据，不更新食谱内容
+                    document.getElementById('impact-waste').textContent = `${result.impact.food_waste} g`;
+                    document.getElementById('impact-water').textContent = `${result.impact.water} L`;
+                    document.getElementById('impact-co2').textContent = `${result.impact.carbon} g`;
+                }
+            } catch (error) {
+                console.error('实时计算环保数据失败:', error);
+            }
+        }
+
+        async function generateRecipe() {
+            const customIngredients = document.getElementById('custom-ingredients').value.trim();
+            if (!customIngredients) {
+                showToast(window.i18n ? window.i18n.t('common.ingredient_required') : '请至少输入一种食材');
+                return;
+            }
+
+            const peopleNum = parseInt(document.getElementById('people-slider').value);
+            const mealType = document.querySelector('input[name="meal-type"]:checked').value;
+            const appetite = parseFloat(document.getElementById('appetite-slider').value);
+            const useFridge = document.getElementById('use-fridge').checked;
+
+            const btn = document.getElementById('generate-btn');
+            btn.disabled = true;
+            // 🌐 修复：根据当前语言设置按钮文本
+            const btnText = window.i18n ? window.i18n.t('recipe.generating') : '生成中...';
+            btn.innerHTML = '<span class="loading"></span> ' + btnText;
+
+            try {
+                // 🌐 获取当前语言
+                const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
+                
+                const response = await fetch('/api/generate_recipe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        custom_ingredients: customIngredients,
+                        people_num: peopleNum,
+                        meal_type: mealType,
+                        appetite: appetite,
+                        use_fridge: useFridge,
+                        language: currentLanguage  // 🌐 传递语言参数
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 显示结果
+                    document.getElementById('recipe-result').style.display = 'block';
+                    // 使用 formatMarkdown 格式化 AI 返回的内容
+                    document.getElementById('recipe-content').innerHTML = formatMarkdown(result.recipe);
+                    
+                    // 更新环保影响
+                    document.getElementById('impact-waste').textContent = `${result.impact.food_waste} g`;
+                    document.getElementById('impact-water').textContent = `${result.impact.water} L`;
+                    document.getElementById('impact-co2').textContent = `${result.impact.carbon} g`;
+                    
+                    // 更新累计统计
+                    appData.waste_reduced = (appData.waste_reduced || 0) + result.impact.food_waste;
+                    appData.water_saved = (appData.water_saved || 0) + result.impact.water;
+                    appData.co2_reduced = (appData.co2_reduced || 0) + result.impact.carbon;
+                    
+                    // 🔑 关键修复：递增食谱生成计数器
+                    appData.generation_count = (appData.generation_count || 0) + 1;
+                    
+                    await saveData();
+                    updateUI();
+                    
+                    showToast(window.i18n ? window.i18n.t('common.recipe_generated') : '✅ 食谱生成成功');
+                    
+                    // 滚动到结果区域
+                    document.getElementById('recipe-result').scrollIntoView({ behavior: 'smooth' });
+                    
+                    // 🔑 关键修复：基于 generation_count 计算餐数，而不是 daily_intake_records
+                    // 因为用户可能手动添加摄入记录，导致记录数与生成次数不一致
+                    const currentMealCount = appData.generation_count || 0; // 已生成的餐数
+                    const nextMealNum = currentMealCount; // 当前是第几餐（已经+1了）
+                    
+                    console.log(`\n📊 [食谱生成] 检查计数器:`);
+                    console.log(`   - generation_count: ${currentMealCount}`);
+                    console.log(`   - 即将录入第${nextMealNum}餐`);
+                    
+                    // 立即更新UI显示
+                    updateGenerationCounterDisplay(nextMealNum);
+                    
+                    // 🎯 根据餐数决定操作：先录入，再判断是否评估
+                    if (nextMealNum <= 2) {
+                        // 第1-2餐：只录入，不评估
+                        const msgTemplate = window.i18n ? window.i18n.t('common.meal_generated_auto_intake') : '📝 第{num}餐食谱生成，正在自动录入摄入数据...';
+                        showToast(msgTemplate.replace('{num}', nextMealNum));
+                        await autoIntakeOnly(customIngredients, peopleNum, nextMealNum);
+                        
+                        // 🆕 关键修复：录入完成后再次刷新数据，确保下次生成时能读取到最新记录
+                        await loadData();
+                    } else {
+                        // 第3餐：先录入，再评估，最后生成饮食推荐
+                        showToast(window.i18n ? window.i18n.t('common.auto_intake_progress') : '🎉 第3餐食谱生成，正在自动录入并执行营养评估...');
+                        await autoIntakeAndAssess(customIngredients, peopleNum);
+                        
+                        // 🆕 关键修复：评估完成后再次刷新数据
+                        await loadData();
+                        
+                        // 🆕 新增：第3餐后自动生成饮食推荐
+                        showToast(window.i18n ? window.i18n.t('common.generating_recommendation') : '🍽️ 正在为您生成今日饮食推荐...');
+                        await generateDailyRecommendation();
+                    }
+                } else {
+                    showToast(handleApiError(result.error));
+                }
+            } catch (error) {
+                // 显示详细错误信息
+                const errorMsg = error.message || '未知错误';
+                console.error('❌ 生成食谱失败:', error);
+                const msgTemplate = window.i18n ? window.i18n.t('common.network_error_details') : '❌ 网络错误: {error}\n\n请检查:\n1. 服务器是否运行\n2. 网络连接是否正常\n3. API密钥是否有效';
+                showToast(msgTemplate.replace('{error}', errorMsg));
+                
+                // ⚠️ 关键修复：API调用失败时，回滚计数器
+                try {
+                    await loadData();  // 重新加载最新数据
+                    if (appData.generation_count > 0) {
+                        appData.generation_count--;
+                        await saveData();
+                        updateGenerationCounterDisplay(appData.generation_count);
+                        console.log('⚠️ API调用失败，已回滚计数器');
+                    }
+                } catch (rollbackError) {
+                    console.error('回滚计数器失败:', rollbackError);
+                }
+            } finally {
+                btn.disabled = false;
+                // 🌐 修复：根据当前语言设置按钮文本
+                const btnText = window.i18n ? window.i18n.t('recipe.generate_recipe_button') : '✨ 生成环保菜单';
+                btn.innerHTML = btnText;
+            }
+        }
+
+        // ==================== 营养分析功能 ====================
+        async function analyzeNutrition() {
+            const foodInput = document.getElementById('nutrition-input').value.trim();
+            const people = parseInt(document.getElementById('nutrition-people').value) || 3;
+            
+            if (!foodInput) {
+                showToast(window.i18n ? window.i18n.t('common.input_food_required') : '❌ 请输入食材或食谱名称');
+                return;
+            }
+            
+            const btn = document.getElementById('analyze-nutrition-btn');
+            btn.disabled = true;
+            // 🌐 修复：根据当前语言设置按钮文本
+            const btnText = window.i18n ? window.i18n.t('common.analyzing') : 'AI 分析中...';
+            btn.innerHTML = '<span class="loading"></span> ' + btnText;
+            
+            try {
+                // 🌐 获取当前语言
+                const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
+                
+                const response = await fetch('/api/analyze_nutrition', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        food_input: foodInput,
+                        people: people,
+                        language: currentLanguage  // 🌐 传递语言参数
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('nutrition-result').style.display = 'block';
+                    // 使用 formatMarkdown 格式化 AI 返回的内容
+                    document.getElementById('nutrition-analysis-content').innerHTML = formatMarkdown(result.analysis);
+                    document.getElementById('nutrition-result').scrollIntoView({ behavior: 'smooth' });
+                    showToast(window.i18n ? window.i18n.t('common.analysis_success') : '✅ 营养分析完成');
+                } else {
+                    showToast(handleApiError(result.error));
+                }
+            } catch (error) {
+                showToast(window.i18n ? window.i18n.t('common.analysis_failed') : '❌ 分析失败，请重试');
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                // 🌐 修复：根据当前语言设置按钮文本
+                const btnText = window.i18n ? window.i18n.t('nutrition.analyze_button') : '🔍 AI 营养分析';
+                btn.innerHTML = btnText;
+            }
+        }
+        
+        async function saveIntake() {
+            const vegetables = parseInt(document.getElementById('intake-vegetables').value) || 0;
+            const fruits = parseInt(document.getElementById('intake-fruits').value) || 0;
+            const meat = parseInt(document.getElementById('intake-meat').value) || 0;
+            const eggs = parseInt(document.getElementById('intake-eggs').value) || 0;
+
+            try {
+                const result = await safeApiCall('/api/save_intake', {
+                    body: { vegetables, fruits, meat, eggs }
+                });
+                
+                if (result.success) {
+                    const msg = window.i18n ? window.i18n.t('common.intake_saved') : '✅ 摄入数据已保存';
+                    showToast(msg);
+                    
+                    // 显示预警信息
+                    if (result.warnings && result.warnings.length > 0) {
+                        result.warnings.forEach(warning => {
+                            setTimeout(() => showToast(warning), 500);
+                        });
+                    }
+                    
+                    // 自动进行营养评估
+                    await performNutritionAssessment(result.total_intake);
+                }
+            } catch (error) {
+                const msg = window.i18n ? window.i18n.t('common.save_failed') : '❌ 保存失败';
+                showToast(msg);
+                console.error(error);
+            }
+        }
+
+        async function performNutritionAssessment(intake) {
+            try {
+                const response = await fetch('/api/nutrition_assess', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_intake: intake,
+                        population_group: appData.population_group
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 显示评估结果（在首页的评估报告区域）
+                    const assessmentResultDiv = document.getElementById('home-assessment-result');
+                    const assessmentContentDiv = document.getElementById('home-assessment-content');
+                    
+                    if (assessmentResultDiv && assessmentContentDiv) {
+                        assessmentResultDiv.style.display = 'block';
+                        
+                        // 使用 formatMarkdown 格式化报告内容
+                        assessmentContentDiv.innerHTML = formatMarkdown(result.report);
+                        
+                        // 滚动到评估结果区域
+                        assessmentResultDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        
+                        console.log('✅ 营养评估报告已显示');
+                    } else {
+                        console.error('❌ 找不到评估结果展示区域');
+                    }
+                }
+            } catch (error) {
+                console.error('营养评估失败:', error);
+            }
+        }
+        
+        // 第1-2次生成：只自动录入摄入数据，不评估
+        // ==================== 自动录入摄入数据（简化版 - 完全照搬Python逻辑）====================
+        async function autoIntakeOnly(ingredients, peopleNum, count) {
+            try {
+                console.log(`\n========== 开始自动录入摄入数据 ==========`);
+                
+                // 🆕 关键修复：支持多种分隔符
+                const ingredientList = ingredients
+                    .split(/[,，、]/)  // 支持英文逗号、中文逗号、中文顿号
+                    .map(i => i.trim())
+                    .filter(i => i);
+                        
+                if (ingredientList.length === 0) {
+                    console.log('⚠️ 用户未输入食材，跳过录入');
+                    return;
+                }
+                
+                console.log(`📝 识别到食材：${ingredientList}`);
+                
+                // 🎯 核心逻辑：支持中英文关键词匹配
+                let vegetables = 0;
+                let fruits = 0;
+                let meat = 0;
+                let eggs = 0;
+                
+                // 🔑 关键修复：根据人数调整基础份量
+                const baseVeg = 200 * peopleNum;  // 每人200g蔬菜
+                const baseFruit = 150 * peopleNum; // 每人150g水果
+                const baseMeat = 150 * peopleNum;  // 每人150g肉类
+                const baseEgg = 50 * peopleNum;    // 每人50g蛋类
+                
+                // 遍历每个食材，用关键词匹配分类
+                for (const food of ingredientList) {
+                    const foodLower = food.toLowerCase();
+                    
+                    // 蔬菜类（中英文关键词）- 使用更精确的匹配
+                    if (food.includes('菜') || food.includes('萝卜') || food.includes('瓜') || 
+                        food.includes('笋') || food.includes('菇') || food.includes('豆') || 
+                        food.includes('葱') || food.includes('蒜') || food.includes('姜') || 
+                        food.includes('辣椒') || food.includes('香菜') || 
+                        food.includes('番茄') || food.includes('西红柿') || food.includes('土豆') || 
+                        food.includes('马铃薯') || food.includes('白菜') || food.includes('菠菜') || 
+                        food.includes('生菜') || food.includes('油麦') || food.includes('芹菜') || 
+                        food.includes('韭菜') || food.includes('洋葱') || food.includes('茄子') || 
+                        food.includes('青椒') || food.includes('黄瓜') || food.includes('南瓜') || 
+                        food.includes('冬瓜') || food.includes('丝瓜') || food.includes('苦瓜') || 
+                        food.includes('西葫芦') || food.includes('莲藕') || food.includes('山药') || 
+                        food.includes('红薯') || food.includes('紫薯') || food.includes('玉米') || 
+                        food.includes('木耳') || food.includes('银耳') || food.includes('金针') || 
+                        food.includes('香菇') || food.includes('平菇') || food.includes('杏鲍') ||
+                        // 英文关键词 - 使用精确匹配
+                        /^\s*(vegetable|tomato|potato|cabbage|spinach|lettuce|celery|onion|pepper|cucumber|mushroom|bean|broccoli|carrot)\s*$/.test(foodLower) ||
+                        foodLower.includes('vegetable') || foodLower.includes('tomato') || 
+                        foodLower.includes('potato') || foodLower.includes('cabbage') || 
+                        foodLower.includes('spinach') || foodLower.includes('lettuce') || 
+                        foodLower.includes('celery') || foodLower.includes('onion') || 
+                        foodLower.includes('pepper') || foodLower.includes('cucumber') || 
+                        foodLower.includes('mushroom') || foodLower.includes('bean') || 
+                        foodLower.includes('broccoli') || foodLower.includes('carrot')) {
+                        vegetables += baseVeg;
+                        console.log(`  🥬 ${food} → 蔬菜 +${baseVeg}g (累计：${vegetables}g)`);
+                    }
+                    // 水果类（中英文关键词）
+                    else if (food.includes('苹果') || food.includes('香蕉') || food.includes('梨') || 
+                             food.includes('桃') || food.includes('葡萄') || food.includes('橙') || 
+                             food.includes('柚') || food.includes('柠檬') || food.includes('橘子') || 
+                             food.includes('桔子') || food.includes('西瓜') || food.includes('哈密') || 
+                             food.includes('草莓') || food.includes('蓝莓') || food.includes('樱桃') || 
+                             food.includes('芒果') || food.includes('菠萝') || food.includes('榴莲') || 
+                             food.includes('猕猴桃') || food.includes('火龙果') || food.includes('百香') ||
+                             // 英文关键词
+                             /^\s*(apple|banana|pear|grape|orange|lemon|watermelon|strawberry|blueberry|cherry|mango|pineapple|fruit)\s*$/.test(foodLower) ||
+                             foodLower.includes('apple') || foodLower.includes('banana') || 
+                             foodLower.includes('pear') || foodLower.includes('grape') || 
+                             foodLower.includes('orange') || foodLower.includes('lemon') || 
+                             foodLower.includes('watermelon') || foodLower.includes('strawberry') || 
+                             foodLower.includes('blueberry') || foodLower.includes('cherry') || 
+                             foodLower.includes('mango') || foodLower.includes('pineapple') || 
+                             foodLower.includes('fruit')) {
+                        fruits += baseFruit;
+                        console.log(`  🍎 ${food} → 水果 +${baseFruit}g (累计：${fruits}g)`);
+                    }
+                    // 蛋类（优先判断，避免被误判为肉类）
+                    else if (food.includes('蛋') || /^\s*egg\s*$/.test(foodLower) || foodLower.includes('egg')) {
+                        eggs += baseEgg;
+                        console.log(`  🥚 ${food} → 蛋类 +${baseEgg}g (累计：${eggs}g)`);
+                    }
+                    // 肉类（中英文关键词）
+                    else if (food.includes('猪') || food.includes('牛') || food.includes('羊') || 
+                             food.includes('鸡') || food.includes('鸭') || food.includes('鹅') || 
+                             food.includes('鱼') || food.includes('虾') || food.includes('蟹') || 
+                             food.includes('贝') || food.includes('肉') || food.includes('排') || 
+                             food.includes('排骨') || food.includes('牛排') || food.includes('羊肉') || 
+                             food.includes('猪肉') || food.includes('牛肉') || food.includes('鸡肉') || 
+                             food.includes('鸭肉') || food.includes('鱼肉') || food.includes('海鲜') || 
+                             food.includes('鱿鱼') || food.includes('章鱼') || food.includes('墨鱼') || 
+                             food.includes('蛤蜊') || food.includes('扇贝') || food.includes('牡蛎') ||
+                             // 英文关键词
+                             /^\s*(beef|pork|chicken|duck|fish|shrimp|crab|seafood|meat|steak|lamb|mutton)\s*$/.test(foodLower) ||
+                             foodLower.includes('beef') || foodLower.includes('pork') || 
+                             foodLower.includes('chicken') || foodLower.includes('duck') || 
+                             foodLower.includes('fish') || foodLower.includes('shrimp') || 
+                             foodLower.includes('crab') || foodLower.includes('seafood') || 
+                             foodLower.includes('meat') || foodLower.includes('steak') || 
+                             foodLower.includes('lamb') || foodLower.includes('mutton')) {
+                        meat += baseMeat;
+                        console.log(`  🥩 ${food} → 肉类 +${baseMeat}g (累计：${meat}g)`);
+                    }
+                    else {
+                        console.log(`  ❓ ${food} → 未识别，跳过`);
+                    }
+                }
+                
+                console.log(`\n📊 最终统计结果:`);
+                console.log(`   蔬菜：${vegetables}g | 水果：${fruits}g | 肉类：${meat}g | 蛋类：${eggs}g`);
+                
+                // 如果没有检测到任何食材，保留空值
+                if (vegetables === 0 && fruits === 0 && meat === 0 && eggs === 0) {
+                    console.log('  ⚠️ 未识别到具体食材，将保留空值');
+                    const msg = window.i18n ? window.i18n.t('common.recognition_no_result') : '⚠️ 未能识别食材，请手动输入';
+                    showToast(msg);
+                    return;
+                }
+                
+                // 💾 构建摄入记录
+                const saveResult = await safeApiCall('/api/save_intake', {
+                    body: {
+                        vegetables,
+                        fruits,
+                        meat,
+                        eggs
+                    }
+                });
+                        
+                if (saveResult.success) {
+                    console.log(`  ✅ 数据已保存到 fgai_local_data.json`);
+                    const msgTemplate = window.i18n ? window.i18n.t('common.meal_intake_recorded') : '✅ 第{num}餐已录入：蔬菜{veg}g, 水果{fru}g, 肉类{meat}g, 蛋类{egg}g';
+                    showToast(msgTemplate.replace('{num}', count).replace('{veg}', vegetables).replace('{fru}', fruits).replace('{meat}', meat).replace('{egg}', eggs));
+                            
+                    // 刷新摄入概览表格
+                    await loadTodayIntakeTable();
+                    
+                    console.log(`✅ [自动录入完成] 第${count}餐数据已保存`);
+                } else {
+                    console.error('  ❌ 保存失败:', saveResult.error);
+                    showToast('❌ 保存失败: ' + saveResult.error);
+                }
+            } catch (error) {
+                console.error('[自动录入异常]:', error);
+                showToast('❌ 自动录入失败: ' + error.message);
+            }
+        }
+                
+        // 降级方案：使用旧的关键词匹配方法
+        async function fallbackEstimateAndSave(ingredientList, peopleNum, count) {
+            let vegetables = 0;
+            let fruits = 0;
+            let meat = 0;
+            let eggs = 0;
+                    
+            ingredientList.forEach(ingredient => {
+                if (/[菜萝卜瓜笋菇豆葱姜蒜辣椒]/.test(ingredient)) {
+                    vegetables += 200;
+                } else if (/苹果|香蕉|梨|桃|葡萄|橙|柚/.test(ingredient)) {
+                    fruits += 150;
+                } else if (ingredient.includes('蛋')) {
+                    eggs += 50;
+                } else if (/[猪牛羊鸡鸭鱼虾肉]/.test(ingredient)) {
+                    meat += 150;
+                }
+            });
+                    
+            vegetables *= peopleNum;
+            fruits *= peopleNum;
+            meat *= peopleNum;
+            eggs *= peopleNum;
+                    
+            const saveResult = await safeApiCall('/api/save_intake', {
+                body: { vegetables, fruits, meat, eggs }
+            });
+                    
+            if (saveResult.success) {
+                const msgTemplate = window.i18n ? window.i18n.t('common.meal_auto_intake_rule') : '✅ 第{num}次：饮食记录已自动录入（基于规则估算）';
+                showToast(msgTemplate.replace('{num}', count));
+                await loadTodayIntakeTable();
+            }
+        }
+        
+        // 自动录入饮食记录并进行评估（参考原始Python文件逻辑）
+        async function autoIntakeAndAssess(ingredients, peopleNum) {
+            const msg = window.i18n ? window.i18n.t('common.auto_intake_progress_msg') : '🔄 正在自动录入饮食记录...';
+            showToast(msg);
+            
+            try {
+                // 🎯 关键修复：使用与autoIntakeOnly相同的关键词匹配逻辑
+                console.log(`\n========== 开始第3餐自动录入并评估 ==========`);
+                
+                // 支持多种分隔符
+                const ingredientList = ingredients
+                    .split(/[,，、]/)  // 支持英文逗号、中文逗号、中文顿号
+                    .map(i => i.trim())
+                    .filter(i => i);
+                        
+                if (ingredientList.length === 0) {
+                    console.log('⚠️ 用户未输入食材，跳过录入');
+                    return;
+                }
+                
+                console.log(`📝 识别到食材：${ingredientList}`);
+                
+                // 🎯 核心逻辑：支持中英文关键词匹配
+                let vegetables = 0;
+                let fruits = 0;
+                let meat = 0;
+                let eggs = 0;
+                
+                // 🔑 关键修复：根据人数调整基础份量
+                const baseVeg = 200 * peopleNum;
+                const baseFruit = 150 * peopleNum;
+                const baseMeat = 150 * peopleNum;
+                const baseEgg = 50 * peopleNum;
+                
+                // 遍历每个食材，用关键词匹配分类
+                for (const food of ingredientList) {
+                    const foodLower = food.toLowerCase();
+                    
+                    // 蔬菜类（中英文关键词）- 使用更精确的匹配
+                    if (food.includes('菜') || food.includes('萝卜') || food.includes('瓜') || 
+                        food.includes('笋') || food.includes('菇') || food.includes('豆') || 
+                        food.includes('葱') || food.includes('蒜') || food.includes('姜') || 
+                        food.includes('辣椒') || food.includes('香菜') || 
+                        food.includes('番茄') || food.includes('西红柿') || food.includes('土豆') || 
+                        food.includes('马铃薯') || food.includes('白菜') || food.includes('菠菜') || 
+                        food.includes('生菜') || food.includes('油麦') || food.includes('芹菜') || 
+                        food.includes('韭菜') || food.includes('洋葱') || food.includes('茄子') || 
+                        food.includes('青椒') || food.includes('黄瓜') || food.includes('南瓜') || 
+                        food.includes('冬瓜') || food.includes('丝瓜') || food.includes('苦瓜') || 
+                        food.includes('西葫芦') || food.includes('莲藕') || food.includes('山药') || 
+                        food.includes('红薯') || food.includes('紫薯') || food.includes('玉米') || 
+                        food.includes('木耳') || food.includes('银耳') || food.includes('金针') || 
+                        food.includes('香菇') || food.includes('平菇') || food.includes('杏鲍') ||
+                        // 英文关键词 - 使用精确匹配
+                        /^\s*(vegetable|tomato|potato|cabbage|spinach|lettuce|celery|onion|pepper|cucumber|mushroom|bean|broccoli|carrot)\s*$/.test(foodLower) ||
+                        foodLower.includes('vegetable') || foodLower.includes('tomato') || 
+                        foodLower.includes('potato') || foodLower.includes('cabbage') || 
+                        foodLower.includes('spinach') || foodLower.includes('lettuce') || 
+                        foodLower.includes('celery') || foodLower.includes('onion') || 
+                        foodLower.includes('pepper') || foodLower.includes('cucumber') || 
+                        foodLower.includes('mushroom') || foodLower.includes('bean') || 
+                        foodLower.includes('broccoli') || foodLower.includes('carrot')) {
+                        vegetables += baseVeg;
+                        console.log(`  🥬 ${food} → 蔬菜 +${baseVeg}g (累计：${vegetables}g)`);
+                    }
+                    // 水果类（中英文关键词）
+                    else if (food.includes('苹果') || food.includes('香蕉') || food.includes('梨') || 
+                             food.includes('桃') || food.includes('葡萄') || food.includes('橙') || 
+                             food.includes('柚') || food.includes('柠檬') || food.includes('橘子') || 
+                             food.includes('桔子') || food.includes('西瓜') || food.includes('哈密') || 
+                             food.includes('草莓') || food.includes('蓝莓') || food.includes('樱桃') || 
+                             food.includes('芒果') || food.includes('菠萝') || food.includes('榴莲') || 
+                             food.includes('猕猴桃') || food.includes('火龙果') || food.includes('百香') ||
+                             // 英文关键词
+                             /^\s*(apple|banana|pear|grape|orange|lemon|watermelon|strawberry|blueberry|cherry|mango|pineapple|fruit)\s*$/.test(foodLower) ||
+                             foodLower.includes('apple') || foodLower.includes('banana') || 
+                             foodLower.includes('pear') || foodLower.includes('grape') || 
+                             foodLower.includes('orange') || foodLower.includes('lemon') || 
+                             foodLower.includes('watermelon') || foodLower.includes('strawberry') || 
+                             foodLower.includes('blueberry') || foodLower.includes('cherry') || 
+                             foodLower.includes('mango') || foodLower.includes('pineapple') || 
+                             foodLower.includes('fruit')) {
+                        fruits += baseFruit;
+                        console.log(`  🍎 ${food} → 水果 +${baseFruit}g (累计：${fruits}g)`);
+                    }
+                    // 蛋类（优先判断）
+                    else if (food.includes('蛋') || /^\s*egg\s*$/.test(foodLower) || foodLower.includes('egg')) {
+                        eggs += baseEgg;
+                        console.log(`  🥚 ${food} → 蛋类 +${baseEgg}g (累计：${eggs}g)`);
+                    }
+                    // 肉类（中英文关键词）
+                    else if (food.includes('猪') || food.includes('牛') || food.includes('羊') || 
+                             food.includes('鸡') || food.includes('鸭') || food.includes('鹅') || 
+                             food.includes('鱼') || food.includes('虾') || food.includes('蟹') || 
+                             food.includes('贝') || food.includes('肉') || food.includes('排') || 
+                             food.includes('排骨') || food.includes('牛排') || food.includes('羊肉') || 
+                             food.includes('猪肉') || food.includes('牛肉') || food.includes('鸡肉') || 
+                             food.includes('鸭肉') || food.includes('鱼肉') || food.includes('海鲜') || 
+                             food.includes('鱿鱼') || food.includes('章鱼') || food.includes('墨鱼') || 
+                             food.includes('蛤蜊') || food.includes('扇贝') || food.includes('牡蛎') ||
+                             // 英文关键词
+                             /^\s*(beef|pork|chicken|duck|fish|shrimp|crab|seafood|meat|steak|lamb|mutton)\s*$/.test(foodLower) ||
+                             foodLower.includes('beef') || foodLower.includes('pork') || 
+                             foodLower.includes('chicken') || foodLower.includes('duck') || 
+                             foodLower.includes('fish') || foodLower.includes('shrimp') || 
+                             foodLower.includes('crab') || foodLower.includes('seafood') || 
+                             foodLower.includes('meat') || foodLower.includes('steak') || 
+                             foodLower.includes('lamb') || foodLower.includes('mutton')) {
+                        meat += baseMeat;
+                        console.log(`  🥩 ${food} → 肉类 +${baseMeat}g (累计：${meat}g)`);
+                    }
+                    else {
+                        console.log(`  ❓ ${food} → 未识别，跳过`);
+                    }
+                }
+                
+                console.log(`\n📊 最终统计结果:`);
+                console.log(`   蔬菜：${vegetables}g | 水果：${fruits}g | 肉类：${meat}g | 蛋类：${eggs}g`);
+                
+                // 如果没有检测到任何食材，保留空值
+                if (vegetables === 0 && fruits === 0 && meat === 0 && eggs === 0) {
+                    console.log('  ⚠️ 未识别到具体食材，将保留空值');
+                    const msg = window.i18n ? window.i18n.t('common.recognition_no_result') : '⚠️ 未能识别食材，请手动输入';
+                    showToast(msg);
+                    return;
+                }
+                
+                // 💾 构建摄入记录
+                const saveResult = await safeApiCall('/api/save_intake', {
+                    body: {
+                        vegetables,
+                        fruits,
+                        meat,
+                        eggs
+                    }
+                });
+                        
+                if (saveResult.success) {
+                    console.log(`  ✅ 数据已保存到 fgai_local_data.json`);
+                    const msgTemplate = window.i18n ? window.i18n.t('common.meal_intake_recorded') : '✅ 第{num}餐已录入：蔬菜{veg}g, 水果{fru}g, 肉类{meat}g, 蛋类{egg}g';
+                    showToast(msgTemplate.replace('{num}', 3).replace('{veg}', vegetables).replace('{fru}', fruits).replace('{meat}', meat).replace('{egg}', eggs));
+                            
+                    // 刷新摄入概览表格
+                    await loadTodayIntakeTable();
+                    
+                    console.log(`✅ [自动录入完成] 第3餐数据已保存`);
+                    
+                    // 🆕 关键：立即执行营养评估
+                    console.log('\n📊 [自动评估] 开始获取最新数据进行评估...');
+                    
+                    // 🔑 关键修复：重新加载数据，直接使用全局 appData
+                    await loadData();  // 这会更新全局 appData
+                    const today = new Date().toISOString().split('T')[0];
+                    const todayRecords = (appData.daily_intake_records || []).filter(r => r.date === today);
+                    
+                    // 汇总今日所有记录
+                    const totalIntake = {
+                        vegetables: todayRecords.reduce((sum, r) => sum + (r.vegetables || 0), 0),
+                        fruits: todayRecords.reduce((sum, r) => sum + (r.fruits || 0), 0),
+                        meat: todayRecords.reduce((sum, r) => sum + (r.meat || 0), 0),
+                        eggs: todayRecords.reduce((sum, r) => sum + (r.eggs || 0), 0)
+                    };
+                    
+                    console.log('📊 今日总摄入:', totalIntake);
+                    console.log('   记录数:', todayRecords.length, '条');
+                    
+                    // 执行营养评估
+                    await performNutritionAssessment(totalIntake);
+                    
+                    console.log('✅ [自动评估完成]');
+                } else {
+                    console.error('  ❌ 保存失败:', saveResult.error);
+                    showToast('❌ 保存失败: ' + saveResult.error);
+                }
+            } catch (error) {
+                console.error('[自动录入异常]:', error);
+                showToast('❌ 自动录入失败: ' + error.message);
+            }
+        }
+        
+        // 更新今日饮食摄入记录输入框（显示今日总和）
+        function updateIntakeInputFields(totalIntake) {
+            const vegetablesInput = document.getElementById('intake-vegetables-home');
+            const fruitsInput = document.getElementById('intake-fruits-home');
+            const meatInput = document.getElementById('intake-meat-home');
+            const eggsInput = document.getElementById('intake-eggs-home');
+            
+            if (vegetablesInput) vegetablesInput.value = totalIntake.vegetables || 0;
+            if (fruitsInput) fruitsInput.value = totalIntake.fruits || 0;
+            if (meatInput) meatInput.value = totalIntake.meat || 0;
+            if (eggsInput) eggsInput.value = totalIntake.eggs || 0;
+            
+            console.log('✅ 已更新摄入输入框为今日总和');
+        }
+
+        // ==================== AI聊天功能 ====================
+        function askQuickQuestion(questionKey) {
+            // 快捷提问（原版有，Web版缺失）
+            const input = document.getElementById('chat-input');
+            
+            // 检查是否是翻译键
+            let questionText = questionKey;
+            if (questionKey.startsWith('chat.')) {
+                // 是翻译键，获取对应语言的文本
+                questionText = window.i18n ? window.i18n.t(questionKey) : questionKey;
+            }
+            
+            input.value = questionText;
+            sendChat();
+        }
+        
+        async function sendChat() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // 添加用户消息
+            addChatMessage(message, 'user');
+            input.value = '';
+            
+            // 显示加载中
+            const loadingId = addChatMessage('🤖 AI正在思考...', 'ai');
+            
+            try {
+                // 🌐 获取当前语言
+                const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
+                
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message,
+                        language: currentLanguage  // 🌐 传递语言参数
+                    })
+                });
+
+                const result = await response.json();
+                
+                // 移除加载消息
+                document.getElementById(loadingId).remove();
+                
+                if (result.success) {
+                    addChatMessage(result.reply, 'ai');
+                } else {
+                    addChatMessage(handleApiError(result.error), 'ai');
+                }
+            } catch (error) {
+                document.getElementById(loadingId).remove();
+                addChatMessage('❌ 网络错误,请重试', 'ai');
+            }
+        }
+
+        function addChatMessage(text, sender) {
+            const container = document.getElementById('chat-messages');
+            const msgDiv = document.createElement('div');
+            const msgId = 'msg-' + Date.now();
+            msgDiv.id = msgId;
+            
+            msgDiv.style.cssText = `
+                margin: 12px 0;
+                padding: 12px 16px;
+                border-radius: 16px;
+                max-width: 80%;
+                word-wrap: break-word;
+                animation: fadeInUp 0.3s ease-out;
+            `;
+            
+            if (sender === 'user') {
+                msgDiv.style.cssText += `
+                    background: linear-gradient(135deg, var(--primary), var(--secondary));
+                    color: white;
+                    margin-left: auto;
+                    border-bottom-right-radius: 4px;
+                `;
+            } else {
+                msgDiv.style.cssText += `
+                    background: rgba(255, 255, 255, 0.8);
+                    color: var(--text-primary);
+                    margin-right: auto;
+                    border-bottom-left-radius: 4px;
+                    line-height: 1.6;
+                `;
+            }
+                    
+            // AI 消息使用 innerHTML 以支持 Markdown 格式化
+            if (sender === 'ai') {
+                msgDiv.innerHTML = formatMarkdown(text);
+            } else {
+                msgDiv.textContent = text;
+            }
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+            
+            return msgId;
+        }
+
+        // ==================== 智能冰箱功能 ====================
+        async function addFridgeItem() {
+            const name = document.getElementById('fridge-name').value.trim();
+            const quantity = parseInt(document.getElementById('fridge-quantity').value) || 0;
+            
+            if (!name) {
+                const msg = window.i18n ? window.i18n.t('common.query_input_required') : '请输入食材名称';
+                showToast(msg);
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/fridge/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, quantity })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    const msg = window.i18n ? window.i18n.t('common.ingredient_added') : '✅ 食材已添加';
+                    showToast(msg);
+                    document.getElementById('fridge-name').value = '';
+                    document.getElementById('fridge-quantity').value = '';
+                    loadFridgeItems();
+                }
+            } catch (error) {
+                const msg = window.i18n ? window.i18n.t('common.add_failed') : '❌ 添加失败';
+                showToast(msg);
+            }
+        }
+
+        async function loadFridgeItems() {
+            try {
+                const response = await fetch('/api/fridge/list');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const listDiv = document.getElementById('fridge-list');
+                    if (result.inventory.length === 0) {
+                        // 🌐 使用国际化文本
+                        const emptyText = window.i18n ? window.i18n.t('fridge.empty_inventory_text') : '暂无食材';
+                        listDiv.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 20px;">${emptyText}</div>`;
+                    } else {
+                        // 🌐 获取删除按钮的国际化文本
+                        const deleteText = window.i18n ? window.i18n.t('common.delete') : '删除';
+                        listDiv.innerHTML = result.inventory.map((item, index) => `
+                            <div style="padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: 600;">${item.name}</div>
+                                    <div style="font-size: 12px; color: var(--text-secondary);">${item.quantity}${item.unit}</div>
+                                </div>
+                                <button onclick="deleteFridgeItem(${index})" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer;">${deleteText}</button>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('加载冰箱数据失败:', error);
+            }
+        }
+
+        async function deleteFridgeItem(index) {
+            try {
+                const response = await fetch(`/api/fridge/delete/${index}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    const msg = window.i18n ? window.i18n.t('common.deleted_success') : '✅ 已删除';
+                    showToast(msg);
+                    loadFridgeItems();
+                }
+            } catch (error) {
+                const msg = window.i18n ? window.i18n.t('common.delete_failed') : '❌ 删除失败';
+                showToast(msg);
+            }
+        }
+
+        // ==================== 采购清单功能 ====================
+        async function generateShoppingList() {
+            const dishes = document.getElementById('shopping-dishes').value.trim();
+            if (!dishes) {
+                const msg = window.i18n ? window.i18n.t('common.input_dishes_required') : '请输入想吃的菜品';
+                showToast(msg);
+                return;
+            }
+
+            const peopleNum = parseInt(document.getElementById('shopping-people').value) || 3;
+            const includeBudget = document.getElementById('shopping-budget').checked;
+
+            const btn = document.getElementById('shopping-btn');
+            btn.disabled = true;
+            // 🌐 修复：根据当前语言设置按钮文本
+            const btnText = window.i18n ? window.i18n.t('shopping.generating') : '生成中...';
+            btn.innerHTML = '<span class="loading"></span> ' + btnText;
+
+            try {
+                // 🌐 获取当前语言
+                const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
+                
+                const response = await fetch('/api/generate_shopping_list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dishes,
+                        people_num: peopleNum,
+                        include_budget: includeBudget,
+                        language: currentLanguage  // 🌐 传递语言参数
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 显示结果容器
+                    const resultContainer = document.getElementById('shopping-result-container');
+                    resultContainer.style.display = 'block';
+                    
+                    const resultDiv = document.getElementById('shopping-result');
+                    resultDiv.innerHTML = `
+                        <div class="result-box" style="padding: 20px; background: rgba(255,255,255,0.9); border-radius: 12px; border: 1px solid var(--card-border); line-height: 1.8;">
+                            ${result.shopping_list.replace(/\n/g, '<br>')}
+                        </div>
+                    `;
+                    const msg = window.i18n ? window.i18n.t('common.shopping_list_generated') : '✅ 购物清单生成成功';
+                    showToast(msg);
+                    // 滚动到结果区域
+                    setTimeout(() => {
+                        resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                } else {
+                    showToast(handleApiError(result.error));
+                }
+            } catch (error) {
+                const msg = window.i18n ? window.i18n.t('common.network_error_retry') : '❌ 网络错误,请重试';
+                showToast(msg);
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                // 🌐 修复：根据当前语言设置按钮文本
+                const btnText = window.i18n ? window.i18n.t('shopping.generate_button') : '📝 生成购物清单';
+                btn.innerHTML = btnText;
+            }
+        }
+
+        // ==================== 今日饮食推荐 ====================
+        async function generateDailyRecommendation() {
+            const btn = document.getElementById('daily-rec-btn');
+            btn.disabled = true;
+            // 🌐 修复：根据当前语言设置按钮文本
+            const btnText = window.i18n ? window.i18n.t('common.generating_recommendation') : '🍽️ 正在为您生成今日饮食推荐...';
+            btn.innerHTML = '<span class="loading"></span> ' + btnText;
+
+            try {
+                const response = await fetch('/api/generate_daily_recommendation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('daily-recommendation-result').style.display = 'block';
+                    
+                    if (result.is_multi_group) {
+                        // 多人群模式：显示各人群的饮食推荐
+                        let content = '# 👥 多人群饮食推荐\n\n';
+                        content += '*基于联合国 WHO 营养标准，为全家提供个性化菜品推荐*\n\n';
+                        
+                        // 添加各人群推荐
+                        for (const [group, recommendation] of Object.entries(result.recommendation)) {
+                            content += `\n---\n\n## 🍽️ ${group}\n\n${recommendation}\n\n`;
+                        }
+                        document.getElementById('daily-recommendation-content').innerHTML = formatMarkdown(content);
+                    } else {
+                        document.getElementById('daily-recommendation-content').innerHTML = formatMarkdown(result.recommendation);
+                    }
+                    
+                    const msg = window.i18n ? window.i18n.t('common.daily_rec_generated') : '✅ 今日推荐生成成功';
+                    showToast(msg);
+                    document.getElementById('daily-recommendation-result').scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    showToast(handleApiError(result.error));
+                }
+            } catch (error) {
+                const msg = window.i18n ? window.i18n.t('common.network_error_retry') : '❌ 网络错误,请重试';
+                showToast(msg);
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                // 🌐 修复：根据当前语言设置按钮文本
+                const btnText = window.i18n ? window.i18n.t('home.generate_daily_rec_button') : '✨ AI 生成今日推荐';
+                btn.innerHTML = btnText;
+            }
+        }
+
+        // ==================== 食材重量查询 ====================
+        async function queryFoodWeight() {
+            const foodName = document.getElementById('food-query-input').value.trim();
+            if (!foodName) {
+                const msg = window.i18n ? window.i18n.t('common.query_input_required') : '请输入食材名称';
+                showToast(msg);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/food_weight/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ food_name: foodName })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('food-query-result').style.display = 'block';
+                    // 使用 formatMarkdown 格式化 AI 返回的内容
+                    document.getElementById('food-query-content').innerHTML = formatMarkdown(result.result);
+                    const msg = window.i18n ? window.i18n.t('common.query_success') : '✅ 查询成功';
+                    showToast(msg);
+                } else {
+                    showToast(handleApiError(result.error));
+                }
+            } catch (error) {
+                const msg = window.i18n ? window.i18n.t('common.network_error_retry') : '❌ 网络错误,请重试';
+                showToast(msg);
+                console.error(error);
+            }
+        }
+
+        // ==================== 首页保存摄入 ====================
+        async function saveIntakeHome() {
+            const vegetables = parseInt(document.getElementById('intake-vegetables-home').value) || 0;
+            const fruits = parseInt(document.getElementById('intake-fruits-home').value) || 0;
+            const meat = parseInt(document.getElementById('intake-meat-home').value) || 0;
+            const eggs = parseInt(document.getElementById('intake-eggs-home').value) || 0;
+
+            try {
+                const result = await safeApiCall('/api/save_intake', {
+                    body: { vegetables, fruits, meat, eggs }
+                });
+
+                if (result.success) {
+                    const msg = window.i18n ? window.i18n.t('common.intake_saved') : '✅ 摄入数据已保存';
+                    showToast(msg);
+                    
+                    // 清空输入框
+                    document.getElementById('intake-vegetables-home').value = '0';
+                    document.getElementById('intake-fruits-home').value = '0';
+                    document.getElementById('intake-meat-home').value = '0';
+                    document.getElementById('intake-eggs-home').value = '0';
+                    
+                    // 显示预警信息
+                    if (result.warnings && result.warnings.length > 0) {
+                        result.warnings.forEach(warning => {
+                            setTimeout(() => showToast(warning), 500);
+                        });
+                    }
+                    
+                    // 刷新表格
+                    loadTodayIntakeTable();
+                }
+            } catch (error) {
+                const msg = window.i18n ? window.i18n.t('common.save_failed') : '❌ 保存失败';
+                showToast(msg);
+                console.error(error);
+            }
+        }
+
+        // ==================== 显示营养报告 ====================
+        // 从首页立即评估（不跳转页面）
+        async function performNutritionAssessmentFromHome() {
+            const vegetables = parseInt(document.getElementById('intake-vegetables-home').value) || 0;
+            const fruits = parseInt(document.getElementById('intake-fruits-home').value) || 0;
+            const meat = parseInt(document.getElementById('intake-meat-home').value) || 0;
+            const eggs = parseInt(document.getElementById('intake-eggs-home').value) || 0;
+
+            const intake = { vegetables, fruits, meat, eggs };
+            await performNutritionAssessment(intake);
+        }
+
+        async function showNutritionReport() {
+            const vegetables = parseInt(document.getElementById('intake-vegetables-home').value) || 0;
+            const fruits = parseInt(document.getElementById('intake-fruits-home').value) || 0;
+            const meat = parseInt(document.getElementById('intake-meat-home').value) || 0;
+            const eggs = parseInt(document.getElementById('intake-eggs-home').value) || 0;
+
+            const intake = { vegetables, fruits, meat, eggs };
+            await performNutritionAssessment(intake);
+            
+            // 切换到营养分析页面
+            switchPage('nutrition');
+        }
+
+        // ==================== 加载今日摄入表格 ====================
+        async function loadTodayIntakeTable() {
+            try {
+                const response = await fetch('/api/data');
+                const result = await response.json();
+                        
+                if (result.success) {
+                    const today = new Date().toISOString().split('T')[0];
+                    const records = result.data.daily_intake_records || [];
+                    const todayRecords = records.filter(r => r.date === today);
+                            
+                    // 🆕 关键修复：计算今日总摄入量，并更新输入框
+                    const totalIntake = {
+                        vegetables: todayRecords.reduce((sum, r) => sum + (r.vegetables || 0), 0),
+                        fruits: todayRecords.reduce((sum, r) => sum + (r.fruits || 0), 0),
+                        meat: todayRecords.reduce((sum, r) => sum + (r.meat || 0), 0),
+                        eggs: todayRecords.reduce((sum, r) => sum + (r.eggs || 0), 0)
+                    };
+                    
+                    // 更新输入框显示今日总和
+                    updateIntakeInputFields(totalIntake);
+                            
+                    // 关键修改：只显示最新3条记录（早中晚三餐）
+                    const displayRecords = todayRecords.slice(-3);
+                            
+                    const tableDiv = document.getElementById('today-intake-table');
+                            
+                    if (displayRecords.length === 0) {
+                        // 🌐 使用国际化文本
+                        const noRecordsText = window.i18n ? window.i18n.t('home.no_records_today') : '📭 今日暂无摄入记录\n请先保存摄入数据';
+                        tableDiv.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 20px;">${noRecordsText}</div>`;
+                        return;
+                    }
+                            
+                    let html = '<div style="overflow-x: auto;">';
+                    html += '<table style="width: 100%; border-collapse: collapse;">';
+                    html += '<thead><tr style="background: var(--primary); color: white;">';
+                    html += '<th style="padding: 10px;">序号</th>';
+                    html += '<th style="padding: 10px;">时间</th>';
+                    html += '<th style="padding: 10px;">蔬菜(g)</th>';
+                    html += '<th style="padding: 10px;">水果(g)</th>';
+                    html += '<th style="padding: 10px;">肉类(g)</th>';
+                    html += '<th style="padding: 10px;">蛋类(g)</th>';
+                    html += '<th style="padding: 10px;">操作</th>';
+                    html += '</tr></thead><tbody>';
+                            
+                    displayRecords.forEach((record, index) => {
+                        // 找到原始记录在总列表中的索引
+                        const originalIndex = todayRecords.indexOf(record);
+                                
+                        html += '<tr style="border-bottom: 1px solid #eee;">';
+                        html += `<td style="padding: 8px; text-align: center;">${index + 1}</td>`;
+                        html += `<td style="padding: 8px; text-align: center;">${record.time}</td>`;
+                        
+                        // 🆕 关键改进：使用可编辑的输入框，让用户可以手动修改
+                        html += `<td style="padding: 8px; text-align: center;">`;
+                        html += `<input type="number" id="edit-veg-${originalIndex}" value="${record.vegetables}" min="0" step="10" `;
+                        html += `style="width: 70px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;" />`;
+                        html += `</td>`;
+                        
+                        html += `<td style="padding: 8px; text-align: center;">`;
+                        html += `<input type="number" id="edit-fru-${originalIndex}" value="${record.fruits}" min="0" step="10" `;
+                        html += `style="width: 70px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;" />`;
+                        html += `</td>`;
+                        
+                        html += `<td style="padding: 8px; text-align: center;">`;
+                        html += `<input type="number" id="edit-meat-${originalIndex}" value="${record.meat}" min="0" step="10" `;
+                        html += `style="width: 70px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;" />`;
+                        html += `</td>`;
+                        
+                        html += `<td style="padding: 8px; text-align: center;">`;
+                        html += `<input type="number" id="edit-egg-${originalIndex}" value="${record.eggs}" min="0" step="10" `;
+                        html += `style="width: 70px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;" />`;
+                        html += `</td>`;
+                        
+                        // 🌐 获取按钮的国际化文本
+                        const saveText = window.i18n ? window.i18n.t('common.save') : '💾 保存';
+                        const deleteText = window.i18n ? window.i18n.t('common.delete') : '🗑️ 删除';
+                        
+                        html += `<td style="padding: 8px; text-align: center;">`;
+                        html += `<button onclick="saveEditedRecord(${originalIndex})" style="background: var(--success); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 4px;">${saveText}</button>`;
+                        html += `<button onclick="deleteIntakeRecord(${originalIndex})" style="background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">${deleteText}</button>`;
+                        html += `</td>`;
+                        html += '</tr>';
+                    });
+                            
+                    html += '</tbody></table></div>';
+                            
+                    // 如果今日记录超过3条，显示提示
+                    if (todayRecords.length > 3) {
+                        html += `<div style="margin-top: 12px; padding: 10px; background: rgba(255,140,66,0.1); border-radius: 8px; font-size: 13px; color: var(--text-secondary);">`;
+                        html += `💡 提示：今日共有 ${todayRecords.length} 条记录，只显示最新3条。旧记录已自动移入7天历史。`;
+                        html += `</div>`;
+                    }
+                            
+                    tableDiv.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('加载摄入表格失败:', error);
+            }
+        }
+
+        // ==================== 删除摄入记录 ====================
+        async function deleteIntakeRecord(index) {
+            // 🌐 使用国际化文本
+            const confirmText = window.i18n ? window.i18n.t('home.confirm_delete') : '确定要删除这条记录吗？';
+            if (!confirm(confirmText)) return;
+            
+            try {
+                const response = await fetch(`/api/intake/delete/${index}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    const msg = window.i18n ? window.i18n.t('common.deleted_success') : '✅ 已删除';
+                    showToast(msg);
+                    // 🆕 关键修复：只刷新表格，不要跳转到评估页面
+                    await loadTodayIntakeTable();
+                } else {
+                    showToast(handleApiError(result.error));
+                }
+            } catch (error) {
+                const msg = window.i18n ? window.i18n.t('common.delete_failed') : '❌ 删除失败';
+                showToast(msg);
+                console.error(error);
+            }
+        }
+        
+        // 🆕 新增：保存编辑后的摄入记录
+        async function saveEditedRecord(index) {
+            try {
+                // 获取用户修改的值
+                const vegetables = parseInt(document.getElementById(`edit-veg-${index}`).value) || 0;
+                const fruits = parseInt(document.getElementById(`edit-fru-${index}`).value) || 0;
+                const meat = parseInt(document.getElementById(`edit-meat-${index}`).value) || 0;
+                const eggs = parseInt(document.getElementById(`edit-egg-${index}`).value) || 0;
+                
+                console.log(`💾 保存编辑记录 ${index}:`, { vegetables, fruits, meat, eggs });
+                
+                // 调用后端API更新记录
+                const response = await fetch(`/api/intake/update/${index}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vegetables, fruits, meat, eggs })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const msg = window.i18n ? window.i18n.t('common.save_modified') : '✅ 修改已保存';
+                    showToast(msg);
+                    
+                    // 重新加载表格
+                    await loadTodayIntakeTable();
+                    
+                    // 🔑 关键修复：重新评估营养状况，直接使用全局 appData
+                    const today = new Date().toISOString().split('T')[0];
+                    await loadData();  // 这会更新全局 appData
+                    const todayRecords = (appData.daily_intake_records || []).filter(r => r.date === today);
+                    
+                    if (todayRecords.length > 0) {
+                        const totalIntake = {
+                            vegetables: todayRecords.reduce((sum, r) => sum + (r.vegetables || 0), 0),
+                            fruits: todayRecords.reduce((sum, r) => sum + (r.fruits || 0), 0),
+                            meat: todayRecords.reduce((sum, r) => sum + (r.meat || 0), 0),
+                            eggs: todayRecords.reduce((sum, r) => sum + (r.eggs || 0), 0)
+                        };
+                        await performNutritionAssessment(totalIntake);
+                    }
+                } else {
+                    showToast('❌ 保存失败: ' + handleApiError(result.error || 'common.error_unknown'));
+                }
+            } catch (error) {
+                console.error('保存编辑失败:', error);
+                const msg = window.i18n ? window.i18n.t('common.save_failed') : '❌ 保存失败';
+                showToast(msg);
+            }
+        }
+
+        // ==================== 查看7天历史 ====================
+        async function view7DaysHistory() {
+            try {
+                const response = await fetch('/api/intake/history/7days');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const modal = document.getElementById('history-modal');
+                    const content = document.getElementById('history-content');
+                    
+                    if (result.history.length === 0) {
+                        // 🌐 使用国际化文本
+                        const noHistoryText = window.i18n ? '📭 ' + window.i18n.t('fridge.empty_inventory_text') : '📭 暂无历史记录';
+                        content.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 40px;">${noHistoryText}</div>`;
+                    } else {
+                        let html = '';
+                        result.history.forEach(day => {
+                            html += `<div style="margin-bottom: 20px; padding: 16px; background: rgba(255,255,255,0.5); border-radius: 12px;">`;
+                            html += `<div style="font-weight: 600; margin-bottom: 8px;">📅 ${day.date} (${day.record_count}条记录)</div>`;
+                            html += `<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">`;
+                            html += `<div>🥬 蔬菜: ${day.vegetables}g</div>`;
+                            html += `<div>🍎 水果: ${day.fruits}g</div>`;
+                            html += `<div>🥩 肉类: ${day.meat}g</div>`;
+                            html += `<div>🥚 蛋类: ${day.eggs}g</div>`;
+                            html += `</div></div>`;
+                        });
+                        content.innerHTML = html;
+                    }
+                    
+                    modal.style.display = 'flex';
+                }
+            } catch (error) {
+                const msg = window.i18n ? window.i18n.t('common.load_failed') : '❌ 加载失败';
+                showToast(msg);
+                console.error(error);
+            }
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('history-modal').style.display = 'none';
+        }
+
+        // ==================== 拍照识菜功能 ====================
+        let selectedImageFile = null;
+        let recognizedIngredients = '';
+
+        function openImageRecognition() {
+            document.getElementById('image-recognition-modal').style.display = 'flex';
+            resetImageRecognitionUI();
+        }
+
+        function closeImageRecognitionModal() {
+            document.getElementById('image-recognition-modal').style.display = 'none';
+        }
+
+        function resetImageRecognitionUI() {
+            selectedImageFile = null;
+            recognizedIngredients = '';
+            document.getElementById('image-preview-area').innerHTML = `
+                <div style="text-align: center; color: var(--text-secondary);">
+                    <div style="font-size: 60px; margin-bottom: 10px;">📷</div>
+                    <div>点击上传或拖拽图片到此处</div>
+                </div>
+            `;
+            document.getElementById('recognition-result').style.display = 'none';
+            document.getElementById('recognize-btn').disabled = false;
+            document.getElementById('recognize-btn').innerHTML = '🔍 开始识别';
+        }
+
+        // 🆕 确认并录入识别到的食材
+        async function confirmRecognizedIngredients() {
+            const ingredientsInput = document.getElementById('recognized-ingredients-input');
+            if (!ingredientsInput) {
+                showToast('❌ 未找到食材输入框');
+                return;
+            }
+            
+            const ingredientsText = ingredientsInput.value.trim();
+            if (!ingredientsText) {
+                const msg = window.i18n ? window.i18n.t('common.query_input_required') : '❌ 请输入食材名称';
+                showToast(msg);
+                return;
+            }
+            
+            console.log('\n✅ [用户确认] 开始录入摄入数据');
+            console.log('   食材列表:', ingredientsText);
+            
+            // 获取当前人数（默认3人）
+            const peopleNum = parseInt(document.getElementById('people-num')?.value) || 3;
+            
+            try {
+                // 调用自动录入函数
+                await autoIntakeOnly(ingredientsText, peopleNum, 1);
+                console.log('   ✅ 自动录入完成');
+                const msg = window.i18n ? window.i18n.t('common.operation_success') : '✅ 识别并录入成功！';
+                showToast(msg);
+                
+                // 关闭模态框
+                setTimeout(() => {
+                    closeImageRecognitionModal();
+                }, 1500);
+            } catch (error) {
+                console.error('   ❌ 自动录入失败:', error);
+                showToast('❌ 录入失败: ' + error.message);
+            }
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                const msg = window.i18n ? window.i18n.t('common.please_select_image') : '❌ 请选择图片文件';
+                showToast(msg);
+                return;
+            }
+
+            selectedImageFile = file;
+            
+            // 显示预览
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const previewArea = document.getElementById('image-preview-area');
+                    previewArea.innerHTML = `
+                        <img src="${e.target.result}" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px;">
+                    `;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            
+            const msg = window.i18n ? window.i18n.t('common.image_loaded') : '✅ 图片已加载';
+            showToast(msg);
+        }
+
+        function takePhotoWithCamera() {
+            // 使用 HTML5 getUserMedia API
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                const msg = window.i18n ? window.i18n.t('common.camera_access_denied') : '❌ 您的浏览器不支持摄像头功能';
+                showToast(msg);
+                return;
+            }
+
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    // 创建视频元素
+                    const video = document.createElement('video');
+                    video.autoplay = true;
+                    video.srcObject = stream;
+                    video.style.cssText = 'max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px;';
+                    
+                    // 替换预览区域为视频流
+                    const previewArea = document.getElementById('image-preview-area');
+                    previewArea.innerHTML = '';
+                    previewArea.appendChild(video);
+                    
+                    // 修改按钮状态：禁用选择图片和开始识别，突出拍照按钮
+                    const uploadBtn = document.querySelector('#image-recognition-modal .btn[onclick*="image-upload-input"]');
+                    const recognizeBtn = document.getElementById('recognize-btn');
+                    const cameraBtn = document.querySelector('#image-recognition-modal .btn[onclick*="takePhotoWithCamera"]');
+                    
+                    if (uploadBtn) uploadBtn.disabled = true;
+                    if (recognizeBtn) recognizeBtn.disabled = true;
+                    if (cameraBtn) {
+                        cameraBtn.disabled = true;
+                        cameraBtn.innerHTML = '<span>📸</span><span>拍照中...</span>';
+                        cameraBtn.classList.add('recording');
+                    }
+                    
+                    // 创建拍照按钮覆盖层（在视频上方）
+                    const overlay = document.createElement('div');
+                    overlay.id = 'camera-overlay';
+                    overlay.style.cssText = 'position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.5); padding: 20px; display: flex; justify-content: center; z-index: 10;';
+                    
+                    const captureBtn = document.createElement('button');
+                    captureBtn.className = 'btn btn-primary';
+                    captureBtn.innerHTML = '📸 拍照';
+                    captureBtn.style.cssText = 'width: 200px; height: 60px; font-size: 20px; border-radius: 30px; animation: pulse 1.5s infinite;';
+                    
+                    // 添加脉冲动画
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        @keyframes pulse {
+                            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,140,66,0.7); }
+                            50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255,140,66,0); }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                    
+                    overlay.appendChild(captureBtn);
+                    previewArea.style.position = 'relative';
+                    previewArea.appendChild(overlay);
+                    
+                    captureBtn.onclick = function() {
+                        // 创建 canvas 捕获当前帧
+                        const canvas = document.createElement('canvas');
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(video, 0, 0);
+                        
+                        // 转换为 blob
+                        canvas.toBlob(blob => {
+                            selectedImageFile = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+                            
+                            // 停止视频流
+                            stream.getTracks().forEach(track => track.stop());
+                            
+                            // 移除覆盖层
+                            const overlayEl = document.getElementById('camera-overlay');
+                            if (overlayEl) overlayEl.remove();
+                            
+                            // 显示捕获的图片
+                            const imgUrl = URL.createObjectURL(blob);
+                            previewArea.innerHTML = `
+                                <img src="${imgUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px;">
+                            `;
+                            
+                            // 恢复按钮状态
+                            if (uploadBtn) uploadBtn.disabled = false;
+                            if (recognizeBtn) recognizeBtn.disabled = false;
+                            if (cameraBtn) {
+                                cameraBtn.disabled = false;
+                                cameraBtn.innerHTML = '<span>📷</span><span>拍照</span>';
+                                cameraBtn.classList.remove('recording');
+                            }
+                            
+                            const msg = window.i18n ? window.i18n.t('common.photo_taken') : '✅ 照片已拍摄';
+                            showToast(msg);
+                        }, 'image/jpeg', 0.85);
+                    };
+                })
+                .catch(err => {
+                    console.error('摄像头访问失败:', err);
+                    const msg = window.i18n ? window.i18n.t('common.camera_access_denied') : '❌ 无法访问摄像头，请检查权限设置';
+                    showToast(msg);
+                });
+        }
+
+        async function recognizeImage() {
+            if (!selectedImageFile) {
+                const msg = window.i18n ? window.i18n.t('common.select_image_first') : '❌ 请先选择图片或拍照';
+                showToast(msg);
+                return;
+            }
+
+            const btn = document.getElementById('recognize-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> AI 识别中...';
+
+            try {
+                // 将图片转换为 base64
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    const base64Data = e.target.result.split(',')[1];
+                    
+                    const response = await fetch('/api/image_recognize', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image_base64: base64Data })
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        recognizedIngredients = result.ingredients;
+                        
+                        console.log('\n📸 [拍照识别] AI返回结果:');
+                        console.log('   原始文本:', recognizedIngredients);
+                        console.log('   长度:', recognizedIngredients.length, '字符');
+                        
+                        document.getElementById('recognition-result').style.display = 'block';
+                        
+                        // 🆕 填充可编辑的食材输入框
+                        const ingredientsInput = document.getElementById('recognized-ingredients-input');
+                        if (ingredientsInput) {
+                            ingredientsInput.value = recognizedIngredients;
+                        }
+                        
+                        const recognitionMsg = window.i18n ? window.i18n.t('common.ai_recognition_complete') : '✅ AI识别完成！请检查上方食材列表，如有不准确可以手动修改，然后点击“确认并录入摄入数据”按钮。';
+                        document.getElementById('recognition-content').textContent = recognitionMsg;
+                        
+                        // 自动填入智能食谱页面
+                        const customIngredientsInput = document.getElementById('custom-ingredients');
+                        if (customIngredientsInput) {
+                            customIngredientsInput.value = recognizedIngredients;
+                        }
+                        
+                        const confirmMsg = window.i18n ? window.i18n.t('common.recognition_completed_confirm') : '✅ 识别成功，请确认或修改食材';
+                        showToast(confirmMsg);
+                    } else {
+                        console.error('❌ AI识别失败:', result.error);
+                        showToast(handleApiError(result.error));
+                    }
+                };
+                reader.readAsDataURL(selectedImageFile);
+            } catch (error) {
+                const msg = window.i18n ? window.i18n.t('common.recognition_failed_retry') : '❌ 识别失败，请重试';
+                showToast(msg);
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                // 🌐 修复：根据当前语言设置按钮文本
+                const btnText = window.i18n ? window.i18n.t('camera.recognize_button') : '🔍 开始识别';
+                btn.innerHTML = btnText;
+            }
+        }
+
+        // ==================== 语音交互功能 ====================
+        let voiceRecognizedText = '';
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordingTimer = null;
+        let recordingStartTime = 0;
+        const MAX_RECORDING_DURATION = 30000; // 30秒
+
+        function resetVoiceInteractionUI() {
+            voiceRecognizedText = '';
+            const initMsg = window.i18n ? window.i18n.t('voice.voice_input_placeholder') : '正在初始化，请稍候...';
+            document.getElementById('voice-input-display').value = initMsg;
+            document.getElementById('recording-progress').style.display = 'none';
+            document.getElementById('record-btn').style.display = 'inline-flex';
+            document.getElementById('record-btn').disabled = false;
+            const recordBtnText = window.i18n ? window.i18n.t('voice.record_button') : '🎤 按住说话';
+            document.getElementById('record-btn').innerHTML = recordBtnText;
+            document.getElementById('early-stop-btn').style.display = 'none';
+            document.getElementById('voice-confirm-buttons').style.display = 'none';
+        }
+
+        function stopRecordingIfActive() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+            if (recordingTimer) {
+                clearInterval(recordingTimer);
+                recordingTimer = null;
+            }
+        }
+
+        async function startVoiceRecording() {
+            // 检查浏览器支持
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                const msg = window.i18n ? window.i18n.t('common.mic_not_supported') : '❌ 您的浏览器不支持录音功能';
+                showToast(msg);
+                return;
+            }
+        
+            try {
+                // 请求麦克风权限
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        
+                // 使用 MediaRecorder 录制 webm
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                        
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                        
+                mediaRecorder.onstop = async () => {
+                    // 停止所有音轨
+                    stream.getTracks().forEach(track => track.stop());
+                            
+                    // 清除定时器
+                    if (recordingTimer) {
+                        clearInterval(recordingTimer);
+                        recordingTimer = null;
+                    }
+                            
+                    // 隐藏进度条
+                    document.getElementById('recording-progress').style.display = 'none';
+                    document.getElementById('early-stop-btn').style.display = 'none';
+                            
+                    // 如果用户提前停止且没有数据，提示重新录音
+                    if (audioChunks.length === 0) {
+                        const msg = window.i18n ? window.i18n.t('common.recording_stopped_early') : '⏹️ 已提前停止录音，请重新录音';
+                        document.getElementById('voice-input-display').value = msg;
+                        const reRecordText = window.i18n ? window.i18n.t('voice.re_record') : '🎤 重新录音';
+                        document.getElementById('record-btn').innerHTML = reRecordText;
+                        return;
+                    }
+                            
+                    // 创建 webm blob
+                    const webmBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                            
+                    // 显示“正在识别...”
+                    document.getElementById('voice-input-display').value = '🔍 正在识别...';
+                            
+                    // 将 webm 转换为 wav（使用 AudioContext）
+                    try {
+                        const arrayBuffer = await webmBlob.arrayBuffer();
+                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                                
+                        // 转换为 wav 格式
+                        const wavBlob = audioBufferToWav(audioBuffer);
+                                
+                        // 🌐 获取当前语言设置
+                        const currentLang = localStorage.getItem('fgai_language') || 'zh-CN';
+                        const asrLanguage = currentLang === 'en-US' ? 'en' : 'auto';
+                        
+                        // 调用后端 API 进行语音识别
+                        const formData = new FormData();
+                        formData.append('audio', wavBlob, 'recording.wav');
+                        formData.append('language', asrLanguage);  // 传递语言参数
+                                
+                        const response = await fetch('/api/voice_recognize', {
+                            method: 'POST',
+                            body: formData
+                        });
+                                
+                        const result = await response.json();
+                                
+                        if (result.success) {
+                            voiceRecognizedText = result.text;
+                            // 🌐 使用国际化文本
+                            const resultLabel = window.i18n ? window.i18n.t('voice.recognition_result') : '🎤 识别结果：';
+                            const confirmHint = window.i18n ? window.i18n.t('voice.confirm_prompt') : '点击下方【确定】按钮使用 AI 解答';
+                            document.getElementById('voice-input-display').value = `${resultLabel}\n${voiceRecognizedText}\n\n${confirmHint}`;
+                                    
+                            // 隐藏录音按钮，显示确认按钮组
+                            document.getElementById('record-btn').style.display = 'none';
+                            document.getElementById('voice-confirm-buttons').style.display = 'flex';
+                                    
+                            const successMsg = window.i18n ? window.i18n.t('voice.recognition_success') : '✅ 语音识别成功';
+                            showToast(successMsg);
+                        } else {
+                            // 🌐 使用国际化文本
+                            const errorLabel = window.i18n ? window.i18n.t('voice.recognition_error') : '❌ 识别错误：';
+                            document.getElementById('voice-input-display').value = `${errorLabel}${handleApiError(result.error)}`;
+                            const failedMsg = window.i18n ? window.i18n.t('voice.recognition_failed') : '❌ 语音识别失败';
+                            showToast(failedMsg);
+                            const reRecordText = window.i18n ? window.i18n.t('voice.re_record') : '🎤 重新录音';
+                            document.getElementById('record-btn').innerHTML = reRecordText;
+                        }
+                    } catch (error) {
+                        console.error('音频转换或识别失败:', error);
+                        // 🌐 使用国际化文本
+                        const failLabel = window.i18n ? window.i18n.t('voice.recognition_error') : '❌ 识别失败：';
+                        document.getElementById('voice-input-display').value = `${failLabel}${error.message}`;
+                        const failedMsg = window.i18n ? window.i18n.t('voice.recognition_failed') : '❌ 语音识别失败';
+                        showToast(failedMsg);
+                        const reRecordText = window.i18n ? window.i18n.t('voice.re_record') : '🎤 重新录音';
+                        document.getElementById('record-btn').innerHTML = reRecordText;
+                    }
+                };
+                        
+                // 开始录音
+                mediaRecorder.start();
+                recordingStartTime = Date.now();
+                        
+                // 更新 UI
+                const recordingLabel = window.i18n ? window.i18n.t('common.recording_label_status') : '🎤 录音中...';
+                document.getElementById('record-btn').innerHTML = recordingLabel;
+                document.getElementById('record-btn').disabled = true;
+                document.getElementById('early-stop-btn').style.display = 'inline-flex';
+                document.getElementById('recording-progress').style.display = 'block';
+                const recordingMsg = window.i18n ? window.i18n.t('common.recording_in_progress') : '🔴 正在录音，请说话...（最长 30 秒）\n\n说完可点击【✅ 确定】提前结束';
+                document.getElementById('voice-input-display').value = recordingMsg;
+                        
+                // 启动计时器更新进度条
+                recordingTimer = setInterval(() => {
+                    const elapsed = Date.now() - recordingStartTime;
+                    const progress = Math.min(elapsed / MAX_RECORDING_DURATION, 1.0);
+                    const remaining = Math.ceil((MAX_RECORDING_DURATION - elapsed) / 1000);
+                            
+                    document.getElementById('recording-progress-fill').style.width = `${progress * 100}%`;
+                    document.getElementById('recording-time').textContent = `${remaining}秒`;
+                            
+                    // 达到最大时长自动停止
+                    if (elapsed >= MAX_RECORDING_DURATION) {
+                        mediaRecorder.stop();
+                    }
+                }, 100);
+                        
+            } catch (error) {
+                console.error('麦克风访问失败:', error);
+                document.getElementById('voice-input-display').value = `❌ 麦克风错误：${error.message}`;
+                const msg = window.i18n ? window.i18n.t('common.mic_access_denied') : '❌ 无法访问麦克风，请检查权限设置';
+                showToast(msg);
+            }
+        }
+        
+        // AudioBuffer 转 WAV 格式
+        function audioBufferToWav(buffer) {
+            const numChannels = buffer.numberOfChannels;
+            const sampleRate = buffer.sampleRate;
+            const format = 1; // PCM
+            const bitDepth = 16;
+                    
+            let result;
+            if (numChannels === 2) {
+                result = interleave(buffer.getChannelData(0), buffer.getChannelData(1));
+            } else {
+                result = buffer.getChannelData(0);
+            }
+                    
+            const wavBuffer = encodeWAV(result, numChannels, sampleRate, bitDepth);
+            return new Blob([wavBuffer], { type: 'audio/wav' });
+        }
+        
+        function interleave(inputL, inputR) {
+            const length = inputL.length + inputR.length;
+            const result = new Float32Array(length);
+            let index = 0;
+            let inputIndex = 0;
+                    
+            while (index < length) {
+                result[index++] = inputL[inputIndex];
+                result[index++] = inputR[inputIndex];
+                inputIndex++;
+            }
+            return result;
+        }
+        
+        function encodeWAV(samples, numChannels, sampleRate, bitDepth) {
+            const byteRate = sampleRate * numChannels * (bitDepth / 8);
+            const blockAlign = numChannels * (bitDepth / 8);
+            const dataSize = samples.length * (bitDepth / 8);
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+                    
+            // RIFF chunk descriptor
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + dataSize, true);
+            writeString(view, 8, 'WAVE');
+                    
+            // fmt sub-chunk
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitDepth, true);
+                    
+            // data sub-chunk
+            writeString(view, 36, 'data');
+            view.setUint32(40, dataSize, true);
+                    
+            // 写入音频数据
+            let offset = 44;
+            for (let i = 0; i < samples.length; i++) {
+                const s = Math.max(-1, Math.min(1, samples[i]));
+                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+                offset += 2;
+            }
+                    
+            return buffer;
+        }
+        
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        function stopRecordingEarly() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                document.getElementById('early-stop-btn').innerHTML = '⏹️ 正在停止...';
+                document.getElementById('early-stop-btn').disabled = true;
+                mediaRecorder.stop();
+            }
+        }
+
+        function editVoiceText() {
+            // 允许用户编辑识别的文字
+            const textarea = document.getElementById('voice-input-display');
+            textarea.focus();
+            textarea.select();
+            const msg = window.i18n ? window.i18n.t('common.text_modified') : '✏️ 您可以直接编辑文字';
+            showToast(msg);
+        }
+
+        function cancelVoiceRecording() {
+            // 取消并重置
+            resetVoiceInteractionUI();
+            document.getElementById('record-btn').style.display = 'inline-flex';
+            const recordBtnText = window.i18n ? window.i18n.t('voice.record_button') : '🎤 按住说话';
+            document.getElementById('record-btn').innerHTML = recordBtnText;
+            const msg = window.i18n ? window.i18n.t('common.recording_cancelled') : '❌ 已取消';
+            showToast(msg);
+        }
+
+        async function confirmAndAskAI() {
+            if (!voiceRecognizedText) {
+                const msg = window.i18n ? window.i18n.t('voice.re_record') : '❌ 请先录音';
+                showToast(msg);
+                return;
+            }
+            
+            // 禁用确认按钮
+            const buttons = document.querySelectorAll('#voice-confirm-buttons button');
+            buttons.forEach(btn => btn.disabled = true);
+            
+            // 显示 AI 正在回复
+            document.getElementById('voice-input-display').value = '🤖 AI 正在思考您的问题，请稍候...\n\n';
+            
+            try {
+                // 🌐 获取当前语言
+                const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
+                
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message: voiceRecognizedText,
+                        language: currentLanguage  // 🌐 传递语言参数
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('voice-input-display').value = `✅ AI 回答：\n\n问题：${voiceRecognizedText}\n\n${result.reply}`;
+                    const msg = window.i18n ? window.i18n.t('common.operation_success') : '✅ AI 已回答';
+                    showToast(msg);
+                } else {
+                    document.getElementById('voice-input-display').value = handleApiError(result.error);
+                    showToast(handleApiError(result.error));
+                }
+            } catch (error) {
+                document.getElementById('voice-input-display').value = `❌ 网络错误：${error.message}`;
+                const msg = window.i18n ? window.i18n.t('common.network_error_retry') : '❌ 网络错误';
+                showToast(msg);
+            } finally {
+                // 恢复按钮状态
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        }
+
+        // ==================== Toast提示 ====================
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            // 🌐 如果message是i18n key,则翻译;否则直接使用
+            let displayMessage = message;
+            if (window.i18n && !message.startsWith('🌐') && !message.includes('已切换')) {
+                // 检查是否是常见的提示key
+                const commonMessages = {
+                    '保存成功': window.i18n.t('common.save_success'),
+                    '删除成功': window.i18n.t('common.delete_success'),
+                    '操作成功': window.i18n.t('common.operation_success')
+                };
+                displayMessage = commonMessages[message] || message;
+            }
+            toast.textContent = displayMessage;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // 页面加载时刷新冰箱列表和摄入表格
+        window.addEventListener('load', () => {
+            if (document.getElementById('page-fridge').classList.contains('active')) {
+                loadFridgeItems();
+            }
+            loadTodayIntakeTable(); // 加载今日摄入表格
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "food_guardian_ai_2.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "food_guardian_ai_2.py"
+    }
+  ],
+  "env": {
+    "FLASK_ENV": "production"
+  }
+}

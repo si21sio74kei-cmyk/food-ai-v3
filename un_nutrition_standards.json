@@ -1,0 +1,174 @@
+[
+  {
+    "population_group": "adults",
+    "age_range": "18-60 岁",
+    "standard_source": "WHO_2025",
+    "characteristics": "成年人处于生命中的旺盛期，需要充足的营养以维持健康。",
+    "daily_recommendations": {
+      "vegetables": {
+        "min": 400,
+        "max": 800,
+        "unit": "g"
+      },
+      "fruits": {
+        "min": 200,
+        "max": 400,
+        "unit": "g"
+      },
+      "meat": {
+        "min": 50,
+        "max": 150,
+        "unit": "g"
+      },
+      "eggs": {
+        "min": 30,
+        "max": 70,
+        "unit": "g"
+      },
+      "calories": {
+        "min": 2000,
+        "max": 2500,
+        "unit": "kcal"
+      },
+      "protein": {
+        "min": 50,
+        "max": 70,
+        "unit": "g"
+      },
+      "calcium": {
+        "min": 1000,
+        "max": 1200,
+        "unit": "mg"
+      }
+    }
+  },
+  {
+    "population_group": "children",
+    "age_range": "6-12 岁",
+    "standard_source": "WHO_2025",
+    "characteristics": "儿童处于生长发育的关键时期，需要充足的营养以支持其身体和智力的发展。",
+    "daily_recommendations": {
+      "vegetables": {
+        "min": 300,
+        "max": 500,
+        "unit": "g"
+      },
+      "fruits": {
+        "min": 150,
+        "max": 300,
+        "unit": "g"
+      },
+      "meat": {
+        "min": 30,
+        "max": 100,
+        "unit": "g"
+      },
+      "eggs": {
+        "min": 25,
+        "max": 75,
+        "unit": "g"
+      },
+      "calories": {
+        "min": 1600,
+        "max": 2400,
+        "unit": "kcal"
+      },
+      "protein": {
+        "min": 30,
+        "max": 50,
+        "unit": "g"
+      },
+      "calcium": {
+        "min": 800,
+        "max": 1000,
+        "unit": "mg"
+      }
+    }
+  },
+  {
+    "population_group": "teens",
+    "age_range": "13-17 岁",
+    "standard_source": "WHO_2025",
+    "characteristics": "青少年处于生长发育的第二个高峰期，身体快速发育，学习压力大，需要充足全面的营养支持。",
+    "daily_recommendations": {
+      "vegetables": {
+        "min": 400,
+        "max": 600,
+        "unit": "g"
+      },
+      "fruits": {
+        "min": 200,
+        "max": 350,
+        "unit": "g"
+      },
+      "meat": {
+        "min": 80,
+        "max": 150,
+        "unit": "g"
+      },
+      "eggs": {
+        "min": 50,
+        "max": 100,
+        "unit": "g"
+      },
+      "calories": {
+        "min": 2200,
+        "max": 2800,
+        "unit": "kcal"
+      },
+      "protein": {
+        "min": 60,
+        "max": 80,
+        "unit": "g"
+      },
+      "calcium": {
+        "min": 1200,
+        "max": 1500,
+        "unit": "mg"
+      }
+    }
+  },
+  {
+    "population_group": "elderly",
+    "age_range": "60 岁以上",
+    "standard_source": "WHO_2025",
+    "characteristics": "老年人代谢减慢，消化吸收能力下降，需要适当的营养摄入以维持健康。",
+    "daily_recommendations": {
+      "vegetables": {
+        "min": 300,
+        "max": 500,
+        "unit": "g"
+      },
+      "fruits": {
+        "min": 150,
+        "max": 300,
+        "unit": "g"
+      },
+      "meat": {
+        "min": 30,
+        "max": 100,
+        "unit": "g"
+      },
+      "eggs": {
+        "min": 25,
+        "max": 75,
+        "unit": "g"
+      },
+      "calories": {
+        "min": 1800,
+        "max": 2200,
+        "unit": "kcal"
+      },
+      "protein": {
+        "min": 45,
+        "max": 65,
+        "unit": "g"
+      },
+      "calcium": {
+        "min": 1000,
+        "max": 1200,
+        "unit": "mg"
+      }
+    }
+  }
+]

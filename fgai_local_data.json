@@ -1,0 +1,43 @@
+{
+  "nickname": "Carter",
+  "waste_reduced": 3487.5,
+  "water_saved": 1743.75,
+  "co2_reduced": 10.470000000000002,
+  "population_group": "all",
+  "daily_intake_records": [
+    {
+      "date": "2026-04-18",
+      "eggs": 50,
+      "fruits": 150,
+      "meat": 150,
+      "time": "15:35",
+      "vegetables": 0
+    },
+    {
+      "date": "2026-04-18",
+      "eggs": 0,
+      "fruits": 0,
+      "meat": 300,
+      "time": "15:36",
+      "vegetables": 400
+    },
+    {
+      "date": "2026-04-18",
+      "eggs": 0,
+      "fruits": 0,
+      "meat": 150,
+      "time": "15:36",
+      "vegetables": 0
+    },
+    {
+      "date": "2026-04-24",
+      "time": "21:24",
+      "vegetables": 0,
+      "fruits": 150,
+      "meat": 0,
+      "eggs": 0
+    }
+  ],
+  "fridge_inventory": [],
+  "generation_count": 1
+}

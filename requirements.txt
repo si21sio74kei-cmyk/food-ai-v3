@@ -1,0 +1,12 @@
+# Web 框架
+flask==3.0.0
+flask-cors==4.0.0
+
+# AI API
+requests==2.31.0
+
+# 数据处理
+json5==0.9.14
+
+# 图像处理（拍照识菜功能）
+Pillow==10.1.0
