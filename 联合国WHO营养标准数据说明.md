@@ -296,14 +296,256 @@ ingredientList = ['青椒', '肉丝', '胡萝卜']
 
 ### 字段说明
 
-- **name**: 人群名称
-- **age_range**: 年龄范围
-- **daily_requirements**: 每日营养需求
-  - **vegetables**: 蔬菜摄入量 (克)
-  - **fruits**: 水果摄入量 (克)
-  - **meat**: 肉类摄入量 (克)
-  - **eggs**: 蛋类摄入量 (克)
+- **population_group**: 人群标识（代码中使用，如 'adults'、'children'）
+- **age_range**: 年龄范围（显示用，如 '18-60 岁'）
+- **standard_source**: 数据来源（'WHO_2025' 表示 WHO 2025版标准）
+- **characteristics**: 人群特征描述（中文说明）
+- **daily_recommendations**: 每日营养推荐（包含7种营养素）
+  - **vegetables**: 蔬菜摄入量 (min/max: 克)
+  - **fruits**: 水果摄入量 (min/max: 克)
+  - **meat**: 肉类摄入量 (min/max: 克)
+  - **eggs**: 蛋类摄入量 (min/max: 克)
+  - **calories**: 热量摄入 (min/max: kcal)
+  - **protein**: 蛋白质摄入 (min/max: 克)
+  - **calcium**: 钙质摄入 (min/max: mg)
   - **min/max**: 推荐摄入范围的最小值和最大值
+  - **unit**: 单位（g/kcal/mg）
+
+---
+
+## 📊 四类人群详细数据解析
+
+### 文件结构概览
+
+```json
+[
+  { 成人数据 },      // 第 2-44 行
+  { 儿童数据 },      // 第 45-87 行
+  { 青少年数据 },    // 第 88-130 行
+  { 老年人数据 }     // 第 131-174 行
+]
+```
+
+**总计**：174 行 JSON 代码，包含 4 类人群的完整营养标准。
+
+---
+
+### 1️⃣ 成人 (adults) - 第 2-44 行
+
+**基本信息**：
+- **年龄范围**：18-60 岁
+- **特点**：成年人处于生命中的旺盛期，需要充足的营养以维持健康
+- **适用人群**：上班族、学生、一般成年人
+
+**每日营养需求表**：
+
+| 营养素 | 最小值 | 最大值 | 单位 | 说明 |
+|--------|--------|--------|------|------|
+| 🥬 蔬菜 | 400 | 800 | g | 每日蔬菜摄入量 |
+| 🍎 水果 | 200 | 400 | g | 每日水果摄入量 |
+| 🥩 肉类 | 50 | 150 | g | 每日肉类摄入量 |
+| 🥚 蛋类 | 30 | 70 | g | 每日蛋类摄入量 |
+| 🔥 热量 | 2000 | 2500 | kcal | 每日卡路里 |
+| 💪 蛋白质 | 50 | 70 | g | 每日蛋白质 |
+| 🦴 钙质 | 1000 | 1200 | mg | 每日钙摄入 |
+
+**营养特点**：
+- ✅ 作为基准标准，其他人群以此为参考
+- ✅ 营养需求适中，适合大多数成年人
+- ✅ 热量和蛋白质需求处于中等水平
+
+---
+
+### 2️⃣ 儿童 (children) - 第 45-87 行
+
+**基本信息**：
+- **年龄范围**：6-12 岁
+- **特点**：儿童处于生长发育的关键时期，需要充足的营养以支持其身体和智力的发展
+- **适用人群**：小学生、学龄儿童
+
+**每日营养需求表**：
+
+| 营养素 | 最小值 | 最大值 | 单位 | 对比成人 |
+|--------|--------|--------|------|----------|
+| 🥬 蔬菜 | 300 | 500 | g | ↓ 略少（-25%） |
+| 🍎 水果 | 150 | 300 | g | ↓ 略少（-25%） |
+| 🥩 肉类 | 30 | 100 | g | ↓ 较少（-40%） |
+| 🥚 蛋类 | 25 | 75 | g | ≈ 相近 |
+| 🔥 热量 | 1600 | 2400 | kcal | ↓ 较少（-20%） |
+| 💪 蛋白质 | 30 | 50 | g | ↓ 较少（-40%） |
+| 🦴 钙质 | 800 | 1000 | mg | ↓ 略少（-20%） |
+
+**营养特点**：
+- 📈 生长发育期，需要均衡营养
+- 🧠 智力发展关键期，需要充足蛋白质
+- 🦴 骨骼发育需要适量钙质
+- ⚡ 活动量大但体型小，总热量需求低于成人
+
+---
+
+### 3️⃣ 青少年 (teens) - 第 88-130 行
+
+**基本信息**：
+- **年龄范围**：13-17 岁
+- **特点**：青少年处于生长发育的第二个高峰期，身体快速发育，学习压力大，需要充足全面的营养支持
+- **适用人群**：初中生、高中生
+
+**每日营养需求表**：
+
+| 营养素 | 最小值 | 最大值 | 单位 | 对比成人 |
+|--------|--------|--------|------|----------|
+| 🥬 蔬菜 | 400 | 600 | g | ≈ 相近 |
+| 🍎 水果 | 200 | 350 | g | ≈ 相近 |
+| 🥩 肉类 | 80 | 150 | g | ↑ 略高（+60%） |
+| 🥚 蛋类 | 50 | 100 | g | ↑ 较高（+67%） |
+| 🔥 热量 | 2200 | 2800 | kcal | ↑ 最高（+12%） |
+| 💪 蛋白质 | 60 | 80 | g | ↑ 较高（+20%） |
+| 🦴 钙质 | 1200 | 1500 | mg | ↑ 最高（+20%） |
+
+**为什么青少年需求最高？**
+- 📈 **身体快速发育期**：身高体重快速增长
+- 🏃 **活动量大**：体育运动、日常活动消耗多
+- 📚 **学习压力消耗**：脑力劳动需要能量
+- 🦴 **骨骼生长需要大量钙质**：预防骨质疏松
+- 💪 **肌肉发育需要高蛋白**：支持体格增长
+
+**营养重点**：
+- ⭐ **热量需求最高**：所有人群中卡路里需求最大
+- ⭐ **钙质需求最高**：骨骼发育关键期
+- ⭐ **蛋白质需求高**：肌肉和组织生长
+
+---
+
+### 4️⃣ 老年人 (elderly) - 第 131-174 行
+
+**基本信息**：
+- **年龄范围**：60 岁以上
+- **特点**：老年人代谢减慢，消化吸收能力下降，需要适当的营养摄入以维持健康
+- **适用人群**：退休人员、老年群体
+
+**每日营养需求表**：
+
+| 营养素 | 最小值 | 最大值 | 单位 | 对比成人 |
+|--------|--------|--------|------|----------|
+| 🥬 蔬菜 | 300 | 500 | g | ↓ 略少（-25%） |
+| 🍎 水果 | 150 | 300 | g | ↓ 略少（-25%） |
+| 🥩 肉类 | 30 | 100 | g | ↓ 较少（-40%） |
+| 🥚 蛋类 | 25 | 75 | g | ↓ 略少（-17%） |
+| 🔥 热量 | 1800 | 2200 | kcal | ↓ 较少（-12%） |
+| 💪 蛋白质 | 45 | 65 | g | ↓ 略少（-10%） |
+| 🦴 钙质 | 1000 | 1200 | mg | ≈ 相近（防骨质疏松） |
+
+**为什么老年人需求降低？**
+- 🐌 **代谢率下降**：基础代谢降低，能量需求减少
+- 🍽️ **消化能力减弱**：吸收效率下降，不宜过量
+- 🛋️ **活动量减少**：日常活动减少，消耗降低
+- 🦴 **但仍需高钙质防骨质疏松**：钙质需求不降反升
+
+**营养重点**：
+- ⚠️ **控制总热量**：避免肥胖和慢性病
+- ⚠️ **易消化食物**：选择软烂、易吸收的食材
+- ⚠️ **保持钙质摄入**：预防骨质疏松和骨折
+- ⚠️ **适量蛋白质**：维持肌肉质量，防止肌少症
+
+---
+
+## 📈 四类人群营养需求对比图
+
+### 热量对比 (kcal)
+
+```
+儿童   ████████████████████ 1600-2400
+成人   ██████████████████████████ 2000-2500
+老年人 ██████████████████████ 1800-2200
+青少年 ██████████████████████████████ 2200-2800 (最高)
+```
+
+### 钙质对比 (mg)
+
+```
+儿童   ████████████████ 800-1000
+成人   ████████████████████ 1000-1200
+老年人 ████████████████████ 1000-1200
+青少年 ██████████████████████████ 1200-1500 (最高)
+```
+
+### 蛋白质对比 (g)
+
+```
+儿童   ██████████████ 30-50
+成人   ████████████████████ 50-70
+老年人 ██████████████████ 45-65
+青少年 ████████████████████████ 60-80 (最高)
+```
+
+### 蔬菜对比 (g)
+
+```
+儿童   ██████████████████ 300-500
+成人   ██████████████████████████ 400-800
+老年人 ██████████████████ 300-500
+青少年 ████████████████████████ 400-600
+```
+
+---
+
+## 💡 数据应用要点
+
+### 1. 营养评估逻辑
+
+系统根据用户选择的"人群类型"加载对应标准：
+
+```python
+# 用户选择人群
+group = user_data.get('population_group', 'adults')  # 默认成人
+
+# 获取标准
+standard = standards[group]  # 从JSON数组中查找
+
+# 提取营养需求
+requirements = standard['daily_recommendations']
+
+# 对比评估
+if intake < requirements['vegetables']['min']:
+    status = "不足"
+elif intake > requirements['vegetables']['max']:
+    status = "超标"
+else:
+    status = "达标"
+```
+
+### 2. 智能警报规则
+
+基于 WHO 标准的三级警报系统：
+
+| 警报级别 | 条件 | 示例 |
+|----------|------|------|
+| ⚠️ 严重不足 | 摄入量 < 最小值的50% | 蔬菜 150g < 400g×50%=200g |
+| 🔶 略低 | 摄入量 < 最小值 | 蔬菜 350g < 400g |
+| ✅ 达标 | 最小值 ≤ 摄入量 ≤ 最大值 | 蔬菜 500g 在 400-800g 范围内 |
+| 🔴 过量 | 摄入量 > 最大值 | 蔬菜 900g > 800g |
+
+### 3. 个性化建议生成
+
+AI 根据差距生成具体改进建议：
+
+```python
+# 计算差距
+gap = requirements['vegetables']['min'] - current_intake
+
+# 生成建议
+if gap > 0:
+    suggestion = f"建议增加{gap}克蔬菜摄入"
+    # 转换为实际食物
+    if gap >= 150:
+        suggestion += "（约一份炒青菜）"
+    elif gap >= 100:
+        suggestion += "（约一个中等番茄）"
+```
+
+---
+
+## 🔄 数据更新机制
 
 ---
 
@@ -372,18 +614,33 @@ AI根据差距生成具体改进建议：
 
 ---
 
-## 🔄 数据更新
+## 🔄 数据更新机制
 
 ### 更新频率
-- 每年审查一次
-- 跟随WHO最新指南更新
+- **每年审查一次**：跟随 WHO 最新指南更新
+- **重大变化时立即更新**：如 WHO 发布新版营养指南
 
 ### 更新流程
-1. 查阅WHO最新营养指南
-2. 对比现有数据
-3. 更新JSON文件
-4. 测试系统兼容性
-5. 发布更新说明
+1. **查阅 WHO 最新营养指南**
+   - 访问 WHO 官方网站：https://www.who.int/nutrition
+   - 关注《中国居民膳食指南》更新
+   
+2. **对比现有数据**
+   - 比较新旧标准的差异
+   - 分析变化的科学依据
+   
+3. **更新 JSON 文件**
+   - 修改 `un_nutrition_standards.json`
+   - 保持数据结构一致性
+   
+4. **测试系统兼容性**
+   - 验证后端加载功能
+   - 测试营养评估准确性
+   - 检查前端显示正常
+   
+5. **发布更新说明**
+   - 更新本文档的“最后更新”日期
+   - 在 GitHub 提交记录中说明变更内容
 
 ---
 
@@ -425,39 +682,132 @@ WHO是全球最具权威的公共卫生机构，其标准被190+国家认可。
 ### 文件位置
 ```
 Food AI/
-└── un_nutrition_standards.json  ← 本文件
+└── un_nutrition_standards.json  ← 本文件（174行JSON）
 ```
 
 ### 加载方式
 ```python
 import json
+import os
 
 def load_nutrition_standards():
     """加载联合国WHO营养标准"""
     try:
-        with open('un_nutrition_standards.json', 'r', encoding='utf-8') as f:
-            return json.load(f)
+        # 获取文件路径（支持Vercel和本地环境）
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        file_path = os.path.join(base_dir, 'un_nutrition_standards.json')
+        
+        with open(file_path, 'r', encoding='utf-8') as f:
+            standards = json.load(f)
+            
+        # 转换为字典格式，方便通过人群标识访问
+        return {item['population_group']: item for item in standards}
+        
     except FileNotFoundError:
-        # 返回默认标准
+        print("⚠️ 警告: 未找到营养标准文件，使用默认标准")
+        return get_default_standards()
+    except json.JSONDecodeError:
+        print("⚠️ 错误: 营养标准文件格式错误")
         return get_default_standards()
 ```
 
 ### 使用示例
+
+#### 1. 后端 API 中使用
+
 ```python
-# 在营养评估API中使用
 @app.route('/api/nutrition_assess', methods=['POST'])
 def nutrition_assess():
+    """营养评估API"""
+    # 加载营养标准
     standards = load_nutrition_standards()
+    
+    # 获取用户数据
     user_data = request.json
+    group = user_data.get('population_group', 'adults')
+    intake = user_data.get('intake', {})
     
     # 获取对应人群标准
-    group = user_data.get('population_group', 'adults')
+    if group not in standards:
+        return jsonify({'error': '无效的人群类型'}), 400
+    
     standard = standards[group]
+    requirements = standard['daily_recommendations']
     
     # 进行评估
-    result = assess_nutrition(user_data['intake'], standard)
+    result = {
+        'population': standard['age_range'],
+        'assessment': {}
+    }
+    
+    for nutrient in ['vegetables', 'fruits', 'meat', 'eggs']:
+        current = intake.get(nutrient, 0)
+        req = requirements[nutrient]
+        
+        if current < req['min'] * 0.5:
+            status = '严重不足'
+        elif current < req['min']:
+            status = '略低'
+        elif current > req['max']:
+            status = '过量'
+        else:
+            status = '达标'
+        
+        result['assessment'][nutrient] = {
+            'current': current,
+            'recommended_min': req['min'],
+            'recommended_max': req['max'],
+            'unit': req['unit'],
+            'status': status
+        }
     
     return jsonify(result)
+```
+
+#### 2. 前端 JavaScript 中使用
+
+```javascript
+// 加载营养标准（从后端API获取）
+async function loadNutritionStandards() {
+    const response = await fetch('/api/nutrition_standards');
+    const standards = await response.json();
+    return standards;
+}
+
+// 评估营养摄入
+function assessNutrition(intake, populationGroup) {
+    const standard = standards[populationGroup];
+    const requirements = standard.daily_recommendations;
+    
+    const assessment = {};
+    
+    for (const [nutrient, value] of Object.entries(intake)) {
+        const req = requirements[nutrient];
+        
+        if (value < req.min * 0.5) {
+            assessment[nutrient] = {
+                status: '严重不足',
+                gap: req.min - value
+            };
+        } else if (value < req.min) {
+            assessment[nutrient] = {
+                status: '略低',
+                gap: req.min - value
+            };
+        } else if (value > req.max) {
+            assessment[nutrient] = {
+                status: '过量',
+                excess: value - req.max
+            };
+        } else {
+            assessment[nutrient] = {
+                status: '达标'
+            };
+        }
+    }
+    
+    return assessment;
+}
 ```
 
 ---
