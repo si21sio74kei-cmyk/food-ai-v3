@@ -157,6 +157,7 @@
   },
   "fridge": {
     "title": "智能冰箱",
+    "subtitle": "记录冰箱食材,避免过期浪费",
     "add_item": "添加食材",
     "item_name": "食材名称",
     "quantity": "数量",
@@ -290,6 +291,8 @@
     "error_unknown": "未知错误"
   },
   "chat": {
+    "title": "🤖 AI 对话助手",
+    "subtitle": "有任何关于食谱、营养、烹饪的问题,都可以问我!",
     "placeholder": "问我任何烹饪问题...",
     "send": "发送",
     "assistant_title": "🤖 AI 对话助手",
@@ -346,6 +349,8 @@
   },
   "shopping": {
     "title": "智能采购清单",
+    "subtitle": "想吃什么菜?AI 帮你生成购物清单",
+    "people_label": "就餐人数",
     "generate_list": "生成采购清单",
     "dishes_placeholder": "请输入菜品名称(如:番茄炒蛋、红烧肉)",
     "generating": "生成中...",

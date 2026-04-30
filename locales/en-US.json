@@ -157,6 +157,7 @@
   },
   "fridge": {
     "title": "Smart Fridge",
+    "subtitle": "Record fridge ingredients to avoid expiration waste",
     "add_item": "Add Item",
     "item_name": "Item Name",
     "quantity": "Quantity",
@@ -290,6 +291,8 @@
     "error_unknown": "Unknown error"
   },
   "chat": {
+    "title": "🤖 AI Chat Assistant",
+    "subtitle": "Have any questions about recipes, nutrition, or cooking? Ask me!",
     "placeholder": "Ask me anything about cooking...",
     "send": "Send",
     "assistant_title": "🤖 AI Chat Assistant",
@@ -346,6 +349,8 @@
   },
   "shopping": {
     "title": "Smart Shopping List",
+    "subtitle": "What dishes do you want to eat? AI helps you generate shopping list",
+    "people_label": "Number of People",
     "generate_list": "Generate Shopping List",
     "dishes_placeholder": "Enter dish names (e.g., Tomato Scrambled Eggs, Braised Pork)",
     "generating": "Generating...",
