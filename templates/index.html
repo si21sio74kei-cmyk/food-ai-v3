@@ -2972,8 +2972,9 @@
             addChatMessage(message, 'user');
             input.value = '';
             
-            // 显示加载中
-            const loadingId = addChatMessage('🤖 AI正在思考...', 'ai');
+            // 显示加载中（🌐 根据当前语言显示）
+            const loadingText = window.i18n ? window.i18n.t('ai_chat.typing') : '🤖 AI正在思考...';
+            const loadingId = addChatMessage(loadingText, 'ai');
             
             try {
                 // 🌐 获取当前语言
@@ -3798,7 +3799,8 @@
 
             const btn = document.getElementById('recognize-btn');
             btn.disabled = true;
-            btn.innerHTML = '<span class="loading"></span> AI 识别中...';
+            const recognizingText = window.i18n ? window.i18n.t('camera.recognizing') : '🤖 AI 识别中...';
+            btn.innerHTML = `<span class="loading"></span> ${recognizingText}`;
 
             try {
                 // 将图片转换为 base64
