@@ -230,6 +230,7 @@
     "recognition_success": "识别成功!请确认食材后录入",
     "recording_too_short": "录音时间太短,请重新录制",
     "recording_stopped": "录音已停止",
+    "stopping": "⏹️ 正在停止...",
     "voice_recognized": "语音识别成功!",
     "ask_ai_confirm": "确定要向 AI 提问吗?",
     "text_modified": "文字已修改",

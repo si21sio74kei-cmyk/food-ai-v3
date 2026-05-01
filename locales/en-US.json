@@ -230,6 +230,7 @@
     "recognition_success": "Recognition successful! Please confirm ingredients before recording",
     "recording_too_short": "Recording too short, please record again",
     "recording_stopped": "Recording stopped",
+    "stopping": "⏹️ Stopping...",
     "voice_recognized": "Voice recognition successful!",
     "ask_ai_confirm": "Are you sure you want to ask AI?",
     "text_modified": "Text modified",

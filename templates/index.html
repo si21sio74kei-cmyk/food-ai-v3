@@ -3264,10 +3264,11 @@
                 showToast(msg);
                 console.error(error);
             } finally {
-                // 🔧 关键修复：确保按钮始终恢复可用状态
+                //  关键修复：确保按钮始终恢复可用状态并强制显示
                 const btn = document.getElementById('daily-rec-btn');
                 if (btn) {
                     btn.disabled = false;
+                    btn.style.display = 'block';  //  确保按钮可见
                     //  根据当前语言设置按钮文本
                     const btnText = window.i18n ? window.i18n.t('home.generate_daily_rec_button') : '✨ AI 生成今日推荐';
                     btn.innerHTML = btnText;
@@ -3351,6 +3352,7 @@
         // ==================== 显示营养报告 ====================
         // 从首页立即评估（不跳转页面）
         async function performNutritionAssessmentFromHome() {
+            //  关键修复：先从输入框读取当前值
             const vegetables = parseInt(document.getElementById('intake-vegetables-home').value) || 0;
             const fruits = parseInt(document.getElementById('intake-fruits-home').value) || 0;
             const meat = parseInt(document.getElementById('intake-meat-home').value) || 0;
@@ -3358,6 +3360,9 @@
 
             const intake = { vegetables, fruits, meat, eggs };
             await performNutritionAssessment(intake);
+            
+            //  关键修复：评估完成后，重新加载今日摄入表格，确保输入框显示所有4个数值
+            await loadTodayIntakeTable();
         }
 
         async function showNutritionReport() {
@@ -4123,7 +4128,9 @@
 
         function stopRecordingEarly() {
             if (mediaRecorder && mediaRecorder.state === 'recording') {
-                document.getElementById('early-stop-btn').innerHTML = '⏹️ 正在停止...';
+                //  修复：使用国际化文本替代硬编码中文
+                const stoppingText = window.i18n ? window.i18n.t('common.stopping') : '⏹️ 正在停止...';
+                document.getElementById('early-stop-btn').innerHTML = stoppingText;
                 document.getElementById('early-stop-btn').disabled = true;
                 mediaRecorder.stop();
             }
