@@ -2007,15 +2007,19 @@
             document.getElementById('stat-water').textContent = `${appData.water_saved || 0} L`;
             document.getElementById('stat-co2').textContent = `${appData.co2_reduced || 0} g`;
             
-            // 🔧 关键修复：确保“今日饮食推荐”按钮始终可见且可用
+            // 🔧 关键修复：确保"今日饮食推荐"按钮始终可见且可用
             const dailyRecBtn = document.getElementById('daily-rec-btn');
             if (dailyRecBtn) {
                 dailyRecBtn.disabled = false;
                 dailyRecBtn.style.display = 'block';
-                // 🌐 根据当前语言设置按钮文本
+                //  根据当前语言设置按钮文本
                 const btnText = window.i18n ? window.i18n.t('home.generate_daily_rec_button') : '✨ AI 生成今日推荐';
                 dailyRecBtn.innerHTML = btnText;
             }
+                    
+            // 🔑 关键修复：更新计数器显示
+            const currentCount = appData.generation_count || 0;
+            updateGenerationCounterDisplay(currentCount);
         }
 
         // ==================== 页面切换 ====================
@@ -3390,10 +3394,10 @@
                     
                     // 更新输入框显示今日总和
                     updateIntakeInputFields(totalIntake);
-                            
-                    // 关键修改：只显示最新3条记录（早中晚三餐）
-                    const displayRecords = todayRecords.slice(-3);
-                            
+                                        
+                    //  关键修复：显示所有今日记录，而不是只限制3条
+                    const displayRecords = todayRecords;
+                                        
                     const tableDiv = document.getElementById('today-intake-table');
                             
                     if (displayRecords.length === 0) {
@@ -3608,15 +3612,17 @@
         function resetImageRecognitionUI() {
             selectedImageFile = null;
             recognizedIngredients = '';
+            const uploadHintTitle = window.i18n ? window.i18n.t('camera.upload_hint') : '点击上传或拖拽图片到此处';
             document.getElementById('image-preview-area').innerHTML = `
                 <div style="text-align: center; color: var(--text-secondary);">
                     <div style="font-size: 60px; margin-bottom: 10px;">📷</div>
-                    <div>点击上传或拖拽图片到此处</div>
+                    <div>${uploadHintTitle}</div>
                 </div>
             `;
             document.getElementById('recognition-result').style.display = 'none';
             document.getElementById('recognize-btn').disabled = false;
-            document.getElementById('recognize-btn').innerHTML = '🔍 开始识别';
+            const recognizeBtnText = window.i18n ? window.i18n.t('camera.start_recognition') : '🔍 开始识别';
+            document.getElementById('recognize-btn').innerHTML = recognizeBtnText;
         }
 
         // 🆕 确认并录入识别到的食材
@@ -3941,8 +3947,9 @@
                     // 创建 webm blob
                     const webmBlob = new Blob(audioChunks, { type: 'audio/webm' });
                             
-                    // 显示“正在识别...”
-                    document.getElementById('voice-input-display').value = '🔍 正在识别...';
+                    //  显示"正在识别..."
+                    const recognizingText = window.i18n ? window.i18n.t('camera.recognizing') : '🔍 正在识别...';
+                    document.getElementById('voice-input-display').value = recognizingText;
                             
                     // 将 webm 转换为 wav（使用 AudioContext）
                     try {
@@ -4184,8 +4191,18 @@
                 const msg = window.i18n ? window.i18n.t('common.network_error_retry') : '❌ 网络错误';
                 showToast(msg);
             } finally {
-                // 恢复按钮状态
+                //  关键修复：恢复按钮状态并重置语音 UI，让用户可以继续对话
                 buttons.forEach(btn => btn.disabled = false);
+                
+                //  隐藏确认按钮，显示录音按钮，让用户可以继续语音输入
+                document.getElementById('voice-confirm-buttons').style.display = 'none';
+                document.getElementById('record-btn').style.display = 'inline-flex';
+                const recordBtnText = window.i18n ? window.i18n.t('voice.record_button') : '🎤 按住说话';
+                document.getElementById('record-btn').innerHTML = recordBtnText;
+                document.getElementById('record-btn').disabled = false;
+                
+                //  清空语音识别文本，准备下一次对话
+                voiceRecognizedText = '';
             }
         }
 
