@@ -55,14 +55,16 @@ We have developed an **integrated smart cooling system** powered by the CocoPi A
 *Judges can directly access this link to experience the full functionality*
 
 **Previous Versions**:
-- **v1.0 (Pure HTML Static Template)**: https://si21sio74kei-cmyk.github.io/PV.I-Create2FoodGuardian-AI/
+- **v1.0 (Pure HTML Static Template - Dec 2025)**: https://si21sio74kei-cmyk.github.io/PV.I-Create2FoodGuardian-AI/
   - Fixed template output, no dynamic interaction
   - Hardcoded content for initial concept validation
+  - File: 智能冰箱/food-ai-V1.0.html (archived)
   
-- **v2.0 (Python Desktop Application)**: Chinese-only desktop version
-  - CustomTkinter GUI framework
-  - Local installation required (Windows/Mac)
-  - No cloud deployment, limited accessibility
+- **v2.0 (Python Flask Web Initial - Mar 2026)**: Chinese-only web version
+  - Flask framework with basic HTML
+  - AI recipe generation (Zhipu GLM-4)
+  - Local JSON data storage
+  - File: food_guardian_ai.py
 
 ---
 
@@ -558,23 +560,26 @@ for model_info in model_priority:
 
 ## VIII. Version Evolution History
 
-### Phase 1: Pure HTML Static Template (v1.0)
+### Phase 1: Pure HTML Static Template (v1.0 - Dec 2025)
 - Basic HTML static pages
 - Fixed template output, no dynamic interaction
 - Hardcoded content, no personalization
 - Initial concept validation
+- **File**: 智能冰箱/food-ai-V1.0.html (historical archive)
 - **Live Demo**: https://si21sio74kei-cmyk.github.io/PV.I-Create2FoodGuardian-AI/
 
-### Phase 2: Python Desktop Application (v2.0)
-- CustomTkinter GUI framework
-- AI recipe generation with local JSON storage
-- Voice recognition (SpeechRecognition library)
-- Photo-based ingredient recognition (OpenCV)
-- **Language**: Chinese only (no internationalization)
-- **Limitations**: Windows/Mac only, no cloud access, requires local installation
+### Phase 2: Python Flask Web Initial (v2.0 - Mar 2026)
+- Flask web framework
+- AI recipe generation (Zhipu GLM-4)
+- Local JSON data storage
+- Basic nutrition assessment
+- Photo food recognition (GLM-4V)
+- **File**: food_guardian_ai.py
+- **Language**: Chinese only
 
-### Phase 3: Web Application Reconstruction (v3.0 - Current)
-- **Architecture**: Flask + HTML/CSS/JS
+### Phase 3: Web Full Upgrade (v3.0 - Mar 2026 to Present)
+- **Architecture**: Complete Flask backend refactoring + iOS-style modern UI
+- **Files**: food_guardian_ai_2.py + templates/index.html
 - **Deployment**: Vercel serverless platform
 - **Live Demo**: https://food-ai-v3.vercel.app *(Accessible to judges)*
 - **Internationalization**: English/Chinese bilingual support
@@ -862,7 +867,8 @@ Key endpoints include:
 
 8. **Demonstration Media**
    - 🎥 YouTube Video - Smart Refrigerator Prototype: https://www.youtube.com/watch?v=HmTXLpAculQ
-   - 🌐 v1.0 HTML Static Template: https://si21sio74kei-cmyk.github.io/PV.I-Create2FoodGuardian-AI/
+   - 🌐 v1.0 HTML Static Template (Dec 2025): https://si21sio74kei-cmyk.github.io/PV.I-Create2FoodGuardian-AI/
+     - File location: 智能冰箱/food-ai-V1.0.html (archived)
    - 💻 CocoPi Code Files: Available in Google Drive alongside website HTML files
 
 ---
