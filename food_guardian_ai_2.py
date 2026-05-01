@@ -496,6 +496,146 @@ def generate_nutrition_report(user_intake, population_group, language='zh-CN'):
     if 'error' in assessment:
         return assessment['error']
     
+    # 🌐 根据语言生成不同的报告
+    if language == 'en-US':
+        return generate_nutrition_report_en(user_intake, population_group, assessment)
+    else:
+        return generate_nutrition_report_zh(user_intake, population_group, assessment)
+
+def generate_nutrition_report_en(user_intake, population_group, assessment):
+    """Generate English nutrition assessment report"""
+    group_names = {
+        'adults': 'Adults (18-60 years)',
+        'teens': 'Teens (13-17 years)',
+        'children': 'Children (6-12 years)',
+        'elderly': 'Elderly (60+ years)'
+    }
+    group_name = group_names.get(population_group, population_group)
+    
+    food_names = {
+        'vegetables': 'Vegetables',
+        'fruits': 'Fruits',
+        'meat': 'Meat',
+        'eggs': 'Eggs'
+    }
+    
+    status_names = {
+        '达标': 'Meets Standard',
+        '不足': 'Insufficient',
+        '超标': 'Excessive',
+        '未录入': 'Not Recorded'
+    }
+    
+    status_icons = {
+        '达标': '✅',
+        '不足': '⬇️',
+        '超标': '️',
+        '未录入': '️'
+    }
+    
+    standard = get_nutrition_standard(population_group)
+    
+    report = "# 📊 Nutrition Assessment Report (Based on UN WHO Standards)\n\n"
+    
+    # Basic Information
+    report += "## [Basic Information]\n\n"
+    report += f"- **Assessment Date**: {get_china_time().strftime('%Y-%m-%d %H:%M')}\n"
+    report += f"- **Population Group**: {group_name}\n"
+    
+    total_intake = sum(user_intake.get(food, 0) for food in ['vegetables', 'fruits', 'meat', 'eggs'])
+    report += f"- **Total Intake**: {total_intake}g\n\n"
+    
+    # Intake Data Comparison
+    report += "## [Intake Data Comparison]\n\n"
+    report += "| Food Type | Current Intake | Recommended Range | Status |\n"
+    report += "|-----------|----------------|-------------------|--------|\n"
+    
+    for food_type in ['vegetables', 'fruits', 'meat', 'eggs']:
+        data = assessment[food_type]
+        intake_amount = data['intake']
+        english_name = food_names.get(food_type, food_type)
+        status = data['status']
+        status_en = status_names.get(status, status)
+        icon = status_icons.get(status, '❓')
+        
+        if standard and status != '未录入':
+            recommendations = standard['daily_recommendations'].get(food_type, {})
+            min_rec = recommendations.get('min', 0)
+            max_rec = recommendations.get('max', 0)
+            range_str = f"{min_rec}-{max_rec}g"
+        else:
+            range_str = "-"
+        
+        report += f"| {english_name} | {intake_amount}g | {range_str} | {icon} {status_en} |\n"
+    
+    report += "\n"
+    
+    # Detailed Analysis
+    report += "## [Detailed Analysis]\n\n"
+    
+    for food_type in ['vegetables', 'fruits', 'meat', 'eggs']:
+        data = assessment[food_type]
+        english_name = food_names.get(food_type, food_type)
+        status = data['status']
+        icon = status_icons.get(status, '❓')
+        
+        report += f"### {icon} {english_name}\n\n"
+        report += f"- **Current Intake**: {data['intake']}g\n"
+        
+        if data['gap'] > 0:
+            if status == '不足':
+                report += f"- **Gap**: {data['gap']}g below minimum recommendation\n"
+            elif status == '超标':
+                report += f"- **Excess**: {data['gap']}g above maximum recommendation\n"
+        
+        # Translate suggestion
+        suggestion_en = translate_suggestion_to_en(data['suggestion'])
+        report += f"- **Suggestion**: {suggestion_en}\n\n"
+    
+    # Comprehensive Evaluation
+    report += "## [Comprehensive Evaluation]\n\n"
+    
+    status_count = {'达标': 0, '不足': 0, '超标': 0, '未录入': 0}
+    for food_type in ['vegetables', 'fruits', 'meat', 'eggs']:
+        status = assessment[food_type]['status']
+        status_count[status] = status_count.get(status, 0) + 1
+    
+    if status_count['达标'] == 4:
+        report += "🎉 **Excellent!** All food categories meet the recommended standards. Please continue to maintain a balanced diet!\n\n"
+    elif status_count['达标'] >= 2:
+        report += "👍 **Good!** Most food categories are reasonable. Pay attention to adjusting insufficient or excessive categories.\n\n"
+    elif status_count['未录入'] > 0:
+        report += "️ **To be improved** Some food categories have not been recorded yet. It is recommended to supplement them for more accurate assessment.\n\n"
+    else:
+        report += "💡 **Needs improvement** Most food categories do not meet the standards. It is recommended to refer to the health tips below for adjustments.\n\n"
+    
+    # Health Tips
+    report += "## [Health Tips]\n\n"
+    
+    tips = []
+    if assessment['vegetables']['status'] == '不足':
+        tips.append("🥬 Insufficient vegetable intake may lack dietary fiber and vitamins. It is recommended to increase green leafy vegetables.")
+    if assessment['fruits']['status'] == '不足':
+        tips.append("🍎 Insufficient fruit intake may lack vitamin C. It is recommended to add fresh fruits appropriately.")
+    if assessment['meat']['status'] == '超标':
+        tips.append(" Excessive meat intake may increase fat intake. It is recommended to reduce red meat and increase fish and poultry.")
+    if assessment['eggs']['status'] == '超标':
+        tips.append(" Excessive egg intake requires attention to cholesterol. It is recommended to control daily egg intake.")
+    
+    if not tips:
+        tips.append("✨ Current diet structure is relatively reasonable. It is recommended to continue maintaining a diverse diet.")
+        tips.append("💧 Don't forget to drink enough water every day (recommended 1500-2000ml).")
+        tips.append("🏃 Combine with appropriate exercise for better results.")
+    
+    for tip in tips:
+        report += f"- {tip}\n"
+    
+    report += "\n---\n*This report is generated based on UN WHO nutrition standards for reference only.*"
+    
+    return report
+
+def generate_nutrition_report_zh(user_intake, population_group, assessment):
+    """生成中文营养评估报告"""
     # 人群名称映射
     group_names = {
         'adults': '成年人 (18-60 岁)',
@@ -609,6 +749,33 @@ def generate_nutrition_report(user_intake, population_group, language='zh-CN'):
     report += "\n---\n*本报告基于联合国WHO营养标准生成，仅供参考*"
     
     return report
+
+def translate_suggestion_to_en(suggestion):
+    """Translate Chinese suggestion to English"""
+    # Simple translation mapping
+    translations = {
+        '建议增加': 'Recommend increasing',
+        '摄入': 'intake',
+        '当前': 'current',
+        '还差': 'still need',
+        '达到最低推荐量': 'to reach minimum recommendation',
+        '建议减少': 'Recommend reducing',
+        '已超过推荐最大值': 'exceeds maximum recommendation by',
+        '摄入充足': 'Intake is sufficient',
+        '请继续保持': 'please keep it up',
+        '暂未录入': 'Not yet recorded',
+        '如已摄入请补充录入': 'if consumed, please supplement the record',
+        '摄入较少': 'Intake is relatively low',
+        '建议适当增加': 'recommend适当增加',
+        '摄入略多': 'Intake is slightly high',
+        '建议后续餐次适当控制': 'recommend controlling in subsequent meals',
+    }
+    
+    result = suggestion
+    for cn, en in translations.items():
+        result = result.replace(cn, en)
+    
+    return result
 
 def nutrition_assessment(user_intake, population_group):
     """全维度营养健康评估引擎"""

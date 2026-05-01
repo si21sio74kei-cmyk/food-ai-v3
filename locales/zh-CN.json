@@ -226,6 +226,7 @@
     "ingredient_required": "请至少输入一种食材",
     "please_upload_image": "请先上传图片",
     "recognition_failed": "识别失败",
+    "ai_recognizing": "AI 识别中...",
     "recognition_success": "识别成功!请确认食材后录入",
     "recording_too_short": "录音时间太短,请重新录制",
     "recording_stopped": "录音已停止",

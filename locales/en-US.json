@@ -226,6 +226,7 @@
     "ingredient_required": "Please enter at least one ingredient",
     "please_upload_image": "Please upload an image first",
     "recognition_failed": "Recognition failed",
+    "ai_recognizing": "AI recognizing...",
     "recognition_success": "Recognition successful! Please confirm ingredients before recording",
     "recording_too_short": "Recording too short, please record again",
     "recording_stopped": "Recording stopped",
