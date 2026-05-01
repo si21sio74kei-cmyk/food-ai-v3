@@ -1803,7 +1803,7 @@
             const peopleSlider = document.getElementById('people-slider');
             const peopleLabel = peopleSlider.closest('.input-group').querySelector('.input-label');
             if (lang === 'en-US') {
-                peopleLabel.innerHTML = `Number of People: <span id="people-count">${peopleValue}</span>`;
+                peopleLabel.innerHTML = `The number of diners: <span id="people-count">${peopleValue}</span>`;
             } else {
                 peopleLabel.innerHTML = `就餐人数: <span id="people-count">${peopleValue}</span> 人`;
             }
@@ -2083,7 +2083,7 @@
             const label = slider.closest('.input-group').querySelector('.input-label');
             
             if (lang === 'en-US') {
-                label.innerHTML = `Number of People: <span id="people-count">${value}</span>`;
+                label.innerHTML = `The number of diners: <span id="people-count">${value}</span>`;
             } else {
                 label.innerHTML = `就餐人数: <span id="people-count">${value}</span> 人`;
             }
