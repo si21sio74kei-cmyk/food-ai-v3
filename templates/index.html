@@ -1812,7 +1812,7 @@
             const appetiteSlider = document.getElementById('appetite-slider');
             const appetiteLabel = appetiteSlider.closest('.input-group').querySelector('.input-label');
             if (lang === 'en-US') {
-                appetiteLabel.innerHTML = `Personal Appetite Coefficient: <span id="appetite-value">${appetiteValue}</span>`;
+                appetiteLabel.innerHTML = `Personal portion factor: <span id="appetite-value">${appetiteValue}</span>`;
             } else {
                 appetiteLabel.innerHTML = `个人饭量系数: <span id="appetite-value">${appetiteValue}</span>`;
             }
@@ -2098,7 +2098,7 @@
             const label = slider.closest('.input-group').querySelector('.input-label');
             
             if (lang === 'en-US') {
-                label.innerHTML = `Personal Appetite Coefficient: <span id="appetite-value">${value}</span>`;
+                label.innerHTML = `Personal portion factor: <span id="appetite-value">${value}</span>`;
             } else {
                 label.innerHTML = `个人饭量系数: <span id="appetite-value">${value}</span>`;
             }
