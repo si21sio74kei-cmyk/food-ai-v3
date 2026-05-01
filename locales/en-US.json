@@ -346,7 +346,7 @@
     "recognition_failed": "❌ Voice recognition failed",
     "recognition_error": "❌ Recognition error:",
     "re_record": "🎤 Re-record",
-    "ai_thinking": "🤖 AI is thinking about your question, please wait..."
+    "ai_thinking": "🤖 AI is thinking about your question, please wait...\n\n"
   },
   "shopping": {
     "title": "Smart Shopping List",
