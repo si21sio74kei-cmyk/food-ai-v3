@@ -1161,8 +1161,8 @@
             <button class="action-btn" id="lang-switcher" onclick="toggleLanguage()" title="切换语言">
                 <span id="current-lang-flag">🇨🇳</span>
             </button>
-            <button class="action-btn" onclick="openImageRecognition()" title="拍照识菜">📸</button>
-            <button class="action-btn" onclick="switchPage('voice')" title="语音交互">🎤</button>
+            <button class="action-btn" onclick="openImageRecognition()" data-i18n-title="camera.modal_title" title="拍照识菜">📸</button>
+            <button class="action-btn" onclick="switchPage('voice')" data-i18n-title="voice.title" title="语音交互">🎤</button>
         </div>
     </div>
 
@@ -1636,7 +1636,7 @@
     <div id="history-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: center;">
         <div style="background: white; border-radius: 20px; padding: 30px; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="margin: 0;">📅 近 7 天摄入记录</h2>
+                <h2 style="margin: 0;" data-i18n="home.history_modal_title">📅 近 7 天摄入记录</h2>
                 <button onclick="closeHistoryModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">❌</button>
             </div>
             <div id="history-content"></div>
