@@ -3192,8 +3192,17 @@
                     
                     if (result.is_multi_group) {
                         // 多人群模式：显示各人群的饮食推荐
-                        let content = '# 👥 多人群饮食推荐\n\n';
-                        content += '*基于联合国 WHO 营养标准，为全家提供个性化菜品推荐*\n\n';
+                        // 🌐 根据当前语言生成标题和描述
+                        const currentLang = getCurrentLanguage();
+                        let content = '';
+                        
+                        if (currentLang === 'en-US') {
+                            content = '# 👥 Multi-Population Dietary Recommendations\n\n';
+                            content += '*Based on UN WHO nutrition standards, providing personalized dish recommendations for the whole family*\n\n';
+                        } else {
+                            content = '#  多人群饮食推荐\n\n';
+                            content += '*基于联合国 WHO 营养标准，为全家提供个性化菜品推荐*\n\n';
+                        }
                         
                         // 添加各人群推荐
                         for (const [group, recommendation] of Object.entries(result.recommendation)) {

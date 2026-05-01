@@ -4,6 +4,7 @@
     "age_range": "18-60 岁",
     "standard_source": "WHO_2025",
     "characteristics": "成年人处于生命中的旺盛期，需要充足的营养以维持健康。",
+    "characteristics_en": "Adults are in the prime of life and need adequate nutrition to maintain health.",
     "daily_recommendations": {
       "vegetables": {
         "min": 400,
@@ -47,6 +48,7 @@
     "age_range": "6-12 岁",
     "standard_source": "WHO_2025",
     "characteristics": "儿童处于生长发育的关键时期，需要充足的营养以支持其身体和智力的发展。",
+    "characteristics_en": "Children are in a critical period of growth and development, requiring adequate nutrition to support physical and intellectual development.",
     "daily_recommendations": {
       "vegetables": {
         "min": 300,
@@ -90,6 +92,7 @@
     "age_range": "13-17 岁",
     "standard_source": "WHO_2025",
     "characteristics": "青少年处于生长发育的第二个高峰期，身体快速发育，学习压力大，需要充足全面的营养支持。",
+    "characteristics_en": "Teens are in the second peak period of growth and development, with rapid physical development and high study pressure, requiring comprehensive nutritional support.",
     "daily_recommendations": {
       "vegetables": {
         "min": 400,
@@ -133,6 +136,7 @@
     "age_range": "60 岁以上",
     "standard_source": "WHO_2025",
     "characteristics": "老年人代谢减慢，消化吸收能力下降，需要适当的营养摄入以维持健康。",
+    "characteristics_en": "Elderly have slower metabolism and decreased digestive capacity, requiring appropriate nutritional intake to maintain health.",
     "daily_recommendations": {
       "vegetables": {
         "min": 300,

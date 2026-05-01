@@ -2204,17 +2204,27 @@ def generate_daily_recommendation_route():
         user_intake = {'vegetables': 0, 'fruits': 0, 'meat': 0, 'eggs': 0}
     
     try:
-        # 检查是否为“以上皆是”模式
+        # 检查是否为"以上皆是"模式
         if population_group == 'all':
             # 为所有人群生成推荐
             groups = ['adults', 'teens', 'children', 'elderly']
-            group_names = {
-                'adults': '成年人',
-                'teens': '青少年',
-                'children': '儿童',
-                'elderly': '老年人'
-            }
-                
+                    
+            # 🌐 根据语言设置人群名称
+            if language == 'en-US':
+                group_names = {
+                    'adults': 'Adults',
+                    'teens': 'Teens',
+                    'children': 'Children',
+                    'elderly': 'Elderly'
+                }
+            else:
+                group_names = {
+                    'adults': '成年人',
+                    'teens': '青少年',
+                    'children': '儿童',
+                    'elderly': '老年人'
+                }
+                        
             recommendations = {}
             for group in groups:
                 rec = generate_daily_recommendation(user_intake, group, fridge_items, language)
