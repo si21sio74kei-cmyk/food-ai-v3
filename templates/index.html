@@ -2220,7 +2220,7 @@
                 console.log('   ✅ 计数器已重置为0');
                 
                 // 2. 🆕 关键修复：清空今日的摄入记录
-                const today = new Date().toISOString().split('T')[0];
+                const today = getChinaDate();
                 const allRecords = appData.daily_intake_records || [];
                 const recordsToRemove = allRecords.filter(r => r.date === today);
                 
@@ -2905,7 +2905,7 @@
                     
                     // 🔑 关键修复：重新加载数据，直接使用全局 appData
                     await loadData();  // 这会更新全局 appData
-                    const today = new Date().toISOString().split('T')[0];
+                    const today = getChinaDate();
                     const todayRecords = (appData.daily_intake_records || []).filter(r => r.date === today);
                     
                     // 汇总今日所有记录
@@ -3349,6 +3349,15 @@
             }
         }
 
+        //  关键修复：获取中国时区日期（UTC+8）
+        function getChinaDate() {
+            const now = new Date();
+            const chinaOffset = 8 * 60; // UTC+8
+            const utcOffset = now.getTimezoneOffset();
+            const chinaTime = new Date(now.getTime() + (chinaOffset + utcOffset) * 60000);
+            return chinaTime.toISOString().split('T')[0];
+        }
+
         // ==================== 显示营养报告 ====================
         // 从首页立即评估（不跳转页面）
         async function performNutritionAssessmentFromHome() {
@@ -3385,7 +3394,7 @@
                 const result = await response.json();
                         
                 if (result.success) {
-                    const today = new Date().toISOString().split('T')[0];
+                    const today = getChinaDate();
                     const records = result.data.daily_intake_records || [];
                     const todayRecords = records.filter(r => r.date === today);
                             
@@ -3536,7 +3545,7 @@
                     await loadTodayIntakeTable();
                     
                     // 🔑 关键修复：重新评估营养状况，直接使用全局 appData
-                    const today = new Date().toISOString().split('T')[0];
+                    const today = getChinaDate();
                     await loadData();  // 这会更新全局 appData
                     const todayRecords = (appData.daily_intake_records || []).filter(r => r.date === today);
                     
@@ -4028,6 +4037,12 @@
                 const recordingMsg = window.i18n ? window.i18n.t('common.recording_in_progress') : '🔴 正在录音，请说话...（最长 30 秒）\n\n说完可点击【✅ 确定】提前结束';
                 document.getElementById('voice-input-display').value = recordingMsg;
                         
+                //  关键修复：在开始新录音前，清理旧的计时器和状态
+                if (recordingTimer) {
+                    clearInterval(recordingTimer);
+                    recordingTimer = null;
+                }
+                
                 // 启动计时器更新进度条
                 recordingTimer = setInterval(() => {
                     const elapsed = Date.now() - recordingStartTime;
