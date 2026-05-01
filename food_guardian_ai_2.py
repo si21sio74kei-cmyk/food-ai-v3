@@ -286,112 +286,206 @@ def get_nutrition_standard(population_group):
     standards = load_nutrition_standards()
     return standards.get(population_group, standards.get('adults', None))
 
-def generate_multi_group_nutrition_report(user_intake):
+def generate_multi_group_nutrition_report(user_intake, language='zh-CN'):
     """生成多人群营养对比报告（Markdown格式）"""
-    print(f"\n👥 [generate_multi_group_nutrition_report] 用户摄入: {user_intake}")
+    print(f"\n👥 [generate_multi_group_nutrition_report] 用户摄入: {user_intake}, 语言: {language}")
     
     groups = ['adults', 'teens', 'children', 'elderly']
-    group_names = {
-        'adults': '成年人 (18-60 岁)',
-        'teens': '青少年 (13-17 岁)',
-        'children': '儿童 (6-12 岁)',
-        'elderly': '老年人 (60 岁以上)'
-    }
     
-    report = "# 👥 多人群营养评估报告\n\n"
-    report += "*基于联合国 WHO 营养标准，为全家提供个性化建议*\n\n"
-    
-    # 显示用户当前摄入
-    report += "## 【您当前摄入】\n\n"
-    report += f"- **蔬菜**: {user_intake.get('vegetables', 0)}g\n"
-    report += f"- **水果**: {user_intake.get('fruits', 0)}g\n"
-    report += f"- **肉类**: {user_intake.get('meat', 0)}g\n"
-    report += f"- **蛋类**: {user_intake.get('eggs', 0)}g\n\n"
-    
-    # 为每个群体生成详细报告
-    for group in groups:
-        standard = get_nutrition_standard(group)
-        if not standard:
-            continue
+    if language == 'en-US':
+        group_names = {
+            'adults': 'Adults (18-60 years)',
+            'teens': 'Teens (13-17 years)',
+            'children': 'Children (6-12 years)',
+            'elderly': 'Elderly (60+ years)'
+        }
+        food_names = {'vegetables': 'Vegetables', 'fruits': 'Fruits', 'meat': 'Meat', 'eggs': 'Eggs'}
+        status_names = {'达标': 'Meets Standard', '不足': 'Insufficient', '超标': 'Excessive'}
+        status_icons = {'达标': '✅', '不足': '⬇️', '超标': '⬆️'}
         
-        group_name = group_names[group]
-        report += f"---\n\n## 📋 {group_name}\n\n"
+        report = "# 👥 Multi-Population Nutrition Assessment Report\n\n"
+        report += "*Based on UN WHO nutrition standards, providing personalized recommendations for the whole family*\n\n"
         
-        # 群体特点
-        if standard.get('characteristics'):
-            report += f"**群体特点**: {standard['characteristics']}\n\n"
+        report += "## 【Your Current Intake】\n\n"
+        report += f"- **Vegetables**: {user_intake.get('vegetables', 0)}g\n"
+        report += f"- **Fruits**: {user_intake.get('fruits', 0)}g\n"
+        report += f"- **Meat**: {user_intake.get('meat', 0)}g\n"
+        report += f"- **Eggs**: {user_intake.get('eggs', 0)}g\n\n"
         
-        # 营养标准对比表
-        report += "### 营养标准对比\n\n"
-        report += "| 食物类型 | 推荐范围 | 您的摄入 | 状态 |\n"
-        report += "|---------|---------|---------|------|\n"
-        
-        icons = {'达标': '✅', '不足': '⬇️', '超标': '⬆️'}
-        recommendations = standard.get('daily_recommendations', {})
-        
-        for food_type in ['vegetables', 'fruits', 'meat', 'eggs']:
-            rec = recommendations.get(food_type, {})
-            chinese_name = {'vegetables': '蔬菜', 'fruits': '水果', 'meat': '肉类', 'eggs': '蛋类'}[food_type]
-            intake_amount = user_intake.get(food_type, 0)
-            min_val = rec.get('min', 0)
-            max_val = rec.get('max', 0)
+        for group in groups:
+            standard = get_nutrition_standard(group)
+            if not standard:
+                continue
             
-            if intake_amount < min_val:
-                status = '不足'
-                gap = min_val - intake_amount
-            elif intake_amount > max_val:
-                status = '超标'
-                gap = intake_amount - max_val
-            else:
-                status = '达标'
-                gap = 0
+            group_name = group_names[group]
+            characteristics_en = standard.get('characteristics_en', standard.get('characteristics', ''))
             
-            icon = icons.get(status, '❓')
-            status_text = f"{icon} {status}"
-            if gap > 0:
-                if status == '不足':
-                    status_text += f" (还差 {gap}g)"
+            report += f"---\n\n## 📋 {group_name}\n\n"
+            
+            if characteristics_en:
+                report += f"**Group Characteristics**: {characteristics_en}\n\n"
+            
+            report += "### Nutrition Standards Comparison\n\n"
+            report += "| Food Type | Recommended Range | Your Intake | Status |\n"
+            report += "|----------|-------------------|-------------|--------|\n"
+            
+            recommendations = standard.get('daily_recommendations', {})
+            
+            for food_type in ['vegetables', 'fruits', 'meat', 'eggs']:
+                rec = recommendations.get(food_type, {})
+                food_name = food_names[food_type]
+                intake_amount = user_intake.get(food_type, 0)
+                min_val = rec.get('min', 0)
+                max_val = rec.get('max', 0)
+                
+                if intake_amount < min_val:
+                    status = '不足'
+                    gap = min_val - intake_amount
+                    gap_text = f" (needs {gap}g more)"
+                elif intake_amount > max_val:
+                    status = '超标'
+                    gap = intake_amount - max_val
+                    gap_text = f" (exceeds by {gap}g)"
                 else:
-                    status_text += f" (超出 {gap}g)"
+                    status = '达标'
+                    gap = 0
+                    gap_text = ''
+                
+                icon = status_icons[status]
+                status_text = f"{icon} {status_names[status]}{gap_text}"
+                
+                report += f"| {food_name} | {min_val}-{max_val}g | {intake_amount}g | {status_text} |\n"
             
-            report += f"| {chinese_name} | {min_val}-{max_val}g | {intake_amount}g | {status_text} |\n"
-        
-        report += "\n"
-        
-        # 针对性建议
-        report += "### 💡 针对性建议\n\n"
-        
-        has_issue = False
-        for food_type in ['vegetables', 'fruits', 'meat', 'eggs']:
-            rec = recommendations.get(food_type, {})
-            chinese_name = {'vegetables': '蔬菜', 'fruits': '水果', 'meat': '肉类', 'eggs': '蛋类'}[food_type]
-            intake_amount = user_intake.get(food_type, 0)
-            min_val = rec.get('min', 0)
-            max_val = rec.get('max', 0)
+            report += "\n"
             
-            if intake_amount < min_val:
-                gap = min_val - intake_amount
-                report += f"- ⬇️ **{chinese_name}不足**: 对于{group_name}，建议增加{gap}g，达到{min_val}g以上\n"
-                has_issue = True
-            elif intake_amount > max_val:
-                gap = intake_amount - max_val
-                report += f"- ⬆️ **{chinese_name}超标**: 对于{group_name}，建议减少{gap}g，控制在{max_val}g以内\n"
-                has_issue = True
+            report += "### 💡 Targeted Recommendations\n\n"
+            
+            has_issue = False
+            for food_type in ['vegetables', 'fruits', 'meat', 'eggs']:
+                rec = recommendations.get(food_type, {})
+                food_name = food_names[food_type]
+                intake_amount = user_intake.get(food_type, 0)
+                min_val = rec.get('min', 0)
+                max_val = rec.get('max', 0)
+                
+                if intake_amount < min_val:
+                    gap = min_val - intake_amount
+                    report += f"- ⬇️ **Insufficient {food_name}**: For {group_name}, recommend increasing by {gap}g to reach above {min_val}g\n"
+                    has_issue = True
+                elif intake_amount > max_val:
+                    gap = intake_amount - max_val
+                    report += f"- ️ **Excessive {food_name}**: For {group_name}, recommend reducing by {gap}g to stay within {max_val}g\n"
+                    has_issue = True
+            
+            if not has_issue:
+                report += f"- ✅ **All Standards Met**: Current intake meets the nutritional needs of {group_name}, please keep it up!\n"
+            
+            report += "\n"
         
-        if not has_issue:
-            report += f"- ✅ **全部达标**: 当前摄入量符合{group_name}的营养需求，请继续保持！\n"
+        report += "---\n\n## 🎯 Overall Recommendations\n\n"
+        report += "Since different population groups have varying nutritional needs, we recommend:\n\n"
+        report += "1. **Separate Meals**: Prepare food portions suitable for each group's nutritional needs\n"
+        report += "2. **Key Focus**: Prioritize meeting the special nutritional needs of children and elderly\n"
+        report += "3. **Flexible Adjustment**: Adjust food portions according to actual dining situations\n"
+        report += "4. **Diverse Diet**: Ensure food variety and balanced nutrition\n\n"
         
-        report += "\n"
-    
-    # 综合建议
-    report += "---\n\n## 🎯 综合建议\n\n"
-    report += "由于不同人群的营养需求存在差异，建议：\n\n"
-    report += "1. **分餐准备**: 为不同人群准备适合其营养需求的食物份量\n"
-    report += "2. **重点关注**: 优先满足儿童和老年人的特殊营养需求\n"
-    report += "3. **灵活调整**: 根据实际用餐情况，适当增减各类食物的份量\n"
-    report += "4. **多样化饮食**: 确保食物种类丰富，营养均衡\n\n"
-    
-    report += "---\n*本报告基于联合国WHO营养标准生成，仅供参考*"
+        report += "---\n*This report is generated based on UN WHO nutrition standards, for reference only*"
+    else:
+        group_names = {
+            'adults': '成年人 (18-60 岁)',
+            'teens': '青少年 (13-17 岁)',
+            'children': '儿童 (6-12 岁)',
+            'elderly': '老年人 (60 岁以上)'
+        }
+        
+        report = "# 👥 多人群营养评估报告\n\n"
+        report += "*基于联合国 WHO 营养标准，为全家提供个性化建议*\n\n"
+        
+        report += "## 【您当前摄入】\n\n"
+        report += f"- **蔬菜**: {user_intake.get('vegetables', 0)}g\n"
+        report += f"- **水果**: {user_intake.get('fruits', 0)}g\n"
+        report += f"- **肉类**: {user_intake.get('meat', 0)}g\n"
+        report += f"- **蛋类**: {user_intake.get('eggs', 0)}g\n\n"
+        
+        for group in groups:
+            standard = get_nutrition_standard(group)
+            if not standard:
+                continue
+            
+            group_name = group_names[group]
+            report += f"---\n\n## 📋 {group_name}\n\n"
+            
+            if standard.get('characteristics'):
+                report += f"**群体特点**: {standard['characteristics']}\n\n"
+            
+            report += "### 营养标准对比\n\n"
+            report += "| 食物类型 | 推荐范围 | 您的摄入 | 状态 |\n"
+            report += "|---------|---------|---------|------|\n"
+            
+            icons = {'达标': '✅', '不足': '⬇️', '超标': '⬆️'}
+            recommendations = standard.get('daily_recommendations', {})
+            
+            for food_type in ['vegetables', 'fruits', 'meat', 'eggs']:
+                rec = recommendations.get(food_type, {})
+                chinese_name = {'vegetables': '蔬菜', 'fruits': '水果', 'meat': '肉类', 'eggs': '蛋类'}[food_type]
+                intake_amount = user_intake.get(food_type, 0)
+                min_val = rec.get('min', 0)
+                max_val = rec.get('max', 0)
+                
+                if intake_amount < min_val:
+                    status = '不足'
+                    gap = min_val - intake_amount
+                elif intake_amount > max_val:
+                    status = '超标'
+                    gap = intake_amount - max_val
+                else:
+                    status = '达标'
+                    gap = 0
+                
+                icon = icons.get(status, '❓')
+                status_text = f"{icon} {status}"
+                if gap > 0:
+                    if status == '不足':
+                        status_text += f" (还差 {gap}g)"
+                    else:
+                        status_text += f" (超出 {gap}g)"
+                
+                report += f"| {chinese_name} | {min_val}-{max_val}g | {intake_amount}g | {status_text} |\n"
+            
+            report += "\n"
+            
+            report += "### 💡 针对性建议\n\n"
+            
+            has_issue = False
+            for food_type in ['vegetables', 'fruits', 'meat', 'eggs']:
+                rec = recommendations.get(food_type, {})
+                chinese_name = {'vegetables': '蔬菜', 'fruits': '水果', 'meat': '肉类', 'eggs': '蛋类'}[food_type]
+                intake_amount = user_intake.get(food_type, 0)
+                min_val = rec.get('min', 0)
+                max_val = rec.get('max', 0)
+                
+                if intake_amount < min_val:
+                    gap = min_val - intake_amount
+                    report += f"- ️ **{chinese_name}不足**: 对于{group_name}，建议增加{gap}g，达到{min_val}g以上\n"
+                    has_issue = True
+                elif intake_amount > max_val:
+                    gap = intake_amount - max_val
+                    report += f"- ⬆️ **{chinese_name}超标**: 对于{group_name}，建议减少{gap}g，控制在{max_val}g以内\n"
+                    has_issue = True
+            
+            if not has_issue:
+                report += f"- ✅ **全部达标**: 当前摄入量符合{group_name}的营养需求，请继续保持！\n"
+            
+            report += "\n"
+        
+        report += "---\n\n## 🎯 综合建议\n\n"
+        report += "由于不同人群的营养需求存在差异，建议：\n\n"
+        report += "1. **分餐准备**: 为不同人群准备适合其营养需求的食物份量\n"
+        report += "2. **重点关注**: 优先满足儿童和老年人的特殊营养需求\n"
+        report += "3. **灵活调整**: 根据实际用餐情况，适当增减各类食物的份量\n"
+        report += "4. **多样化饮食**: 确保食物种类丰富，营养均衡\n\n"
+        
+        report += "---\n*本报告基于联合国WHO营养标准生成，仅供参考*"
     
     return report
 
@@ -1259,15 +1353,16 @@ def nutrition_assess():
     data = request.json
     user_intake = data.get('user_intake', {})
     population_group = data.get('population_group', 'adults')
+    language = data.get('language', 'zh-CN')  # 🌐 获取语言设置
     
     try:
         # 检查是否为"以上皆是"模式
         if population_group == 'all':
             # 生成多人群对比报告
-            report = generate_multi_group_nutrition_report(user_intake)
+            report = generate_multi_group_nutrition_report(user_intake, language)
         else:
             # 生成单人群报告
-            report = generate_nutrition_report(user_intake, population_group)
+            report = generate_nutrition_report(user_intake, population_group, language)
         
         return jsonify({'success': True, 'report': report})
     except Exception as e:

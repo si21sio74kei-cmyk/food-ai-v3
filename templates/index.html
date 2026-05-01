@@ -2492,7 +2492,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         user_intake: intake,
-                        population_group: appData.population_group
+                        population_group: appData.population_group,
+                        language: getCurrentLanguage()  // 🌐 传递语言参数
                     })
                 });
 
