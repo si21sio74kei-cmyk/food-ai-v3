@@ -1649,8 +1649,8 @@
             <!-- 头部 -->
             <div style="background: linear-gradient(135deg, var(--primary), var(--secondary)); padding: 24px 30px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <h2 style="margin: 0; color: white; font-size: 24px;">📸 拍照识菜</h2>
-                    <div style="color: rgba(255,255,255,0.9); font-size: 14px; margin-top: 4px;">上传食材图片，AI 自动识别</div>
+                    <h2 style="margin: 0; color: white; font-size: 24px;" data-i18n="camera.modal_title">📸 拍照识菜</h2>
+                    <div style="color: rgba(255,255,255,0.9); font-size: 14px; margin-top: 4px;" data-i18n="camera.modal_subtitle">上传食材图片，AI 自动识别</div>
                 </div>
                 <button onclick="closeImageRecognitionModal()" style="background: rgba(255,255,255,0.2); border: none; width: 36px; height: 36px; border-radius: 50%; color: white; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">✕</button>
             </div>
@@ -1661,8 +1661,8 @@
                 <div id="image-preview-area" style="width: 100%; min-height: 350px; max-height: 450px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px; display: flex; justify-content: center; align-items: center; margin-bottom: 24px; border: 3px dashed var(--primary); transition: all 0.3s; overflow: hidden; position: relative; flex-shrink: 0;">
                     <div style="text-align: center; color: var(--text-secondary); padding: 20px;">
                         <div style="font-size: 72px; margin-bottom: 16px; opacity: 0.6;">📷</div>
-                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">点击上传或拖拽图片到此处</div>
-                        <div style="font-size: 13px; color: var(--text-secondary); opacity: 0.7;">支持 JPG、PNG、WebP 格式</div>
+                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;" data-i18n="camera.upload_hint_title">点击上传或拖拽图片到此处</div>
+                        <div style="font-size: 13px; color: var(--text-secondary); opacity: 0.7;" data-i18n="camera.upload_hint_subtitle">支持 JPG、PNG、WebP 格式</div>
                     </div>
                 </div>
                 
@@ -1671,15 +1671,15 @@
                     <input type="file" id="image-upload-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
                     <button class="btn btn-primary" onclick="document.getElementById('image-upload-input').click()" style="flex: 1; min-width: 0; padding: 14px 20px; font-size: 15px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;">
                         <span>📤</span>
-                        <span>选择图片</span>
+                        <span data-i18n="camera.select_image_button">选择图片</span>
                     </button>
                     <button class="btn btn-secondary" onclick="takePhotoWithCamera()" style="flex: 1; min-width: 0; padding: 14px 20px; font-size: 15px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;">
                         <span>📷</span>
-                        <span>拍照</span>
+                        <span data-i18n="camera.take_photo_button">拍照</span>
                     </button>
                     <button class="btn btn-primary" onclick="recognizeImage()" id="recognize-btn" style="flex: 1; min-width: 0; padding: 14px 20px; font-size: 15px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;">
                         <span>🔍</span>
-                        <span>开始识别</span>
+                        <span data-i18n="camera.recognize_button">开始识别</span>
                     </button>
                 </div>
                 
@@ -1688,12 +1688,12 @@
                     <div style="background: linear-gradient(135deg, rgba(255,140,66,0.1) 0%, rgba(255,179,71,0.1) 100%); border-radius: 16px; padding: 24px; border-left: 4px solid var(--primary);">
                         <div style="font-weight: 700; font-size: 18px; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                             <span>✨</span>
-                            <span>识别结果</span>
+                            <span data-i18n="camera.result_title">识别结果</span>
                         </div>
                         
                         <!-- 🆕 可编辑的食材输入框 -->
                         <div style="margin-bottom: 16px;">
-                            <label style="display: block; font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600;" data-i18n="camera.recognized_label">📝 识别到的食材（可编辑）：</label>
+                            <label style="display: block; font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600;" data-i18n="camera.recognized_label"> 识别到的食材（可编辑）：</label>
                             <textarea id="recognized-ingredients-input" style="width: 100%; min-height: 80px; padding: 12px; border: 2px solid var(--separator); border-radius: 10px; font-size: 15px; resize: vertical; outline: none; transition: all 0.3s;" data-i18n-placeholder="camera.recognized_placeholder" placeholder="例如：西红柿,鸡蛋,青椒"></textarea>
                             <div style="font-size: 12px; color: var(--text-secondary); margin-top: 6px; opacity: 0.8;" data-i18n="camera.edit_hint">💡 提示：如果识别不准确，您可以手动修改，用逗号分隔</div>
                         </div>
