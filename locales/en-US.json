@@ -345,7 +345,8 @@
     "recognition_success": "✅ Voice recognition successful",
     "recognition_failed": "❌ Voice recognition failed",
     "recognition_error": "❌ Recognition error:",
-    "re_record": "🎤 Re-record"
+    "re_record": "🎤 Re-record",
+    "ai_thinking": "🤖 AI is thinking about your question, please wait..."
   },
   "shopping": {
     "title": "Smart Shopping List",

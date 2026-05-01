@@ -1830,6 +1830,8 @@
                 // 监听语言切换事件
                 window.addEventListener('languageChanged', (e) => {
                     console.log(`🌐 Language changed to: ${e.detail.language}`);
+                    // 🔧 关键修复：应用翻译到所有 data-i18n 元素
+                    window.i18n.applyTranslations();
                     // 重新加载数据以应用新语言
                     loadData().then(() => {
                         // 🔧 关键修复：数据加载完成后，确保 UI 完全更新
@@ -4143,7 +4145,8 @@
             buttons.forEach(btn => btn.disabled = true);
             
             // 显示 AI 正在回复
-            document.getElementById('voice-input-display').value = '🤖 AI 正在思考您的问题，请稍候...\n\n';
+            const thinkingMsg = window.i18n ? window.i18n.t('voice.ai_thinking') : '🤖 AI 正在思考您的问题，请稍候...';
+            document.getElementById('voice-input-display').value = thinkingMsg + '\n\n';
             
             try {
                 // 🌐 获取当前语言

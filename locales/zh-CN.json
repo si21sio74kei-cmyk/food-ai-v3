@@ -345,7 +345,8 @@
     "recognition_success": "✅ 语音识别成功",
     "recognition_failed": "❌ 语音识别失败",
     "recognition_error": "❌ 识别错误：",
-    "re_record": "🎤 重新录音"
+    "re_record": "🎤 重新录音",
+    "ai_thinking": "🤖 AI 正在思考您的问题，请稍候..."
   },
   "shopping": {
     "title": "智能采购清单",
