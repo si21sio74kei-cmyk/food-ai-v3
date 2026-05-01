@@ -121,6 +121,7 @@ class I18nManager {
 
     /**
      * 应用翻译到所有带 data-i18n 属性的元素
+     * 🔧 关键修复：只更新文本节点，不破坏 HTML 结构
      */
     applyTranslations() {
         const elements = document.querySelectorAll('[data-i18n]');
@@ -133,7 +134,12 @@ class I18nManager {
                 if (el.hasAttribute('placeholder')) {
                     el.placeholder = translation;
                 }
+            } else if (el.tagName === 'BUTTON' || el.tagName === 'LABEL' || el.tagName === 'SPAN') {
+                // 按钮、标签、span 等可能包含 HTML 子元素（如图标）
+                // 只更新文本节点，保留 HTML 结构
+                this.updateTextContent(el, translation);
             } else {
+                // 其他元素（如 div、p）直接设置文本
                 el.textContent = translation;
             }
         });
@@ -151,6 +157,37 @@ class I18nManager {
             const key = el.getAttribute('data-i18n-title');
             el.title = this.t(key);
         });
+    }
+    
+    /**
+     * 更新元素的文本内容，保留 HTML 子元素
+     * 🔧 关键修复：避免使用 textContent 破坏 DOM 结构
+     */
+    updateTextContent(element, newText) {
+        // 遍历所有子节点，找到文本节点并更新
+        let textNodeFound = false;
+        for (let i = 0; i < element.childNodes.length; i++) {
+            const node = element.childNodes[i];
+            if (node.nodeType === Node.TEXT_NODE) {
+                // 找到文本节点，更新它
+                node.textContent = newText;
+                textNodeFound = true;
+                break;
+            }
+        }
+        
+        // 如果没有找到文本节点，说明元素只有 HTML 子元素
+        // 这种情况下，在开头插入文本节点
+        if (!textNodeFound && element.childNodes.length > 0) {
+            // 检查第一个子节点是否是元素节点
+            if (element.childNodes[0].nodeType === Node.ELEMENT_NODE) {
+                // 在第一个元素节点前插入文本
+                element.insertBefore(document.createTextNode(newText), element.childNodes[0]);
+            }
+        } else if (!textNodeFound) {
+            // 元素没有任何子节点，直接设置文本
+            element.textContent = newText;
+        }
     }
 
     /**

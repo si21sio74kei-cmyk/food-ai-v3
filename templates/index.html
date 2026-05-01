@@ -1831,7 +1831,12 @@
                 window.addEventListener('languageChanged', (e) => {
                     console.log(`🌐 Language changed to: ${e.detail.language}`);
                     // 重新加载数据以应用新语言
-                    loadData();
+                    loadData().then(() => {
+                        // 🔧 关键修复：数据加载完成后，确保 UI 完全更新
+                        updateUI();
+                        // 重新加载摄入表格
+                        loadTodayIntakeTable();
+                    });
                     // 🔑 关键修复：更新人群标签（因为包含HTML标签）
                     updatePopulationLabels();
                 });
@@ -1999,6 +2004,16 @@
             document.getElementById('stat-waste').textContent = `${appData.waste_reduced || 0} g`;
             document.getElementById('stat-water').textContent = `${appData.water_saved || 0} L`;
             document.getElementById('stat-co2').textContent = `${appData.co2_reduced || 0} g`;
+            
+            // 🔧 关键修复：确保“今日饮食推荐”按钮始终可见且可用
+            const dailyRecBtn = document.getElementById('daily-rec-btn');
+            if (dailyRecBtn) {
+                dailyRecBtn.disabled = false;
+                dailyRecBtn.style.display = 'block';
+                // 🌐 根据当前语言设置按钮文本
+                const btnText = window.i18n ? window.i18n.t('home.generate_daily_rec_button') : '✨ AI 生成今日推荐';
+                dailyRecBtn.innerHTML = btnText;
+            }
         }
 
         // ==================== 页面切换 ====================
