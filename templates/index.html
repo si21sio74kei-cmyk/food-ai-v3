@@ -3159,6 +3159,14 @@
         }
 
         // ==================== 今日饮食推荐 ====================
+        
+        /**
+         * 🌐 获取当前语言设置
+         */
+        function getCurrentLanguage() {
+            return window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
+        }
+        
         async function generateDailyRecommendation() {
             const btn = document.getElementById('daily-rec-btn');
             btn.disabled = true;
@@ -3167,10 +3175,13 @@
             btn.innerHTML = '<span class="loading"></span> ' + btnText;
 
             try {
+                // 🌐 获取当前语言设置
+                const currentLang = getCurrentLanguage();
+                
                 const response = await fetch('/api/generate_daily_recommendation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
+                    body: JSON.stringify({ language: currentLang })  // 🌐 传递语言参数
                 });
 
                 const result = await response.json();

@@ -1,0 +1,2043 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FoodGuardian AI - 团队 CMMMMC | 队伍 I-Create2</title>
+  <style>
+    :root {
+      --primary: #ff8c42;
+      --secondary-yellow: #ffd166;
+      --secondary-green: #06d6a0;
+      --bg: #fff8ee;
+      --text: #4a2c2a;
+      --card-bg: #ffffff;
+      --border-radius: 14px;
+      --shadow-soft: 0 8px 20px rgba(0, 0, 0, 0.08);
+      --danger: #ff4b5c;
+      --muted: #8b6f66;
+      --focus-ring: 0 0 0 3px rgba(255, 140, 66, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      scroll-behavior: smooth;
+    }
+
+    body {
+      display: flex;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    img {
+      max-width: 100%;
+    }
+
+    /* Layout */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+      background: linear-gradient(to right, rgba(255, 140, 66, 0.96), rgba(255, 209, 102, 0.96));
+      color: #fffaf2;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .header-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0.6rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .brand-title {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .brand-title-main {
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.35rem;
+    }
+
+    .brand-badge {
+      font-size: 0.78rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      text-transform: uppercase;
+    }
+
+    .brand-sub {
+      font-size: 0.8rem;
+      opacity: 0.95;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .nav-link {
+      font-size: 0.85rem;
+      padding: 0.35rem 0.5rem;
+      border-radius: 999px;
+      background: transparent;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .nav-link:hover,
+    .nav-link:focus-visible {
+      background: rgba(255, 255, 255, 0.18);
+      outline: none;
+    }
+
+    .lang-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.8rem;
+      padding: 0.2rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.12);
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .lang-toggle span {
+      font-weight: 600;
+    }
+
+    main {
+      flex: 1;
+    }
+
+    .watermark {
+      position: fixed;
+      right: 4%;
+      bottom: 6%;
+      font-size: 0.8rem;
+      color: rgba(74, 44, 42, 0.14);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      transform: rotate(-90deg);
+      transform-origin: center;
+      pointer-events: none;
+      z-index: 0;
+      user-select: none;
+    }
+
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 3rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2.4fr);
+      gap: 1.5rem;
+      align-items: flex-start;
+    }
+
+    @media (max-width: 880px) {
+      .grid-2 {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .header-inner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      header {
+        position: sticky;
+      }
+      .watermark {
+        display: none;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .page {
+        padding-inline: 1rem;
+      }
+    }
+
+    /* Cards & sections */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-soft);
+      padding: 1rem 1.25rem 1.15rem;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.7rem;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .card-badge {
+      font-size: 0.7rem;
+      padding: 0.12rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(6, 214, 160, 0.08);
+      color: #008f5a;
+      border: 1px solid rgba(6, 214, 160, 0.4);
+      text-transform: uppercase;
+    }
+
+    .card-subtitle {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .tagline {
+      font-size: 0.93rem;
+      margin-bottom: 0.9rem;
+      color: var(--muted);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .pill {
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      background: rgba(255, 140, 66, 0.08);
+      color: var(--primary);
+      border: 1px solid rgba(255, 140, 66, 0.4);
+    }
+
+    .pill-green {
+      background: rgba(6, 214, 160, 0.08);
+      color: #008f5a;
+      border-color: rgba(6, 214, 160, 0.4);
+    }
+
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 1.4rem 0 0.6rem;
+    }
+
+    .section-desc {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    /* Forms & controls */
+    label {
+      display: block;
+      font-size: 0.82rem;
+      margin-bottom: 0.2rem;
+      font-weight: 600;
+    }
+
+    .field {
+      margin-bottom: 0.75rem;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 0.45rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      font-size: 0.85rem;
+      background: #fffdf8;
+      color: inherit;
+    }
+
+    input[type="text"]:focus-visible,
+    input[type="number"]:focus-visible,
+    select:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+      border-color: var(--primary);
+      background: #ffffff;
+    }
+
+    .inline-input {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .inline-input span {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary-green));
+      outline: none;
+      opacity: 0.9;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid var(--primary);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid var(--primary);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+      cursor: pointer;
+    }
+
+    .range-value {
+      min-width: 3rem;
+      text-align: right;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 0.28rem 0.7rem;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: #fffdf8;
+      font-size: 0.82rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .chip input {
+      pointer-events: none;
+    }
+
+    .chip.active {
+      border-color: var(--primary);
+      background: rgba(255, 140, 66, 0.08);
+      color: var(--primary);
+      box-shadow: 0 0 0 1px rgba(255, 140, 66, 0.3);
+    }
+
+    button.btn {
+      border-radius: 999px;
+      border: none;
+      padding: 0.52rem 1.1rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      transition: transform 0.05s ease, box-shadow 0.05s ease, background 0.15s ease;
+    }
+
+    button.btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--secondary-yellow));
+      color: #412218;
+      box-shadow: 0 6px 16px rgba(255, 140, 66, 0.42);
+    }
+
+    button.btn-secondary {
+      background: rgba(0, 0, 0, 0.04);
+      color: var(--text);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+    }
+
+    button.btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    button.btn:not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    }
+
+    button.btn:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    /* Dashboard */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.7rem;
+      margin-top: 0.35rem;
+    }
+
+    .metric-card {
+      border-radius: 12px;
+      padding: 0.6rem 0.7rem;
+      background: radial-gradient(circle at top left, rgba(255, 209, 102, 0.22), #ffffff);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+
+    .metric-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .metric-value {
+      font-size: 1.04rem;
+      font-weight: 700;
+      margin-top: 0.1rem;
+    }
+
+    .metric-unit {
+      font-size: 0.72rem;
+      margin-left: 0.2rem;
+      color: var(--muted);
+    }
+
+    .metric-bar {
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.04);
+      overflow: hidden;
+      margin-top: 0.22rem;
+    }
+
+    .metric-bar-inner {
+      height: 100%;
+      width: 20%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--secondary-green), var(--primary));
+      transition: width 0.35s ease-out;
+    }
+
+    .metric-tag {
+      font-size: 0.72rem;
+      padding: 0.12rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(6, 214, 160, 0.1);
+      color: #008f5a;
+    }
+
+    .stat-note {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+    }
+
+    /* Recipe section */
+    .recipe-output {
+      border-radius: 12px;
+      border: 1px dashed rgba(0, 0, 0, 0.12);
+      padding: 0.65rem 0.7rem;
+      margin-top: 0.7rem;
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .recipe-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .recipe-meta {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .recipe-list {
+      font-size: 0.82rem;
+      padding-left: 1.1rem;
+      margin: 0.2rem 0 0.25rem;
+    }
+
+    .recipe-list li {
+      margin-bottom: 0.15rem;
+    }
+    .recipe-suggestions {
+      margin-top: 0.6rem;
+      font-size: 0.9rem;
+    }
+    .recipe-suggestions ul {
+      padding-left: 1.1rem;
+      margin: 0.3rem 0;
+    }
+    .recipe-suggestion-heading {
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+    }
+
+    .badge-soft {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      padding: 0.12rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(6, 214, 160, 0.08);
+      color: #008f5a;
+      border: 1px solid rgba(6, 214, 160, 0.4);
+    }
+
+    /* Education */
+    .edu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.4rem;
+    }
+
+    /* dynamic education input/output */
+    .edu-input-area {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .edu-input-area .edu-input {
+      flex: 1 1 180px;
+      padding: 0.5rem 0.6rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .edu-output {
+      margin-top: 1rem;
+    }
+    .edu-output .edu-card {
+      margin-bottom: 0.8rem;
+    }
+
+    .edu-card {
+      border-radius: 12px;
+      padding: 0.6rem 0.7rem 0.65rem;
+      background: #fffdf8;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .edu-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+    }
+
+    .edu-tag {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .edu-list {
+      font-size: 0.8rem;
+      padding-left: 1rem;
+      margin: 0.1rem 0 0.25rem;
+    }
+
+    .edu-list li {
+      margin-bottom: 0.15rem;
+    }
+
+    .video-list a {
+      display: block;
+      font-size: 0.8rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .video-embed {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+      border-radius: 12px;
+      background: #000;
+      margin-top: 0.4rem;
+    }
+
+    .video-embed iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    /* About & footer */
+    .about-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2.4fr) minmax(0, 2fr);
+      gap: 1.2rem;
+      margin-top: 0.6rem;
+    }
+
+    @media (max-width: 880px) {
+      .about-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .about-highlight {
+      border-left: 4px solid var(--primary);
+      padding-left: 0.6rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+    }
+
+    .about-list {
+      font-size: 0.82rem;
+      padding-left: 1rem;
+      margin: 0.2rem 0;
+    }
+
+    footer {
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+      padding: 0.9rem 1.25rem 1.2rem;
+      font-size: 0.78rem;
+      background: #fff9f1;
+      color: var(--muted);
+    }
+
+    .footer-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem 1.75rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .footer-meta span {
+      white-space: nowrap;
+    }
+
+    .footer-note {
+      font-size: 0.78rem;
+    }
+
+    /* Mobile tweaks */
+    @media (max-width: 640px) {
+      .header-inner {
+        padding-inline: 1rem;
+      }
+
+      nav {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+      }
+
+      .nav-link {
+        padding-inline: 0.7rem;
+      }
+
+      .page {
+        padding: 1.1rem 1rem 2.1rem;
+      }
+
+      .card {
+        padding: 0.9rem 0.9rem 1rem;
+      }
+
+      button.btn-primary,
+      button.btn-secondary {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    /* Helper */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+  <header aria-label="FoodGuardian AI header">
+    <div class="header-inner">
+      <div class="brand-title">
+        <div class="brand-title-main">
+          <span>FoodGuardian AI</span>
+          <span class="brand-badge" id="teamTag">团队 CMMMMC | 队伍 I-Create2</span>
+        </div>
+        <div class="brand-sub" data-i18n="headerSubtitle">
+          家庭版智能防浪费食谱助手
+        </div>
+      </div>
+      <nav aria-label="Main navigation">
+        <button class="nav-link" data-scroll="#hero" data-i18n="navHome">首页</button>
+        <button class="nav-link" data-scroll="#generator" data-i18n="navGenerator">智能食谱</button>
+        <button class="nav-link" data-scroll="#dashboard" data-i18n="navDashboard">环保仪表盘</button>
+        <button class="nav-link" data-scroll="#education" data-i18n="navEducation">教育内容</button>
+        <button class="nav-link" data-scroll="#about" data-i18n="navAbout">关于项目</button>
+        <button class="lang-toggle" id="langToggle" type="button" aria-label="Toggle language">
+          <span id="langCode">中</span>/<span>EN</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <div class="watermark">CMMMMC · I-CREATE2</div>
+
+  <main>
+    <!-- Hero + Personalization -->
+    <section id="hero" class="page" aria-labelledby="heroTitle">
+      <div class="grid-2">
+        <div>
+          <div class="card" aria-labelledby="heroTitle">
+            <div class="card-header">
+              <div>
+                <div class="card-title" id="heroTitle">
+                  <span data-i18n="heroTitleMain">让每一口都不被浪费</span>
+                </div>
+                <div class="card-subtitle" data-i18n="heroSubtitle">
+                  智能食谱 + 环保量化，让家庭用餐更绿色。
+                </div>
+              </div>
+              <div class="card-badge" data-i18n="tagRealtimeImpact">实时环保 impact</div>
+            </div>
+            <p class="tagline" data-i18n="heroTagline">
+              根据就餐人数和食材，一键生成刚刚好的份量，自动计算你为地球省下了多少资源。
+            </p>
+            <div class="pill-row">
+              <span class="pill pill-green" data-i18n="pillNoWaste">防浪费优先</span>
+              <span class="pill" data-i18n="pillFamilyFriendly">适合家庭与课堂演示</span>
+              <span class="pill" data-i18n="pillLocalOnly">纯前端 · 本地数据存储</span>
+            </div>
+            <hr style="border:none;border-top:1px dashed rgba(0,0,0,0.08);margin:0.6rem 0 0.55rem;">
+            <div class="section-title" data-i18n="sectionProfile">你的绿色档案</div>
+            <p class="section-desc" data-i18n="sectionProfileDesc">
+              设置一个昵称，我们会在本机悄悄为你记录每一次节约。
+            </p>
+            <div class="field">
+              <label for="nicknameInput" data-i18n="labelNickname">环保昵称（仅保存在本机）</label>
+              <div class="inline-input">
+                <input id="nicknameInput" type="text" maxlength="20" placeholder="例如：小绿叶 / GreenHero" />
+                <button class="btn btn-secondary" id="saveNicknameBtn" type="button" data-i18n="btnSaveNickname">
+                  保存昵称
+                </button>
+              </div>
+              <div class="section-desc" id="nicknameStatus" aria-live="polite"></div>
+            </div>
+            <div class="field">
+              <div class="section-desc" id="welcomeMessage" aria-live="polite"></div>
+            </div>
+            <button class="btn btn-primary" type="button" data-scroll="#generator">
+              <span data-i18n="btnStartNow">开始生成今天的零浪费菜单</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div class="card" aria-labelledby="summaryTitle">
+            <div class="card-header">
+              <div class="card-title" id="summaryTitle" data-i18n="summaryTitle">
+                你的累计环保贡献
+              </div>
+              <span class="badge-soft" data-i18n="summaryLocalOnly">仅在本机统计 · 可随时清零</span>
+            </div>
+            <div class="dashboard-grid" aria-live="polite">
+              <div class="metric-card">
+                <div class="metric-label">
+                  <span data-i18n="metricFoodSaved">减少食物浪费</span>
+                  <span class="metric-tag" data-i18n="metricTotal">累计</span>
+                </div>
+                <div class="metric-value">
+                  <span id="totalFoodSaved">0</span><span class="metric-unit" data-i18n="unitGram">克</span>
+                </div>
+                <div class="metric-bar">
+                  <div class="metric-bar-inner" id="barFood"></div>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">
+                  <span data-i18n="metricWaterSaved">节约水资源</span>
+                  <span class="metric-tag" data-i18n="metricTotal">累计</span>
+                </div>
+                <div class="metric-value">
+                  <span id="totalWaterSaved">0</span><span class="metric-unit" data-i18n="unitLiter">升</span>
+                </div>
+                <div class="metric-bar">
+                  <div class="metric-bar-inner" id="barWater"></div>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">
+                  <span data-i18n="metricCarbonSaved">减少碳排放</span>
+                  <span class="metric-tag" data-i18n="metricTotal">累计</span>
+                </div>
+                <div class="metric-value">
+                  <span id="totalCarbonSaved">0</span><span class="metric-unit" data-i18n="unitGram">克</span>
+                </div>
+                <div class="metric-bar">
+                  <div class="metric-bar-inner" id="barCarbon"></div>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">
+                  <span data-i18n="metricMoneySaved">节省餐饮支出</span>
+                  <span class="metric-tag" data-i18n="metricTotal">累计</span>
+                </div>
+                <div class="metric-value">
+                  <span id="totalMoneySaved">0</span><span class="metric-unit" data-i18n="unitCNY">元</span>
+                </div>
+                <div class="metric-bar">
+                  <div class="metric-bar-inner" id="barMoney"></div>
+                </div>
+              </div>
+            </div>
+            <p class="stat-note" data-i18n="summaryNote">
+              小提示：每次你使用智能食谱生成器并采纳建议，系统都会为你叠加一次“绿色成就”。
+            </p>
+            <button class="btn btn-secondary" type="button" id="resetStatsBtn">
+              <span data-i18n="btnResetStats">清零本机统计</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Generator -->
+    <section id="generator" class="page" aria-labelledby="generatorTitle">
+      <div class="grid-2">
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title" id="generatorTitle" data-i18n="generatorTitle">
+                  智能防浪费食谱生成器
+                </div>
+                <div class="card-subtitle" data-i18n="generatorSubtitle">
+                  选择就餐人数、用餐类型与主要食材，我们将为你推荐刚刚好的份量。
+                </div>
+              </div>
+              <span class="card-badge" data-i18n="tagPeopleRange">1-20 人</span>
+            </div>
+
+            <div class="section-title" data-i18n="sectionBasicSetup">基础设定</div>
+            <div class="field">
+              <label for="peopleRange" data-i18n="labelPeople">就餐人数</label>
+              <div class="slider-row">
+                <input id="peopleRange" type="range" min="1" max="20" value="3" />
+                <span class="range-value"><span id="peopleValue">3</span> <span data-i18n="unitPerson">人</span></span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label data-i18n="labelMealType">用餐类型</label>
+              <div class="chips" id="mealTypeChips">
+                <button class="chip active" data-meal-type="home">
+                  <input type="radio" name="mealType" checked class="sr-only" />
+                  <span data-i18n="mealHome">家常菜</span>
+                </button>
+                <button class="chip" data-meal-type="healthy">
+                  <input type="radio" name="mealType" class="sr-only" />
+                  <span data-i18n="mealHealthy">健康餐</span>
+                </button>
+                <button class="chip" data-meal-type="vegan">
+                  <input type="radio" name="mealType" class="sr-only" />
+                  <span data-i18n="mealVegan">素食</span>
+                </button>
+                <button class="chip" data-meal-type="banquet">
+                  <input type="radio" name="mealType" class="sr-only" />
+                  <span data-i18n="mealBanquet">宴客菜</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label data-i18n="labelMainIngredients">主要食材（可多选）</label>
+              <div class="chips" id="ingredientChips">
+                <button class="chip" data-ingredient="tomato">
+                  <input type="checkbox" class="sr-only" />
+                  <span data-i18n="ingTomato">番茄</span>
+                </button>
+                <button class="chip" data-ingredient="chicken">
+                  <input type="checkbox" class="sr-only" />
+                  <span data-i18n="ingChicken">鸡肉</span>
+                </button>
+                <button class="chip" data-ingredient="potato">
+                  <input type="checkbox" class="sr-only" />
+                  <span data-i18n="ingPotato">土豆</span>
+                </button>
+                <button class="chip" data-ingredient="egg">
+                  <input type="checkbox" class="sr-only" />
+                  <span data-i18n="ingEgg">鸡蛋</span>
+                </button>
+                <button class="chip" data-ingredient="beef">
+                  <input type="checkbox" class="sr-only" />
+                  <span data-i18n="ingBeef">牛肉</span>
+                </button>
+                <button class="chip" data-ingredient="fish">
+                  <input type="checkbox" class="sr-only" />
+                  <span data-i18n="ingFish">鱼类</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="section-title" data-i18n="sectionFineTune">动态份量调整</div>
+            <p class="section-desc" data-i18n="sectionFineTuneDesc">
+              如果你家人饭量偏大/偏小，可以微调基础份量系数。
+            </p>
+            <div class="field">
+              <label for="portionMultiplier" data-i18n="labelPortionMultiplier">个人饭量系数</label>
+              <div class="slider-row">
+                <input id="portionMultiplier" type="range" min="0.7" max="1.4" step="0.1" value="1.0" />
+                <span class="range-value"><span id="portionValue">1.0</span>x</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <button class="btn btn-primary" id="generateBtn" type="button">
+                <span data-i18n="btnGenerateRecipe">生成防浪费菜单</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="dashboard" aria-labelledby="dashboardTitle">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title" id="dashboardTitle" data-i18n="dashboardTitle">
+                  本次环保影响量化
+                </div>
+                <div class="card-subtitle" data-i18n="dashboardSubtitle">
+                  以下数据基于公开研究中的平均换算系数，仅用于科普与课堂演示。
+                </div>
+              </div>
+            </div>
+            <div class="dashboard-grid" aria-live="polite">
+              <div class="metric-card">
+                <div class="metric-label">
+                  <span data-i18n="metricFoodSavedSingle">本次减少食物浪费</span>
+                </div>
+                <div class="metric-value">
+                  <span id="curFoodSaved">0</span><span class="metric-unit" data-i18n="unitGram">克</span>
+                </div>
+                <div class="metric-bar">
+                  <div class="metric-bar-inner" id="curBarFood"></div>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">
+                  <span data-i18n="metricWaterSavedSingle">本次节约水资源</span>
+                </div>
+                <div class="metric-value">
+                  <span id="curWaterSaved">0</span><span class="metric-unit" data-i18n="unitLiter">升</span>
+                </div>
+                <div class="metric-bar">
+                  <div class="metric-bar-inner" id="curBarWater"></div>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">
+                  <span data-i18n="metricCarbonSavedSingle">本次减少碳排放</span>
+                </div>
+                <div class="metric-value">
+                  <span id="curCarbonSaved">0</span><span class="metric-unit" data-i18n="unitGram">克</span>
+                </div>
+                <div class="metric-bar">
+                  <div class="metric-bar-inner" id="curBarCarbon"></div>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">
+                  <span data-i18n="metricMoneySavedSingle">本次节省支出</span>
+                </div>
+                <div class="metric-value">
+                  <span id="curMoneySaved">0</span><span class="metric-unit" data-i18n="unitCNY">元</span>
+                </div>
+                <div class="metric-bar">
+                  <div class="metric-bar-inner" id="curBarMoney"></div>
+                </div>
+              </div>
+            </div>
+            <p class="stat-note" id="impactComment" data-i18n="impactComment">
+              小目标：累计减少 1000 克食物浪费 ≈ 为地球省下一整天家庭厨房的隐形损失。
+            </p>
+            <div class="recipe-output" aria-live="polite">
+              <div class="recipe-title" data-i18n="recipeTitle">推荐菜单与份量</div>
+              <div class="recipe-meta" id="recipeMeta" data-i18n="recipeMetaPlaceholder">
+                请先在左侧选择人数、用餐类型和主要食材，然后点击“生成防浪费菜单”。
+              </div>
+              <ul class="recipe-list" id="recipeList"></ul>
+              <div id="recipeSuggestions" class="recipe-suggestions"></div>
+              <div class="section-desc" id="recipeTip"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Education -->
+    <section id="education" class="page" aria-labelledby="eduTitle">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title" id="eduTitle" data-i18n="eduTitle">
+              厨余利用与防浪费教育中心
+            </div>
+            <div class="card-subtitle" data-i18n="eduSubtitle">
+              把“吃完饭不浪费”变成一种可以动手实践的小科学项目。
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title" data-i18n="eduSectionTitle">根据你手头的边角料，推荐以下再利用方案</div>
+        <div class="edu-input-area">
+          <input type="text" id="eduInput" class="edu-input" placeholder="" data-i18n-placeholder="eduInputPlaceholder" />
+          <button class="btn btn-primary" id="eduGenerateBtn" type="button">
+            <span data-i18n="eduGenerateBtn">生成再利用方案</span>
+          </button>
+        </div>
+        <div class="edu-output" id="eduOutput"></div>
+
+        <div class="section-title" style="margin-top:1.2rem" data-i18n="eduVideoTitle">视频学习与延伸资源</div>
+        <p class="section-desc" data-i18n="eduVideoDesc">
+          下方包含本项目的官方教学视频，以及可延伸查找的公开资源示例。
+        </p>
+        <div class="edu-grid">
+          <article class="edu-card">
+            <div class="edu-title" data-i18n="eduOfficialVideoTitle">FoodGuardian AI 官方教学视频</div>
+            <p class="section-desc" data-i18n="eduOfficialVideoDesc">
+              建议在手机横屏或平板上观看，效果更佳。
+            </p>
+            <div class="video-embed">
+              <iframe src="https://www.youtube.com/embed/HmTXLpAculQ" title="FoodGuardian AI 教育视频"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen></iframe>
+            </div>
+            <div class="video-list">
+              <a href="https://youtu.be/HmTXLpAculQ" target="_blank" rel="noopener noreferrer">
+                https://youtu.be/HmTXLpAculQ
+              </a>
+            </div>
+          </article>
+
+          <article class="edu-card">
+            <div class="edu-title" data-i18n="eduVideoWasteTitle">食物浪费现状与数据</div>
+            <div class="video-list">
+              <a href="https://www.youtube.com/results?search_query=food+waste+documentary" target="_blank" rel="noopener noreferrer" data-i18n="eduVideoWasteLink1">
+                国际食物浪费纪录片（示例搜索）
+              </a>
+              <a href="https://www.youtube.com/results?search_query=家庭+食物浪费" target="_blank" rel="noopener noreferrer" data-i18n="eduVideoWasteLink2">
+                家庭场景食物浪费科普视频（示例搜索）
+              </a>
+            </div>
+          </article>
+
+          <article class="edu-card">
+            <div class="edu-title" data-i18n="eduVideoSolutionTitle">解决方案与优秀案例</div>
+            <div class="video-list">
+              <a href="https://www.youtube.com/results?search_query=zero+food+waste+home" target="_blank" rel="noopener noreferrer" data-i18n="eduVideoSolutionLink1">
+                零浪费厨房实践分享（示例搜索）
+              </a>
+              <a href="https://www.youtube.com/results?search_query=upcycling+food+scraps" target="_blank" rel="noopener noreferrer" data-i18n="eduVideoSolutionLink2">
+                厨余升级再造创意案例（示例搜索）
+              </a>
+            </div>
+          </article>
+
+          <article class="edu-card">
+            <div class="edu-title" data-i18n="eduKeyPointsTitle">关键知识点提炼</div>
+            <ul class="edu-list">
+              <li data-i18n="eduKeyPoint1">全球约三分之一的食物在到达餐桌前后被浪费。</li>
+              <li data-i18n="eduKeyPoint2">家庭是食物浪费的重要环节，精确备餐是最简单的第一步。</li>
+              <li data-i18n="eduKeyPoint3">节约 1 千克食物 ≈ 可以间接减少几十升以上的水资源浪费。</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- About -->
+    <section id="about" class="page" aria-labelledby="aboutTitle">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title" id="aboutTitle" data-i18n="aboutTitle">
+              关于 FoodGuardian AI 与团队 CMMMMC
+            </div>
+            <div class="card-subtitle" data-i18n="aboutSubtitle">
+              本项目专注“技术 + 教育 + 环保”的结合。
+            </div>
+          </div>
+          <span class="card-badge" data-i18n="aboutBadge">队伍 I-Create2</span>
+        </div>
+
+        <div class="about-layout">
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer aria-label="Site footer">
+    <div class="footer-inner">
+      <div class="footer-meta">
+        <span id="footerBrand">FoodGuardian AI · 团队 CMMMMC | 队伍 I-Create2</span>
+        <span data-i18n="footerProject">智能防浪费食谱与环保教育平台</span>
+      </div>
+      <div class="footer-note">
+        <span data-i18n="footerRights">© 2026 保留所有权利 · 内容仅用于教育与科普目的。</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const LS_KEYS = {
+        nickname: "fgai_nickname",
+        stats: "fgai_stats",
+        lang: "fgai_lang",
+      };
+
+      const DEFAULT_STATS = {
+        food: 0,
+        water: 0,
+        carbon: 0,
+        money: 0,
+      };
+
+      const FOOD_COEFFICIENTS = {
+        // base grams per person for one main dish of each ingredient
+        tomato: 80,
+        chicken: 120,
+        potato: 90,
+        egg: 60,
+        beef: 130,
+        fish: 110,
+      };
+
+      const IMPACT_FACTORS = {
+        // very simplified demo coefficients
+        waterPerGram: 2.0 / 100, // 2 L per 100 g 食材的平均折算
+        carbonPerGram: 0.8 / 100, // 0.8 g CO₂ per 100 g
+        moneyPerGram: 0.06 / 10, // 0.06 元 per 10 g
+      };
+
+      const WASTE_REDUCTION_RATIO = 0.25; // 相比“习惯多做一点”，减少 25% 浪费
+
+      // ---------- dynamic state ----------
+      let lastRecipe = null;
+      let lastEduIngredient = "";
+
+      // dish suggestions database for recipe generator
+      const DISH_IDEAS = {
+        zh: {
+          tomato: ["番茄炒蛋", "番茄炖牛肉", "意大利番茄酱面"],
+          chicken: ["白切鸡", "可乐鸡翅", "鸡汤"],
+          potato: ["土豆丝炒肉", "烤土豆", "土豆饼"],
+          egg: ["煎蛋", "蒸蛋羹", "蛋花汤"],
+          beef: ["红烧牛肉", "牛肉炒面", "牛肉蔬菜炖"],
+          fish: ["清蒸鱼", "红烧鱼", "鱼丸汤"],
+        },
+        en: {
+          tomato: ["scrambled eggs with tomato", "tomato beef stew", "pasta with tomato sauce"],
+          chicken: ["poached chicken", "cola chicken wings", "chicken soup"],
+          potato: ["stir‑fried potatoes with pork", "roasted potatoes", "potato pancakes"],
+          egg: ["fried egg", "steamed egg custard", "egg drop soup"],
+          beef: ["braised beef", "beef noodles", "beef & veggie stew"],
+          fish: ["steamed fish", "braised fish", "fish ball soup"],
+        },
+      };
+
+      function getDishSuggestions(ingredients, lang) {
+        const ideas = [];
+        ingredients.forEach((ing) => {
+          const list = DISH_IDEAS[lang][ing] || [];
+          if (list.length) {
+            const copy = [...list];
+            copy.sort(() => Math.random() - 0.5);
+            ideas.push(...copy.slice(0, 2));
+          }
+        });
+        return ideas;
+      }
+
+      // education generator templates
+      const EDU_TEMPLATES = [
+        {
+          zh: {
+            title: (ing) => `${ing}制作高汤`,
+            steps: (ing) => [
+              `将${ing}清洗干净。`,
+              `放入锅中，加水煮沸并小火炖煮30分钟。`,
+              `过滤保存，作为汤底或调味。`,
+            ],
+            usage: "可用于汤品、炖菜或烩饭。",
+          },
+          en: {
+            title: (ing) => `${ing} broth`,
+            steps: (ing) => [
+              `Rinse the ${ing} thoroughly.`,
+              `Put in a pot, cover with water, bring to boil and simmer for 30 min.`,
+              `Strain and keep as a base for soups or stews.`,
+            ],
+            usage: "Use as a base for soups, stews or risottos.",
+          },
+        },
+        {
+          zh: {
+            title: (ing) => `${ing}烘焙小食`,
+            steps: (ing) => [
+              `将${ing}切小块或撕碎。`,
+              `拌少量油和香料，铺在烤盘上。`,
+              `160–180℃烘烤至金黄酥脆。`,
+            ],
+            usage: "可当零食或撒在沙拉/汤上。",
+          },
+          en: {
+            title: (ing) => `${ing} baked snack`,
+            steps: (ing) => [
+              `Cut or tear the ${ing} into small pieces.`,
+              `Toss with a little oil and spices, spread on a tray.`,
+              `Bake at 160–180°C until golden and crisp.`,
+            ],
+            usage: "Can be eaten as a snack or sprinkled on salads/soups.",
+          },
+        },
+        {
+          zh: {
+            title: (ing) => `${ing}肥料/除臭包`,
+            steps: (ing) => [
+              `将${ing}晒干或充分风干。`,
+              `与土壤混合用于花园；或装入小布袋放鞋柜/冰箱除味。`,
+            ],
+            usage: "适合用于植物肥料或自然除臭。",
+          },
+          en: {
+            title: (ing) => `${ing} fertilizer/deodorizer`,
+            steps: (ing) => [
+              `Dry the ${ing} thoroughly in sun or air.`,
+              `Mix with soil for gardens; or put in cloth bags for fridge/shoe cabinet deodorizing.`,
+            ],
+            usage: "Good as plant fertilizer or natural deodorizer.",
+          },
+        },
+      ];
+
+      function getEduSuggestions(ingredient, lang) {
+        const choices = [];
+        EDU_TEMPLATES.forEach((tpl) => {
+          const obj = tpl[lang];
+          choices.push({
+            title: obj.title(ingredient),
+            steps: obj.steps(ingredient),
+            usage: obj.usage,
+          });
+        });
+        // shuffle and pick up to 3
+        choices.sort(() => Math.random() - 0.5);
+        return choices.slice(0, 3);
+      }
+
+      const $ = (selector) => document.querySelector(selector);
+      const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+      const nicknameInput = $("#nicknameInput");
+      const saveNicknameBtn = $("#saveNicknameBtn");
+      const nicknameStatus = $("#nicknameStatus");
+      const welcomeMessage = $("#welcomeMessage");
+
+      const totalFoodSaved = $("#totalFoodSaved");
+      const totalWaterSaved = $("#totalWaterSaved");
+      const totalCarbonSaved = $("#totalCarbonSaved");
+      const totalMoneySaved = $("#totalMoneySaved");
+      const barFood = $("#barFood");
+      const barWater = $("#barWater");
+      const barCarbon = $("#barCarbon");
+      const barMoney = $("#barMoney");
+
+      const peopleRange = $("#peopleRange");
+      const peopleValue = $("#peopleValue");
+      const portionMultiplier = $("#portionMultiplier");
+      const portionValue = $("#portionValue");
+      const mealTypeChips = $("#mealTypeChips");
+      const ingredientChips = $("#ingredientChips");
+      const generateBtn = $("#generateBtn");
+
+      const curFoodSaved = $("#curFoodSaved");
+      const curWaterSaved = $("#curWaterSaved");
+      const curCarbonSaved = $("#curCarbonSaved");
+      const curMoneySaved = $("#curMoneySaved");
+      const curBarFood = $("#curBarFood");
+      const curBarWater = $("#curBarWater");
+      const curBarCarbon = $("#curBarCarbon");
+      const curBarMoney = $("#curBarMoney");
+      const impactComment = $("#impactComment");
+      const recipeList = $("#recipeList");
+      const recipeMeta = $("#recipeMeta");
+      const recipeTip = $("#recipeTip");
+
+      const resetStatsBtn = $("#resetStatsBtn");
+      const langToggle = $("#langToggle");
+      const langCodeLabel = $("#langCode");
+
+      // ---------- I18N ----------
+      const i18nStrings = {
+        zh: {
+          headerSubtitle: "家庭版智能防浪费食谱助手",
+          navHome: "首页",
+          navGenerator: "智能食谱",
+          navDashboard: "环保仪表盘",
+          navEducation: "教育内容",
+          navAbout: "关于项目",
+          heroTitleMain: "让每一口都不被浪费",
+          heroSubtitle: "智能食谱 + 环保量化，让家庭用餐更绿色。",
+          tagRealtimeImpact: "实时环保 impact",
+          heroTagline: "根据就餐人数和食材，一键生成刚刚好的份量，自动计算你为地球省下了多少资源。",
+          pillNoWaste: "防浪费优先",
+          pillFamilyFriendly: "适合家庭与课堂演示",
+          pillLocalOnly: "纯前端 · 本地数据存储",
+          sectionProfile: "你的绿色档案",
+          sectionProfileDesc: "设置一个昵称，我们会在本机悄悄为你记录每一次节约。",
+          labelNickname: "环保昵称（仅保存在本机）",
+          btnSaveNickname: "保存昵称",
+          btnStartNow: "开始生成今天的零浪费菜单",
+          summaryTitle: "你的累计环保贡献",
+          summaryLocalOnly: "仅在本机统计 · 可随时清零",
+          metricFoodSaved: "减少食物浪费",
+          metricWaterSaved: "节约水资源",
+          metricCarbonSaved: "减少碳排放",
+          metricMoneySaved: "节省餐饮支出",
+          metricTotal: "累计",
+          unitGram: "克",
+          unitLiter: "升",
+          unitCNY: "元",
+          summaryNote: "小提示：每次你使用智能食谱生成器并采纳建议，系统都会为你叠加一次“绿色成就”。",
+          btnResetStats: "清零本机统计",
+          generatorTitle: "智能防浪费食谱生成器",
+          generatorSubtitle: "选择就餐人数、用餐类型与主要食材，我们将为你推荐刚刚好的份量。",
+          tagPeopleRange: "1-20 人",
+          sectionBasicSetup: "基础设定",
+          labelPeople: "就餐人数",
+          unitPerson: "人",
+          labelMealType: "用餐类型",
+          mealHome: "家常菜",
+          mealHealthy: "健康餐",
+          mealVegan: "素食",
+          mealBanquet: "宴客菜",
+          labelMainIngredients: "主要食材（可多选）",
+          ingTomato: "番茄",
+          ingChicken: "鸡肉",
+          ingPotato: "土豆",
+          ingEgg: "鸡蛋",
+          ingBeef: "牛肉",
+          ingFish: "鱼类",
+          sectionFineTune: "动态份量调整",
+          sectionFineTuneDesc: "如果你家人饭量偏大/偏小，可以微调基础份量系数。",
+          labelPortionMultiplier: "个人饭量系数",
+          btnGenerateRecipe: "生成防浪费菜单",
+          dashboardTitle: "本次环保影响量化",
+          dashboardSubtitle: "以下数据基于公开研究中的平均换算系数，仅用于科普与课堂演示。",
+          metricFoodSavedSingle: "本次减少食物浪费",
+          metricWaterSavedSingle: "本次节约水资源",
+          metricCarbonSavedSingle: "本次减少碳排放",
+          metricMoneySavedSingle: "本次节省支出",
+          impactComment: "小目标：累计减少 1000 克食物浪费 ≈ 为地球省下一整天家庭厨房的隐形损失。",
+          recipeTitle: "推荐菜单与份量",
+          recipeMetaPlaceholder: "请先在左侧选择人数、用餐类型和主要食材，然后点击“生成防浪费菜单”。",
+          eduTitle: "厨余利用与防浪费教育中心",
+          eduSubtitle: "把“吃完饭不浪费”变成一种可以动手实践的小科学项目。",
+          eduKitchenTitle: "厨房里就能完成的升级再造",
+          eduBrothTitle: "蔬菜废料高汤制作",
+          eduBrothTag: "洋葱皮 · 胡萝卜皮 · 芹菜叶 · 蘑菇根（可自定义）",
+          eduBrothStep1: "清洗：将蔬菜边角料充分冲洗干净。",
+          eduBrothStep2: "煮沸：加清水没过食材，大火煮沸。",
+          eduBrothStep3: "慢炖：转小火 30–60 分钟，让味道充分释放。",
+          eduBrothStep4: "过滤：过滤掉残渣，高汤放凉后密封冷藏/冷冻保存。",
+          eduBrothUsage: "可作为汤品、炖菜、烩饭的风味基底，一锅高汤就多挽救了一次“本来要丢掉”的营养。",
+          eduBreadTitle: "面包边角料再利用",
+          eduBreadTag: "陈旧面包变身面包丁 / 面包屑",
+          eduBreadStep1: "切块或撕碎陈旧面包。",
+          eduBreadStep2: "拌少量油和香草，铺在烤盘上。",
+          eduBreadStep3: "烤箱 160–180℃ 烘烤至金黄酥脆。",
+          eduBreadUsage: "面包丁可撒在沙拉与汤品上增加口感；面包屑可做焗菜和炸物裹粉。",
+          eduPeelTitle: "果皮创意利用",
+          eduPeelTag: "柑橘皮糖浆 · 果酱 · 饮品调味",
+          eduPeelStep1: "将柑橘皮去白瓤、切丝，焯水去苦。",
+          eduPeelStep2: "与糖和少量水小火熬煮成糖浆或果酱。",
+          eduPeelStep3: "冷却后加入气泡水、茶饮或酸奶中调味。",
+          eduPeelUsage: "一颗橘子的香味可以延长很多次使用寿命，而不是只停在“吃完就扔”的那一刻。",
+          eduCoffeeTitle: "咖啡渣多功能利用",
+          eduCoffeeTag: "植物肥料 · 清洁剂 · 除臭小帮手",
+          eduCoffeeStep1: "与土壤按少量比例混合，为植物补充有机质。",
+          eduCoffeeStep2: "与小苏打和水混合，做成温和清洁糊。",
+          eduCoffeeStep3: "晾干后装入透气小袋，放入鞋柜或冰箱除味。",
+          eduCoffeeUsage: "记得：使用咖啡渣前先充分晾干，避免发霉哦。",
+          eduVideoTitle: "视频学习与延伸资源",
+          eduVideoDesc: "下方包含本项目的官方教学视频，以及可延伸查找的公开资源示例。",
+          eduOfficialVideoTitle: "FoodGuardian AI 官方教学视频",
+          eduSectionTitle: "根据你手头的边角料，推荐以下再利用方案",
+          eduInputPlaceholder: "输入边角料食品名称，例如“胡萝卜皮”",
+          eduGenerateBtn: "生成再利用方案",
+          eduNoInputAlert: "请输入边角料名称。",
+          menuSuggestionTitle: "可能的菜品",
+          eduOfficialVideoDesc: "建议在手机横屏或平板上观看，效果更佳。",
+          eduVideoWasteTitle: "食物浪费现状与数据",
+          eduVideoWasteLink1: "国际食物浪费纪录片（示例搜索）",
+          eduVideoWasteLink2: "家庭场景食物浪费科普视频（示例搜索）",
+          eduVideoSolutionTitle: "解决方案与优秀案例",
+          eduVideoSolutionLink1: "零浪费厨房实践分享（示例搜索）",
+          eduVideoSolutionLink2: "厨余升级再造创意案例（示例搜索）",
+          eduKeyPointsTitle: "关键知识点提炼",
+          eduKeyPoint1: "全球约三分之一的食物在到达餐桌前后被浪费。",
+          eduKeyPoint2: "家庭是食物浪费的重要环节，精确备餐是最简单的第一步。",
+          eduKeyPoint3: "节约 1 千克食物 ≈ 可以间接减少几十升以上的水资源浪费。",
+          aboutTitle: "关于 FoodGuardian AI 与团队 CMMMMC",
+          aboutSubtitle: "本项目专注“技术 + 教育 + 环保”的结合。",
+          aboutBadge: "队伍 I-Create2",
+          footerProject: "智能防浪费食谱与环保教育平台",
+          footerRights: "© 2026 保留所有权利 · 内容仅用于教育与科普目的。",
+        },
+        en: {
+          headerSubtitle: "Smart Anti-Food-Waste Assistant",
+          navHome: "Home",
+          navGenerator: "Smart Recipes",
+          navDashboard: "Impact Dashboard",
+          navEducation: "Education",
+          navAbout: "About",
+          heroTitleMain: "Make Every Bite Count, Not Waste",
+          heroSubtitle: "Smart recipes + impact tracking for greener family meals.",
+          tagRealtimeImpact: "Real-time impact",
+          heroTagline: "Adjust portions by people and ingredients, and see how much you save for the planet.",
+          pillNoWaste: "Anti-waste first",
+          pillFamilyFriendly: "Family & classroom friendly",
+          pillLocalOnly: "Pure frontend · Local storage only",
+          sectionProfile: "Your green profile",
+          sectionProfileDesc: "Set a nickname and we will quietly track your positive impact on this device.",
+          labelNickname: "Eco nickname (stored only in this browser)",
+          btnSaveNickname: "Save nickname",
+          btnStartNow: "Start your zero-waste menu",
+          summaryTitle: "Your cumulative impact",
+          summaryLocalOnly: "Local-only stats · Reset anytime",
+          metricFoodSaved: "Food waste reduced",
+          metricWaterSaved: "Water saved",
+          metricCarbonSaved: "CO₂ reduced",
+          metricMoneySaved: "Money saved",
+          metricTotal: "Total",
+          unitGram: "g",
+          unitLiter: "L",
+          unitCNY: "CNY",
+          summaryNote: "Every time you generate and follow a smart recipe, we add a little achievement here.",
+          btnResetStats: "Reset local stats",
+          generatorTitle: "Smart Anti-Waste Recipe Generator",
+          generatorSubtitle: "Choose people, meal type and main ingredients; we suggest just-right portions.",
+          tagPeopleRange: "1–20 people",
+          sectionBasicSetup: "Basic setup",
+          labelPeople: "Number of people",
+          unitPerson: "people",
+          labelMealType: "Meal type",
+          mealHome: "Home-style",
+          mealHealthy: "Healthy",
+          mealVegan: "Vegetarian",
+          mealBanquet: "Banquet",
+          labelMainIngredients: "Main ingredients (multi-select)",
+          ingTomato: "Tomato",
+          ingChicken: "Chicken",
+          ingPotato: "Potato",
+          ingEgg: "Egg",
+          ingBeef: "Beef",
+          ingFish: "Fish",
+          sectionFineTune: "Fine-tune portions",
+          sectionFineTuneDesc: "If your family eats a bit more or less than average, tweak the multiplier.",
+          labelPortionMultiplier: "Appetite multiplier",
+          btnGenerateRecipe: "Generate anti-waste menu",
+          dashboardTitle: "Impact of this meal",
+          dashboardSubtitle: "Numbers are based on simplified average factors for education and demo only.",
+          metricFoodSavedSingle: "Food waste avoided",
+          metricWaterSavedSingle: "Water saved",
+          metricCarbonSavedSingle: "CO₂ emissions avoided",
+          metricMoneySavedSingle: "Money saved",
+          impactComment: "Goal: save 1000 g of food – roughly a full day of hidden kitchen waste.",
+          recipeTitle: "Suggested menu & portions",
+          recipeMetaPlaceholder: "Choose people, meal type and ingredients on the left, then click “Generate”.",
+          eduTitle: "Kitchen Upcycling & Anti-Waste Education",
+          eduSubtitle: "Turn “finish your plate” into a hands-on science project.",
+          eduKitchenTitle: "Upcycling projects you can do in the kitchen",
+          eduBrothTitle: "Vegetable scrap broth",
+          eduBrothTag: "Onion skins · Carrot peels · Celery leaves · Mushroom stems (customizable)",
+          eduBrothStep1: "Rinse vegetable scraps thoroughly.",
+          eduBrothStep2: "Cover with water and bring to a boil.",
+          eduBrothStep3: "Simmer 30–60 minutes to extract flavor.",
+          eduBrothStep4: "Strain and chill; store in the fridge or freezer.",
+          eduBrothUsage: "Use as base for soups, stews and risotto — rescuing nutrients that would be thrown away.",
+          eduBreadTitle: "Using stale bread",
+          eduBreadTag: "Turn old bread into croutons or crumbs",
+          eduBreadStep1: "Cut or tear stale bread into pieces.",
+          eduBreadStep2: "Toss with a bit of oil and herbs; spread on a tray.",
+          eduBreadStep3: "Bake at 160–180°C until golden and crisp.",
+          eduBreadUsage: "Croutons go on salads and soups; crumbs coat bakes and fried foods.",
+          eduPeelTitle: "Creative fruit peel uses",
+          eduPeelTag: "Citrus syrup · Jam · Drink flavoring",
+          eduPeelStep1: "Trim off white pith, slice peels and briefly blanch.",
+          eduPeelStep2: "Simmer with sugar and a little water into syrup or jam.",
+          eduPeelStep3: "Cool, then add to sparkling water, tea or yogurt.",
+          eduPeelUsage: "One orange can flavor many drinks instead of ending in the bin right away.",
+          eduCoffeeTitle: "Multi-purpose coffee grounds",
+          eduCoffeeTag: "Plant fertilizer · Cleaner · Deodorizer",
+          eduCoffeeStep1: "Mix small amounts into soil as organic booster.",
+          eduCoffeeStep2: "Combine with baking soda and water as a gentle scrub.",
+          eduCoffeeStep3: "Dry and put into small breathable bags for shoe cabinets or fridges.",
+          eduCoffeeUsage: "Always dry grounds well before use to avoid mold.",
+          eduSectionTitle: "Enter your scrap ingredient for reuse ideas",
+          eduInputPlaceholder: "e.g. carrot peels, stale bread",
+          eduGenerateBtn: "Generate reuse ideas",
+          eduNoInputAlert: "Please enter a leftover ingredient.",
+          menuSuggestionTitle: "Possible dishes",
+          eduVideoTitle: "Video learning & extra resources",
+          eduVideoDesc: "Below is the official project video plus example open resources you can look up.",
+          eduOfficialVideoTitle: "Official FoodGuardian AI teaching video",
+          eduOfficialVideoDesc: "For best experience, watch on a phone in landscape or on a tablet.",
+          eduVideoWasteTitle: "Food waste facts & data",
+          eduVideoWasteLink1: "Documentaries on global food waste (search example)",
+          eduVideoWasteLink2: "Household food waste explainer videos (search example)",
+          eduVideoSolutionTitle: "Solutions & case studies",
+          eduVideoSolutionLink1: "Zero-waste kitchen practice (search example)",
+          eduVideoSolutionLink2: "Creative upcycling of food scraps (search example)",
+          eduKeyPointsTitle: "Key takeaways",
+          eduKeyPoint1: "Roughly one third of food produced is lost or wasted globally.",
+          eduKeyPoint2: "Households play a major role; planning portions is an easy first step.",
+          eduKeyPoint3: "Saving 1 kg of food can indirectly save dozens of liters of water.",
+          aboutTitle: "About FoodGuardian AI & Team CMMMMC",
+          aboutSubtitle: "A project combining technology, education and sustainability.",
+          aboutBadge: "Team I-Create2",
+          footerProject: "Smart anti-waste recipes & education platform",
+          footerRights: "© 2026 All rights reserved · For education and outreach only.",
+        },
+      };
+
+      function getCurrentLang() {
+        const stored = localStorage.getItem(LS_KEYS.lang);
+        if (stored === "zh" || stored === "en") return stored;
+        const browser = navigator.language || navigator.userLanguage || "en";
+        return browser.toLowerCase().startsWith("zh") ? "zh" : "en";
+      }
+
+      function setLang(lang) {
+        const dict = i18nStrings[lang] || i18nStrings.zh;
+        document.documentElement.lang = lang === "zh" ? "zh" : "en";
+        $$('[data-i18n]').forEach((el) => {
+          const key = el.getAttribute('data-i18n');
+          if (dict[key]) {
+            el.textContent = dict[key];
+          }
+        });
+        // placeholders as well
+        $$('[data-i18n-placeholder]').forEach((el) => {
+          const key = el.getAttribute('data-i18n-placeholder');
+          if (dict[key]) {
+            el.setAttribute('placeholder', dict[key]);
+          }
+        });
+        langCodeLabel.textContent = lang === "zh" ? "中" : "EN";
+        localStorage.setItem(LS_KEYS.lang, lang);
+      }
+
+      // ---------- Stats ----------
+      function loadStats() {
+        try {
+          const raw = localStorage.getItem(LS_KEYS.stats);
+          if (!raw) return { ...DEFAULT_STATS };
+          const parsed = JSON.parse(raw);
+          return { ...DEFAULT_STATS, ...parsed };
+        } catch {
+          return { ...DEFAULT_STATS };
+        }
+      }
+
+      function saveStats(stats) {
+        localStorage.setItem(LS_KEYS.stats, JSON.stringify(stats));
+      }
+
+      function updateStatsUI(stats) {
+        totalFoodSaved.textContent = stats.food.toFixed(0);
+        totalWaterSaved.textContent = stats.water.toFixed(1);
+        totalCarbonSaved.textContent = stats.carbon.toFixed(1);
+        totalMoneySaved.textContent = stats.money.toFixed(2);
+
+        const scale = (value, max) => Math.max(5, Math.min(100, (value / max) * 100));
+        barFood.style.width = scale(stats.food, 2000) + "%";
+        barWater.style.width = scale(stats.water, 400) + "%";
+        barCarbon.style.width = scale(stats.carbon, 2000) + "%";
+        barMoney.style.width = scale(stats.money, 200) + "%";
+      }
+
+      function resetCurrentImpact() {
+        curFoodSaved.textContent = "0";
+        curWaterSaved.textContent = "0";
+        curCarbonSaved.textContent = "0";
+        curMoneySaved.textContent = "0";
+        curBarFood.style.width = "10%";
+        curBarWater.style.width = "10%";
+        curBarCarbon.style.width = "10%";
+        curBarMoney.style.width = "10%";
+      }
+
+      // ---------- Recipe Logic ----------
+      function getSelectedMealType() {
+        const active = mealTypeChips.querySelector(".chip.active");
+        return active ? active.getAttribute("data-meal-type") : "home";
+      }
+
+      function getSelectedIngredients() {
+        return Array.from(ingredientChips.querySelectorAll(".chip.active")).map((chip) =>
+          chip.getAttribute("data-ingredient")
+        );
+      }
+
+      function computeRecipe() {
+        const people = Number(peopleRange.value);
+        const portionMult = Number(portionMultiplier.value);
+        const mealType = getSelectedMealType();
+        const ingredients = getSelectedIngredients();
+
+        if (!ingredients.length) {
+          alert(
+            getCurrentLang() === "zh"
+              ? "请至少选择一种主要食材。"
+              : "Please select at least one main ingredient."
+          );
+          return null;
+        }
+
+        let baseTotal = 0;
+        ingredients.forEach((ing) => {
+          baseTotal += (FOOD_COEFFICIENTS[ing] || 80) * people;
+        });
+
+        let mealFactor = 1;
+        if (mealType === "healthy") mealFactor = 0.9;
+        else if (mealType === "vegan") mealFactor = 0.85;
+        else if (mealType === "banquet") mealFactor = 1.15;
+
+        const adjustedTotal = baseTotal * portionMult * mealFactor;
+        const wastedWithoutTool = adjustedTotal * (1 + WASTE_REDUCTION_RATIO);
+        const savedFood = wastedWithoutTool - adjustedTotal;
+
+        const waterSaved = (savedFood * IMPACT_FACTORS.waterPerGram);
+        const carbonSaved = (savedFood * IMPACT_FACTORS.carbonPerGram);
+        const moneySaved = (savedFood * IMPACT_FACTORS.moneyPerGram);
+
+        const perIngredient = ingredients.map((ing) => {
+          const basePer = (FOOD_COEFFICIENTS[ing] || 80) * people * portionMult * mealFactor;
+          return { ingredient: ing, grams: basePer };
+        });
+
+        return {
+          people,
+          mealType,
+          ingredients,
+          adjustedTotal,
+          savedFood,
+          waterSaved,
+          carbonSaved,
+          moneySaved,
+          perIngredient,
+        };
+      }
+
+      function renderRecipe(recipe) {
+        recipeList.innerHTML = "";
+        if (!recipe) {
+          recipeMeta.textContent =
+            i18nStrings[getCurrentLang()].recipeMetaPlaceholder ||
+            "Choose people and ingredients, then generate a menu.";
+          recipeTip.textContent = "";
+          const sugContainer = document.getElementById("recipeSuggestions");
+          if (sugContainer) sugContainer.innerHTML = "";
+          resetCurrentImpact();
+          return;
+        }
+
+        const lang = getCurrentLang();
+
+        const mealTypeNames = {
+          zh: {
+            home: "家常菜",
+            healthy: "健康餐",
+            vegan: "素食",
+            banquet: "宴客菜",
+          },
+          en: {
+            home: "Home-style",
+            healthy: "Healthy",
+            vegan: "Vegetarian",
+            banquet: "Banquet",
+          },
+        };
+
+        const ingredientNames = {
+          zh: {
+            tomato: "番茄",
+            chicken: "鸡肉",
+            potato: "土豆",
+            egg: "鸡蛋",
+            beef: "牛肉",
+            fish: "鱼类",
+          },
+          en: {
+            tomato: "Tomato",
+            chicken: "Chicken",
+            potato: "Potato",
+            egg: "Egg",
+            beef: "Beef",
+            fish: "Fish",
+          },
+        };
+
+        const mealLabel = mealTypeNames[lang][recipe.mealType] || recipe.mealType;
+        const ingNames = recipe.ingredients.map((ing) => ingredientNames[lang][ing] || ing);
+
+        if (lang === "zh") {
+          recipeMeta.textContent = `为 ${recipe.people} 人准备的 ${mealLabel}，主要食材：${ingNames.join("、")}。`;
+        } else {
+          recipeMeta.textContent = `For ${recipe.people} ${recipe.people > 1 ? "people" : "person"} · ${mealLabel} meal · Main ingredients: ${ingNames.join(
+            ", "
+          )}.`;
+        }
+
+        recipe.perIngredient.forEach((item) => {
+          const li = document.createElement("li");
+          const name = ingredientNames[lang][item.ingredient] || item.ingredient;
+          const grams = item.grams;
+          li.textContent =
+            lang === "zh"
+              ? `${name}：约 ${grams.toFixed(0)} 克（含预留少量机动空间）`
+              : `${name}: about ${grams.toFixed(
+                  0
+                )} g (includes a small buffer so plates are full but not wasteful)`;
+          recipeList.appendChild(li);
+        });
+
+        // generate and show dish suggestions
+        const suggestions = getDishSuggestions(recipe.ingredients, lang);
+        const sugContainer = document.getElementById("recipeSuggestions");
+        sugContainer.innerHTML = "";
+        if (suggestions.length) {
+          const heading = document.createElement("div");
+          heading.className = "recipe-suggestion-heading";
+          heading.textContent = i18nStrings[lang].menuSuggestionTitle ||
+            (lang === "zh" ? "可能的菜品" : "Possible dishes");
+          sugContainer.appendChild(heading);
+          const ul2 = document.createElement("ul");
+          suggestions.forEach((d) => {
+            const li = document.createElement("li");
+            li.textContent = d;
+            ul2.appendChild(li);
+          });
+          sugContainer.appendChild(ul2);
+        }
+
+        const saved = recipe.savedFood;
+        const water = recipe.waterSaved;
+        const carbon = recipe.carbonSaved;
+        const money = recipe.moneySaved;
+
+        curFoodSaved.textContent = saved.toFixed(0);
+        curWaterSaved.textContent = water.toFixed(1);
+        curCarbonSaved.textContent = carbon.toFixed(1);
+        curMoneySaved.textContent = money.toFixed(2);
+
+        const scale = (value, max) => Math.max(10, Math.min(100, (value / max) * 100));
+        curBarFood.style.width = scale(saved, 500) + "%";
+        curBarWater.style.width = scale(water, 100) + "%";
+        curBarCarbon.style.width = scale(carbon, 500) + "%";
+        curBarMoney.style.width = scale(money, 40) + "%";
+
+        const dishCount = recipe.ingredients.length;
+        if (lang === "zh") {
+          recipeTip.textContent =
+            dishCount >= 3
+              ? "小建议：菜品已经比较丰富，可以适当减少一道菜，继续为地球减负。"
+              : "小建议：如果还有特别能吃的家人，可以酌情增加一道蔬菜类菜品。";
+        } else {
+          recipeTip.textContent =
+            dishCount >= 3
+              ? "Tip: You already have a rich menu — consider skipping one extra dish to further cut waste."
+              : "Tip: If you have very hungry family members, you may add one extra veggie dish.";
+        }
+
+        const stats = loadStats();
+        stats.food += saved;
+        stats.water += water;
+        stats.carbon += carbon;
+        stats.money += money;
+        saveStats(stats);
+        updateStatsUI(stats);
+      }
+
+      // ---------- Nickname ----------
+      function loadNickname() {
+        const name = localStorage.getItem(LS_KEYS.nickname) || "";
+        if (name) {
+          nicknameInput.value = name;
+          updateWelcome(name);
+        }
+      }
+
+      function updateWelcome(name) {
+        const lang = getCurrentLang();
+        if (!name) {
+          welcomeMessage.textContent = "";
+          return;
+        }
+        welcomeMessage.textContent =
+          lang === "zh"
+            ? `欢迎回来，${name}！今天也一起为地球省下一点点资源吧。`
+            : `Welcome back, ${name}! Let's save a bit more for the planet today.`;
+      }
+
+      saveNicknameBtn.addEventListener("click", () => {
+        const value = nicknameInput.value.trim();
+        const lang = getCurrentLang();
+        if (!value) {
+          nicknameStatus.textContent =
+            lang === "zh" ? "请输入一个昵称。" : "Please enter a nickname.";
+          return;
+        }
+        localStorage.setItem(LS_KEYS.nickname, value);
+        nicknameStatus.textContent =
+          lang === "zh" ? "已保存到本机浏览器。" : "Saved locally in this browser.";
+        updateWelcome(value);
+      });
+
+      // ---------- Controls ----------
+      peopleRange.addEventListener("input", () => {
+        peopleValue.textContent = peopleRange.value;
+      });
+
+      portionMultiplier.addEventListener("input", () => {
+        portionValue.textContent = Number(portionMultiplier.value).toFixed(1);
+      });
+
+      mealTypeChips.addEventListener("click", (e) => {
+        const chip = e.target.closest(".chip");
+        if (!chip) return;
+        mealTypeChips.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+        chip.classList.add("active");
+      });
+
+      ingredientChips.addEventListener("click", (e) => {
+        const chip = e.target.closest(".chip");
+        if (!chip) return;
+        chip.classList.toggle("active");
+      });
+
+      generateBtn.addEventListener("click", () => {
+        const recipe = computeRecipe();
+        if (recipe) {
+          lastRecipe = recipe;
+          renderRecipe(recipe);
+        }
+      });
+
+      // edu input/output bindings
+      const eduInput = $("#eduInput");
+      const eduGenerateBtn = $("#eduGenerateBtn");
+      const eduOutput = $("#eduOutput");
+
+      eduGenerateBtn.addEventListener("click", () => {
+        const ing = eduInput.value.trim();
+        const lang = getCurrentLang();
+        if (!ing) {
+          alert(i18nStrings[lang].eduNoInputAlert);
+          return;
+        }
+        lastEduIngredient = ing;
+        renderEdu(ing, lang);
+      });
+
+      function renderEdu(ingredient, lang) {
+        const suggestions = getEduSuggestions(ingredient, lang);
+        eduOutput.innerHTML = "";
+        // note: section title is already above input, but we duplicate to be safe
+        const h = document.createElement("div");
+        h.className = "section-title";
+        h.textContent = i18nStrings[lang].eduSectionTitle;
+        eduOutput.appendChild(h);
+        suggestions.forEach((s) => {
+          const card = document.createElement("div");
+          card.className = "edu-card";
+          const t = document.createElement("div");
+          t.className = "edu-title";
+          t.textContent = s.title;
+          card.appendChild(t);
+          if (s.usage) {
+            const tag = document.createElement("div");
+            tag.className = "edu-tag";
+            tag.textContent = s.usage;
+            card.appendChild(tag);
+          }
+          const ul = document.createElement("ul");
+          ul.className = "edu-list";
+          s.steps.forEach((step) => {
+            const li = document.createElement("li");
+            li.textContent = step;
+            ul.appendChild(li);
+          });
+          card.appendChild(ul);
+          eduOutput.appendChild(card);
+        });
+      }
+
+      // Smooth scroll
+      $$("[data-scroll]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const target = btn.getAttribute("data-scroll");
+          const el = document.querySelector(target);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+      });
+
+      // Stats reset
+      resetStatsBtn.addEventListener("click", () => {
+        const lang = getCurrentLang();
+        const ok = confirm(
+          lang === "zh"
+            ? "确定要清零本机的所有环保统计吗？此操作不可恢复。"
+            : "Reset all local impact stats? This cannot be undone."
+        );
+        if (!ok) return;
+        const fresh = { ...DEFAULT_STATS };
+        saveStats(fresh);
+        updateStatsUI(fresh);
+        resetCurrentImpact();
+      });
+
+      // Language toggle
+      langToggle.addEventListener("click", () => {
+        const current = getCurrentLang();
+        const next = current === "zh" ? "en" : "zh";
+        setLang(next);
+        const name = localStorage.getItem(LS_KEYS.nickname) || "";
+        updateWelcome(name);
+        if (lastRecipe) renderRecipe(lastRecipe);
+        if (lastEduIngredient) renderEdu(lastEduIngredient, next);
+      });
+
+      // Init
+      (function init() {
+        const lang = getCurrentLang();
+        setLang(lang);
+        loadNickname();
+        const stats = loadStats();
+        updateStatsUI(stats);
+        resetCurrentImpact();
+        peopleValue.textContent = peopleRange.value;
+        portionValue.textContent = Number(portionMultiplier.value).toFixed(1);
+      })();
+    })();
+  </script>
+</body>
+</html>
+

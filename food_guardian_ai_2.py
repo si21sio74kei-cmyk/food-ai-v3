@@ -582,7 +582,7 @@ def nutrition_assessment(user_intake, population_group):
     
     return assessment
 
-def generate_personalized_plan(user_intake, population_group, fridge_items=None):
+def generate_personalized_plan(user_intake, population_group, fridge_items=None, language='zh-CN'):
     """分人群差异化饮食方案生成"""
     assessment = nutrition_assessment(user_intake, population_group)
     
@@ -592,10 +592,47 @@ def generate_personalized_plan(user_intake, population_group, fridge_items=None)
         'elderly': '老年人,消化吸收能力下降,需要易消化、高钙的食物'
     }
     
+    population_info_en = {
+        'adults': 'Adults, need balanced nutrition to maintain body functions',
+        'children': 'Children, in growth and development stage, need sufficient protein and calcium',
+        'elderly': 'Elderly, decreased digestive capacity, need easily digestible and high-calcium foods'
+    }
+    
     insufficient = [k for k, v in assessment.items() if v['status'] == '不足']
     excessive = [k for k, v in assessment.items() if v['status'] == '超标']
     
-    prompt = f"""你是一位专业营养师,请根据以下信息生成个性化饮食方案:
+    if language == 'en-US':
+        prompt = f"""You are a professional nutritionist. Please generate a personalized diet plan based on the following information:
+
+【User Information】
+- Population Group: {population_group} ({population_info_en.get(population_group, '')})
+- Today's Intake: Vegetables {user_intake.get('vegetables', 0)}g, Fruits {user_intake.get('fruits', 0)}g, Meat {user_intake.get('meat', 0)}g, Eggs {user_intake.get('eggs', 0)}g
+
+【Nutrition Assessment Results】
+- Insufficient Intake: {', '.join(insufficient) if insufficient else 'None'}
+- Excessive Intake: {', '.join(excessive) if excessive else 'None'}
+
+【Task Requirements】
+1. Analyze the special nutritional needs of this population group
+2. Provide supplementation suggestions for insufficient intake items
+3. Provide control suggestions for excessive intake items
+4. Generate tomorrow's diet recommendations (specific dishes + ingredient amounts)
+5. Consider the digestive characteristics of this group (elderly: soft food, children: fun food, adults: balanced food)
+
+【Output Format】
+## Nutrition Assessment Summary
+## Improvement Suggestions (at least 3)
+## Tomorrow's Recipe Recommendations (2-3 dishes)
+
+【Reply Requirements】
+- Concise and clear, focus on key points
+- Use structured headings and lists
+- Avoid lengthy explanations
+- Keep each suggestion under 50 words
+
+Please respond entirely in English."""
+    else:
+        prompt = f"""你是一位专业营养师,请根据以下信息生成个性化饮食方案:
 
 【用户信息】
 - 人群标签:{population_group}({population_info.get(population_group, '')})
@@ -632,7 +669,7 @@ def generate_personalized_plan(user_intake, population_group, fridge_items=None)
     except Exception as e:
         return f"生成方案时出错:{str(e)}"
 
-def generate_daily_recommendation(user_intake, population_group, fridge_items):
+def generate_daily_recommendation(user_intake, population_group, fridge_items, language='zh-CN'):
     """基于现有食材 + 营养数据的每日饮食推荐"""
     assessment = nutrition_assessment(user_intake, population_group)
     
@@ -646,7 +683,34 @@ def generate_daily_recommendation(user_intake, population_group, fridge_items):
     
     ingredients_str = ", ".join([f"{item['name']}{item.get('quantity', '')}g" for item in recommended_ingredients])
     
-    prompt = f"""请根据以下食材生成今晚食谱:
+    if language == 'en-US':
+        prompt = f"""Please generate tonight's dinner recipes based on the following ingredients:
+
+【Available Ingredients】{ingredients_str if ingredients_str else 'Common household ingredients'}
+【User Group】{population_group}
+【Nutrition Gaps】Key nutrients to supplement: {', '.join([assessment[k]['chinese_name'] for k, v in assessment.items() if v['status'] == '不足']) if any(v['status']=='不足' for v in assessment.values()) else 'Balanced nutrition'}
+
+【Requirements】
+1. Must fully use the above ingredients
+2. Consider digestion characteristics for {population_group}
+3. Output 2-3 dishes
+4. Label nutritional supplement direction for each dish
+
+【Output Format】
+## Recommended Dishes (2-3)
+## Required Ingredients
+## Brief Steps
+## Nutritional Benefits
+
+【Reply Requirements】
+- Concise and clear, focus on key points
+- Use structured headings and lists
+- Avoid lengthy explanations
+- Keep each suggestion under 50 words
+
+Please respond entirely in English."""
+    else:
+        prompt = f"""请根据以下食材生成今晚食谱:
 
 【可用食材】{ingredients_str if ingredients_str else '家常食材'}
 【用户人群】{population_group}
@@ -1216,9 +1280,10 @@ def daily_recommendation():
     user_intake = data.get('user_intake', {})
     population_group = data.get('population_group', 'adults')
     fridge_items = data.get('fridge_items', [])
+    language = data.get('language', 'zh-CN')  # 🌐 获取语言设置
     
     try:
-        recommendation = generate_daily_recommendation(user_intake, population_group, fridge_items)
+        recommendation = generate_daily_recommendation(user_intake, population_group, fridge_items, language)
         return jsonify({'success': True, 'recommendation': recommendation})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -1230,9 +1295,10 @@ def personalized_plan():
     user_intake = data.get('user_intake', {})
     population_group = data.get('population_group', 'adults')
     fridge_items = data.get('fridge_items', [])
+    language = data.get('language', 'zh-CN')  # 🌐 获取语言设置
     
     try:
-        plan = generate_personalized_plan(user_intake, population_group, fridge_items)
+        plan = generate_personalized_plan(user_intake, population_group, fridge_items, language)
         return jsonify({'success': True, 'plan': plan})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -2022,6 +2088,9 @@ def generate_daily_recommendation_route():
     population_group = current_data.get('population_group', 'adults')
     fridge_items = current_data.get('fridge_inventory', [])
     
+    # 🌐 从请求中获取语言设置
+    language = request.json.get('language', 'zh-CN') if request.is_json else 'zh-CN'
+    
     # 获取用户今日总摄入数据
     today = get_china_time().strftime('%Y-%m-%d')
     all_records = current_data.get('daily_intake_records', [])
@@ -2053,7 +2122,7 @@ def generate_daily_recommendation_route():
                 
             recommendations = {}
             for group in groups:
-                rec = generate_daily_recommendation(user_intake, group, fridge_items)
+                rec = generate_daily_recommendation(user_intake, group, fridge_items, language)
                 recommendations[group_names[group]] = rec
                 
             return jsonify({
@@ -2063,7 +2132,7 @@ def generate_daily_recommendation_route():
                 'user_intake': user_intake
             })
         else:
-            recommendation = generate_daily_recommendation(user_intake, population_group, fridge_items)
+            recommendation = generate_daily_recommendation(user_intake, population_group, fridge_items, language)
             return jsonify({'success': True, 'recommendation': recommendation, 'is_multi_group': False})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
