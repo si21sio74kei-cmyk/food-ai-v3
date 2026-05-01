@@ -489,7 +489,7 @@ def generate_multi_group_nutrition_report(user_intake, language='zh-CN'):
     
     return report
 
-def generate_nutrition_report(user_intake, population_group):
+def generate_nutrition_report(user_intake, population_group, language='zh-CN'):
     """生成完整的营养评估报告（Markdown格式）"""
     assessment = nutrition_assessment(user_intake, population_group)
     
