@@ -2382,9 +2382,16 @@
                         // 🆕 关键修复：评估完成后再次刷新数据
                         await loadData();
                         
-                        // 🆕 新增：第3餐后自动生成饮食推荐
-                        showToast(window.i18n ? window.i18n.t('common.generating_recommendation') : '🍽️ 正在为您生成今日饮食推荐...');
+                        // 🔧 关键修复：确保评估结果显示后，再更新 UI
+                        updateUI();
+                        
+                        //  新增：第3餐后自动生成饮食推荐
+                        showToast(window.i18n ? window.i18n.t('common.generating_recommendation') : '️ 正在为您生成今日饮食推荐...');
                         await generateDailyRecommendation();
+                        
+                        // 🔧 关键修复：生成推荐后，确保 UI 完全更新，按钮恢复可用状态
+                        await loadData();
+                        updateUI();
                     }
                 } else {
                     showToast(handleApiError(result.error));
@@ -2508,7 +2515,7 @@
                     body: JSON.stringify({
                         user_intake: intake,
                         population_group: appData.population_group,
-                        language: getCurrentLanguage()  // 🌐 传递语言参数
+                        language: getCurrentLanguage()  //  传递语言参数
                     })
                 });
 
@@ -2525,16 +2532,28 @@
                         // 使用 formatMarkdown 格式化报告内容
                         assessmentContentDiv.innerHTML = formatMarkdown(result.report);
                         
+                        //  关键修复：添加成功提示
+                        const successMsg = window.i18n ? window.i18n.t('common.assessment_completed') : '✅ 营养评估已完成';
+                        showToast(successMsg);
+                        
                         // 滚动到评估结果区域
                         assessmentResultDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         
                         console.log('✅ 营养评估报告已显示');
                     } else {
-                        console.error('❌ 找不到评估结果展示区域');
+                        console.error(' 找不到评估结果展示区域');
+                        const errorMsg = window.i18n ? window.i18n.t('common.assessment_area_not_found') : '❌ 找不到评估结果展示区域';
+                        showToast(errorMsg);
                     }
+                } else {
+                    console.error('❌ 营养评估失败:', result.error);
+                    const errorMsg = window.i18n ? window.i18n.t('common.assessment_failed') : '❌ 营养评估失败';
+                    showToast(errorMsg + ': ' + result.error);
                 }
             } catch (error) {
                 console.error('营养评估失败:', error);
+                const errorMsg = window.i18n ? window.i18n.t('common.assessment_error') : '❌ 营养评估异常';
+                showToast(errorMsg + ': ' + error.message);
             }
         }
         
