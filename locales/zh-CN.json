@@ -308,7 +308,10 @@
   },
   "camera": {
     "title": "拍照识菜",
+    "subtitle": "上传食材图片，AI 自动识别",
     "take_photo": "拍照",
+    "taking_photo": "拍照中...",
+    "capture_button": " 拍照",
     "upload_photo": "上传照片",
     "recognizing": "识别中...",
     "recognized_ingredients": "识别到的食材",
@@ -320,7 +323,7 @@
     "take_photo_button": "📷 拍照",
     "recognize_button": "🔍 开始识别",
     "result_title": "✨ 识别结果",
-    "recognized_label": "📝 识别到的食材(可编辑):",
+    "recognized_label": " 识别到的食材(可编辑):",
     "recognized_placeholder": "例如:西红柿,鸡蛋,青椒",
     "edit_hint": "💡 提示:如果识别不准确,您可以手动修改,用逗号分隔",
     "confirm_button": "✅ 确认并录入摄入数据"

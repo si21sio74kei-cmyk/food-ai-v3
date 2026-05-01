@@ -308,7 +308,10 @@
   },
   "camera": {
     "title": "Photo Recognize",
+    "subtitle": "Upload food image, AI automatically recognizes",
     "take_photo": "Take Photo",
+    "taking_photo": "Taking photo...",
+    "capture_button": "📸 Take Photo",
     "upload_photo": "Upload Photo",
     "recognizing": "Recognizing...",
     "recognized_ingredients": "Recognized Ingredients",
