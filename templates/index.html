@@ -3421,16 +3421,25 @@
                         return;
                     }
                             
+                    // 🌐 获取表头的国际化文本
+                    const noText = window.i18n ? window.i18n.t('home.seq_header') : '序号';
+                    const timeText = window.i18n ? window.i18n.t('home.time_header') : '时间';
+                    const vegText = window.i18n ? window.i18n.t('home.vegetables_header') : '蔬菜(g)';
+                    const fruText = window.i18n ? window.i18n.t('home.fruits_header') : '水果(g)';
+                    const meatText = window.i18n ? window.i18n.t('home.meat_header') : '肉类(g)';
+                    const eggText = window.i18n ? window.i18n.t('home.eggs_header') : '蛋类(g)';
+                    const actionText = window.i18n ? window.i18n.t('home.actions_header') : '操作';
+                    
                     let html = '<div style="overflow-x: auto;">';
                     html += '<table style="width: 100%; border-collapse: collapse;">';
                     html += '<thead><tr style="background: var(--primary); color: white;">';
-                    html += '<th style="padding: 10px;">序号</th>';
-                    html += '<th style="padding: 10px;">时间</th>';
-                    html += '<th style="padding: 10px;">蔬菜(g)</th>';
-                    html += '<th style="padding: 10px;">水果(g)</th>';
-                    html += '<th style="padding: 10px;">肉类(g)</th>';
-                    html += '<th style="padding: 10px;">蛋类(g)</th>';
-                    html += '<th style="padding: 10px;">操作</th>';
+                    html += `<th style="padding: 10px;">${noText}</th>`;
+                    html += `<th style="padding: 10px;">${timeText}</th>`;
+                    html += `<th style="padding: 10px;">${vegText}</th>`;
+                    html += `<th style="padding: 10px;">${fruText}</th>`;
+                    html += `<th style="padding: 10px;">${meatText}</th>`;
+                    html += `<th style="padding: 10px;">${eggText}</th>`;
+                    html += `<th style="padding: 10px;">${actionText}</th>`;
                     html += '</tr></thead><tbody>';
                             
                     displayRecords.forEach((record, index) => {
@@ -3835,7 +3844,10 @@
                     const response = await fetch('/api/image_recognize', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ image_base64: base64Data })
+                        body: JSON.stringify({ 
+                            image_base64: base64Data,
+                            language: getCurrentLanguage()  // 🌐 传递当前语言设置
+                        })
                     });
 
                     const result = await response.json();
@@ -4024,6 +4036,12 @@
                     }
                 };
                         
+                //  关键修复：在开始新录音前，清理旧的计时器和状态
+                if (recordingTimer) {
+                    clearInterval(recordingTimer);
+                    recordingTimer = null;
+                }
+                
                 // 开始录音
                 mediaRecorder.start();
                 recordingStartTime = Date.now();
@@ -4036,12 +4054,6 @@
                 document.getElementById('recording-progress').style.display = 'block';
                 const recordingMsg = window.i18n ? window.i18n.t('common.recording_in_progress') : '🔴 正在录音，请说话...（最长 30 秒）\n\n说完可点击【✅ 确定】提前结束';
                 document.getElementById('voice-input-display').value = recordingMsg;
-                        
-                //  关键修复：在开始新录音前，清理旧的计时器和状态
-                if (recordingTimer) {
-                    clearInterval(recordingTimer);
-                    recordingTimer = null;
-                }
                 
                 // 启动计时器更新进度条
                 recordingTimer = setInterval(() => {

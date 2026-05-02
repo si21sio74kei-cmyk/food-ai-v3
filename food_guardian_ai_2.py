@@ -2414,6 +2414,7 @@ def image_recognize():
     """拍照识菜 - 图像识别食材"""
     data = request.json
     image_base64 = data.get('image_base64', '')
+    language = data.get('language', 'zh-CN')  # 🌐 获取语言设置
     
     if not image_base64:
         return jsonify({'success': False, 'error': '请上传图片'})
@@ -2446,6 +2447,50 @@ def image_recognize():
             "Content-Type": "application/json"
         }
         
+        # 🌐 根据语言设置 AI 提示词
+        if language == 'en-US':
+            prompt_text = """Please identify the food ingredients in this image.
+
+【Important Requirements】
+1. Only list specific ingredient names (e.g., tomato, egg, bell pepper, beef)
+2. Separate with English commas (,)
+3. No descriptive language, don't say 'I see', 'the image contains', etc.
+4. If it's a dish, list main ingredients, not dish name
+5. When uncertain, give the most likely ingredient name
+6. List each ingredient separately, don't combine (e.g., 'potato,beef' not 'potato beef stew')
+7. If no obvious ingredients in image, return 'Cannot identify'
+
+【Common Ingredient Examples】
+- Vegetables: cabbage, spinach, lettuce, tomato, cucumber, eggplant, bell pepper, onion, potato, carrot
+- Meat: pork, beef, lamb, chicken, duck, fish, shrimp, crab
+- Eggs: chicken egg, duck egg
+- Fruits: apple, banana, orange, grape
+- Others: tofu, dried tofu, mushroom, wood ear mushroom
+
+Please return the ingredient list directly, for example:
+tomato,egg,bell pepper"""
+        else:  # zh-CN
+            prompt_text = """请识别这张图片中的食材。
+
+【重要要求】
+1. 只列出具体的食材名称（如：西红柿、鸡蛋、青椒、牛肉）
+2. 用英文逗号分隔（,）
+3. 不要描述性语言，不要说'我看到'、'图片中有'等
+4. 如果是菜品，列出主要食材而不是菜名
+5. 不确定时给出最可能的食材名称
+6. 每个食材单独列出，不要组合（例如：'土豆,牛肉'而不是'土豆炖牛肉'）
+7. 如果图片中没有明显食材，返回'无法识别'
+
+【常见食材示例】
+- 蔬菜类：白菜、菠菜、生菜、番茄、黄瓜、茄子、青椒、洋葱、土豆、胡萝卜
+- 肉类：猪肉、牛肉、羊肉、鸡肉、鸭肉、鱼肉、虾、蟹
+- 蛋类：鸡蛋、鸭蛋
+- 水果类：苹果、香蕉、橙子、葡萄
+- 其他：豆腐、豆干、蘑菇、木耳
+
+请直接返回食材列表，例如：
+西红柿,鸡蛋,青椒"""
+        
         payload = {
             "model": "glm-4v-flash",
             "messages": [
@@ -2460,7 +2505,7 @@ def image_recognize():
                         },
                         {
                             "type": "text",
-                            "text": "请识别这张图片中的食材。\n\n【重要要求】\n1. 只列出具体的食材名称（如：西红柿、鸡蛋、青椒、牛肉）\n2. 用英文逗号分隔（,）\n3. 不要描述性语言，不要说'我看到'、'图片中有'等\n4. 如果是菜品，列出主要食材而不是菜名\n5. 不确定时给出最可能的食材名称\n6. 每个食材单独列出，不要组合（例如：'土豆,牛肉'而不是'土豆炖牛肉'）\n7. 如果图片中没有明显食材，返回'无法识别'\n\n【常见食材示例】\n- 蔬菜类：白菜、菠菜、生菜、番茄、黄瓜、茄子、青椒、洋葱、土豆、胡萝卜\n- 肉类：猪肉、牛肉、羊肉、鸡肉、鸭肉、鱼肉、虾、蟹\n- 蛋类：鸡蛋、鸭蛋\n- 水果类：苹果、香蕉、橙子、葡萄\n- 其他：豆腐、豆干、蘑菇、木耳\n\n请直接返回食材列表，例如：\n西红柿,鸡蛋,青椒"
+                            "text": prompt_text
                         }
                     ]
                 }
