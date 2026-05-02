@@ -520,6 +520,11 @@ def generate_nutrition_report_en(user_intake, population_group, assessment):
     }
     
     status_names = {
+        'Meets Standard': 'Meets Standard',
+        'Insufficient': 'Insufficient',
+        'Excessive': 'Excessive',
+        'Not Recorded': 'Not Recorded',
+        # 保持中文键以兼容旧代码
         '达标': 'Meets Standard',
         '不足': 'Insufficient',
         '超标': 'Excessive',
@@ -527,10 +532,15 @@ def generate_nutrition_report_en(user_intake, population_group, assessment):
     }
     
     status_icons = {
+        'Meets Standard': '✅',
+        'Insufficient': '⬇️',
+        'Excessive': '⬆️',
+        'Not Recorded': '⏸️',
+        # 保持中文键以兼容旧代码
         '达标': '✅',
         '不足': '⬇️',
-        '超标': '️',
-        '未录入': '️'
+        '超标': '⬆️',
+        '未录入': '⏸️'
     }
     
     standard = get_nutrition_standard(population_group)
@@ -558,7 +568,7 @@ def generate_nutrition_report_en(user_intake, population_group, assessment):
         status_en = status_names.get(status, status)
         icon = status_icons.get(status, '❓')
         
-        if standard and status != '未录入':
+        if standard and status not in ['未录入', 'Not Recorded']:
             recommendations = standard['daily_recommendations'].get(food_type, {})
             min_rec = recommendations.get('min', 0)
             max_rec = recommendations.get('max', 0)
@@ -583,9 +593,9 @@ def generate_nutrition_report_en(user_intake, population_group, assessment):
         report += f"- **Current Intake**: {data['intake']}g\n"
         
         if data['gap'] > 0:
-            if status == '不足':
+            if status == 'Insufficient':
                 report += f"- **Gap**: {data['gap']}g below minimum recommendation\n"
-            elif status == '超标':
+            elif status == 'Excessive':
                 report += f"- **Excess**: {data['gap']}g above maximum recommendation\n"
         
         # 🔧 直接使用已翻译的 suggestion，无需再次翻译
