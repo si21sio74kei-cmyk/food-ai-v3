@@ -993,6 +993,7 @@ def generate_daily_recommendation(user_intake, population_group, fridge_items, l
 【Reply Requirements】
 - Concise and clear, focus on key points
 - Use structured headings and lists
+- ⚠️ IMPORTANT: For the "Recommended Dishes" section, MUST use numbered list format (1. 2. 3.) NOT bullet points (- or *)
 - Avoid lengthy explanations
 - Keep each suggestion under 50 words
 
@@ -1019,6 +1020,7 @@ Please respond entirely in English."""
 【回复要求】
 - 简洁明了，重点突出
 - 使用结构化标题和列表
+- ⚠️ 重要：在"推荐菜品"部分，必须使用有序数字列表格式（1. 2. 3.），禁止使用无序列表（- 或 *）
 - 避免冗长解释
 - 每条建议控制在50字以内"""
     
