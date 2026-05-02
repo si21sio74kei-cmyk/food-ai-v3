@@ -986,16 +986,14 @@ def generate_daily_recommendation(user_intake, population_group, fridge_items, l
 
 【Output Format】
 ## Recommended Dishes (2-3)
-1. [Dish Name]
-   - Required Ingredients: ...
-   - Brief Steps: ...
-   - Nutritional Benefits: ...
-2. [Dish Name]
-   - ...
+## Required Ingredients
+## Brief Steps
+## Nutritional Benefits
 
 【Reply Requirements】
 - Concise and clear, focus on key points
-- Use NUMBERED lists (1. 2. 3.) for dishes, NOT bullet points
+- Use structured headings and lists
+- ⚠️ IMPORTANT: For the "Recommended Dishes" section, MUST use numbered list format (1. 2. 3.) NOT bullet points (- or *)
 - Avoid lengthy explanations
 - Keep each suggestion under 50 words
 
@@ -1015,16 +1013,14 @@ Please respond entirely in English."""
 
 【输出格式】
 ## 推荐菜品(2-3 道)
-1. [菜品名称]
-   - 所需食材: ...
-   - 简要步骤: ...
-   - 营养功效: ...
-2. [菜品名称]
-   - ...
+## 所需食材
+## 简要步骤
+## 营养功效
 
 【回复要求】
 - 简洁明了，重点突出
-- 菜品列表必须使用数字编号（1. 2. 3.），不要使用项目符号（• 或 -）
+- 使用结构化标题和列表
+- ⚠️ 重要：在"推荐菜品"部分，必须使用有序数字列表格式（1. 2. 3.），禁止使用无序列表（- 或 *）
 - 避免冗长解释
 - 每条建议控制在50字以内"""
     
