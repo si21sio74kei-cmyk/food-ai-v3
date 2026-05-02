@@ -803,7 +803,6 @@
         .result-box h2,
         .result-box h3,
         .result-box h4 {
-            color: var(--primary);
             margin-top: 24px;
             margin-bottom: 12px;
             font-weight: 700;
@@ -815,11 +814,12 @@
             border-bottom: 2px solid var(--secondary-light);
             padding-bottom: 8px;
             margin-top: 28px;
+            color: var(--text-primary);
         }
 
         .result-box h3 {
             font-size: 18px;
-            color: var(--secondary);
+            color: var(--text-primary);
         }
 
         .result-box h4 {
@@ -839,7 +839,7 @@
         }
 
         .result-box strong {
-            color: var(--primary);
+            color: var(--text-primary);
             font-weight: 600;
         }
 
@@ -2146,6 +2146,11 @@
             html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
             html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
             
+            //  关键修复：统一所有标题颜色为黑色/深灰色
+            html = html.replace(/<h2>/g, '<h2 style="color: var(--text-primary)">');
+            html = html.replace(/<h3>/g, '<h3 style="color: var(--text-primary)">');
+            html = html.replace(/<h4>/g, '<h4 style="color: var(--text-primary)">');
+            
             // 转换粗体 (**text** 或 __text__)
             html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
             html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
@@ -3259,9 +3264,15 @@
                             content += '*基于联合国 WHO 营养标准，为全家提供个性化菜品推荐*\n\n';
                         }
                         
-                        // 添加各人群推荐
+                        //  关键修复：为每个年龄段添加统一样式的分隔符和标题
+                        let isFirstGroup = true;
                         for (const [group, recommendation] of Object.entries(result.recommendation)) {
-                            content += `\n---\n\n## 🍽️ ${group}\n\n${recommendation}\n\n`;
+                            if (!isFirstGroup) {
+                                content += '\n---\n\n';
+                            }
+                            //  使用 h3 而不是 h2，确保颜色统一为黑色
+                            content += `### 🍽️ ${group}\n\n${recommendation}\n\n`;
+                            isFirstGroup = false;
                         }
                         document.getElementById('daily-recommendation-content').innerHTML = formatMarkdown(content);
                     } else {

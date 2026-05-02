@@ -766,7 +766,7 @@ def translate_suggestion_to_en(suggestion):
         '暂未录入': 'Not yet recorded',
         '如已摄入请补充录入': 'if consumed, please supplement the record',
         '摄入较少': 'Intake is relatively low',
-        '建议适当增加': 'recommend适当增加',
+        '建议适当增加': 'recommend appropriate increase',  # 🔧 修复：移除中文残留
         '摄入略多': 'Intake is slightly high',
         '建议后续餐次适当控制': 'recommend controlling in subsequent meals',
     }
