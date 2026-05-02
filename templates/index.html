@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -2533,6 +2533,9 @@
                     const assessmentContentDiv = document.getElementById('home-assessment-content');
                     
                     if (assessmentResultDiv && assessmentContentDiv) {
+                        // 🔧 关键增强：渲染前清空旧内容，避免DOM残留
+                        assessmentContentDiv.innerHTML = '';
+                        
                         assessmentResultDiv.style.display = 'block';
                         
                         // 使用 formatMarkdown 格式化报告内容
