@@ -491,7 +491,7 @@ def generate_multi_group_nutrition_report(user_intake, language='zh-CN'):
 
 def generate_nutrition_report(user_intake, population_group, language='zh-CN'):
     """生成完整的营养评估报告（Markdown格式）"""
-    assessment = nutrition_assessment(user_intake, population_group)
+    assessment = nutrition_assessment(user_intake, population_group, language)
     
     if 'error' in assessment:
         return assessment['error']
@@ -588,23 +588,22 @@ def generate_nutrition_report_en(user_intake, population_group, assessment):
             elif status == '超标':
                 report += f"- **Excess**: {data['gap']}g above maximum recommendation\n"
         
-        # Translate suggestion
-        suggestion_en = translate_suggestion_to_en(data['suggestion'])
-        report += f"- **Suggestion**: {suggestion_en}\n\n"
+        # 🔧 直接使用已翻译的 suggestion，无需再次翻译
+        report += f"- **Suggestion**: {data['suggestion']}\n\n"
     
     # Comprehensive Evaluation
     report += "## [Comprehensive Evaluation]\n\n"
     
-    status_count = {'达标': 0, '不足': 0, '超标': 0, '未录入': 0}
+    status_count = {'Meets Standard': 0, 'Insufficient': 0, 'Excessive': 0, 'Not Recorded': 0}
     for food_type in ['vegetables', 'fruits', 'meat', 'eggs']:
         status = assessment[food_type]['status']
         status_count[status] = status_count.get(status, 0) + 1
     
-    if status_count['达标'] == 4:
+    if status_count['Meets Standard'] == 4:
         report += "🎉 **Excellent!** All food categories meet the recommended standards. Please continue to maintain a balanced diet!\n\n"
-    elif status_count['达标'] >= 2:
+    elif status_count['Meets Standard'] >= 2:
         report += "👍 **Good!** Most food categories are reasonable. Pay attention to adjusting insufficient or excessive categories.\n\n"
-    elif status_count['未录入'] > 0:
+    elif status_count['Not Recorded'] > 0:
         report += "️ **To be improved** Some food categories have not been recorded yet. It is recommended to supplement them for more accurate assessment.\n\n"
     else:
         report += "💡 **Needs improvement** Most food categories do not meet the standards. It is recommended to refer to the health tips below for adjustments.\n\n"
@@ -613,13 +612,13 @@ def generate_nutrition_report_en(user_intake, population_group, assessment):
     report += "## [Health Tips]\n\n"
     
     tips = []
-    if assessment['vegetables']['status'] == '不足':
+    if assessment['vegetables']['status'] == 'Insufficient':
         tips.append("🥬 Insufficient vegetable intake may lack dietary fiber and vitamins. It is recommended to increase green leafy vegetables.")
-    if assessment['fruits']['status'] == '不足':
+    if assessment['fruits']['status'] == 'Insufficient':
         tips.append("🍎 Insufficient fruit intake may lack vitamin C. It is recommended to add fresh fruits appropriately.")
-    if assessment['meat']['status'] == '超标':
+    if assessment['meat']['status'] == 'Excessive':
         tips.append(" Excessive meat intake may increase fat intake. It is recommended to reduce red meat and increase fish and poultry.")
-    if assessment['eggs']['status'] == '超标':
+    if assessment['eggs']['status'] == 'Excessive':
         tips.append(" Excessive egg intake requires attention to cholesterol. It is recommended to control daily egg intake.")
     
     if not tips:
@@ -777,18 +776,28 @@ def translate_suggestion_to_en(suggestion):
     
     return result
 
-def nutrition_assessment(user_intake, population_group):
-    """全维度营养健康评估引擎"""
+def nutrition_assessment(user_intake, population_group, language='zh-CN'):
+    """全维度营养健康评估引擎（支持多语言）"""
     standard = get_nutrition_standard(population_group)
     if not standard:
-        return {'error': f'未找到人群 {population_group} 的营养标准'}
+        error_msg = f'未找到人群 {population_group} 的营养标准' if language == 'zh-CN' else f'Nutrition standard for {population_group} not found'
+        return {'error': error_msg}
     
-    intake_to_chinese = {
-        'vegetables': '蔬菜',
-        'fruits': '水果',
-        'meat': '肉类',
-        'eggs': '蛋类'
-    }
+    #  多语言食物名称映射
+    if language == 'en-US':
+        food_names = {
+            'vegetables': 'Vegetables',
+            'fruits': 'Fruits',
+            'meat': 'Meat',
+            'eggs': 'Eggs'
+        }
+    else:  # zh-CN
+        food_names = {
+            'vegetables': '蔬菜',
+            'fruits': '水果',
+            'meat': '肉类',
+            'eggs': '蛋类'
+        }
     
     food_types = ['vegetables', 'fruits', 'meat', 'eggs']
     recorded_foods = []
@@ -807,37 +816,55 @@ def nutrition_assessment(user_intake, population_group):
         recommendations = standard['daily_recommendations'].get(food_type, {})
         min_rec = recommendations.get('min', 0)
         max_rec = recommendations.get('max', 0)
+        food_name = food_names[food_type]
         
         if is_partial_entry and intake == 0:
+            if language == 'en-US':
+                suggestion = f"Not yet recorded {food_name}, if consumed please supplement the record"
+            else:
+                suggestion = f"暂未录入{food_name},如已摄入请补充录入"
             assessment[food_type] = {
                 'intake': intake,
-                'status': '未录入',
+                'status': '未录入' if language == 'zh-CN' else 'Not Recorded',
                 'gap': 0,
-                'chinese_name': intake_to_chinese[food_type],
-                'suggestion': f"暂未录入{intake_to_chinese[food_type]},如已摄入请补充录入"
+                'chinese_name': food_names[food_type],  # 保留中文名用于前端显示
+                'suggestion': suggestion
             }
         elif intake < min_rec:
-            status = "不足"
+            status = "不足" if language == 'zh-CN' else "Insufficient"
             gap = min_rec - intake
-            suggestion = f"建议增加{intake_to_chinese[food_type]}摄入,当前{intake}g,距离推荐最小值还差{gap}g"
-            if is_partial_entry:
-                suggestion = f"{intake_to_chinese[food_type]}摄入较少({intake}g),建议适当增加"
+            if language == 'en-US':
+                suggestion = f"Recommend increasing {food_name} intake, current {intake}g, still need {gap}g to reach minimum recommendation"
+                if is_partial_entry:
+                    suggestion = f"{food_name} intake is relatively low ({intake}g), recommend appropriate increase"
+            else:
+                suggestion = f"建议增加{food_name}摄入,当前{intake}g,距离推荐最小值还差{gap}g"
+                if is_partial_entry:
+                    suggestion = f"{food_name}摄入较少({intake}g),建议适当增加"
         elif intake > max_rec:
-            status = "超标"
+            status = "超标" if language == 'zh-CN' else "Excessive"
             gap = intake - max_rec
-            suggestion = f"建议减少{intake_to_chinese[food_type]}摄入,当前{intake}g,已超过推荐最大值{gap}g"
-            if is_partial_entry:
-                suggestion = f"{intake_to_chinese[food_type]}摄入略多({intake}g),建议后续餐次适当控制"
+            if language == 'en-US':
+                suggestion = f"Recommend reducing {food_name} intake, current {intake}g, exceeds maximum recommendation by {gap}g"
+                if is_partial_entry:
+                    suggestion = f"{food_name} intake is slightly high ({intake}g), recommend controlling in subsequent meals"
+            else:
+                suggestion = f"建议减少{food_name}摄入,当前{intake}g,已超过推荐最大值{gap}g"
+                if is_partial_entry:
+                    suggestion = f"{food_name}摄入略多({intake}g),建议后续餐次适当控制"
         else:
-            status = "达标"
+            status = "达标" if language == 'zh-CN' else "Meets Standard"
             gap = 0
-            suggestion = f"{intake_to_chinese[food_type]}摄入充足({intake}g),请继续保持"
+            if language == 'en-US':
+                suggestion = f"{food_name} intake is sufficient ({intake}g), please keep it up"
+            else:
+                suggestion = f"{food_name}摄入充足({intake}g),请继续保持"
         
         assessment[food_type] = {
             'intake': intake,
             'status': status,
             'gap': gap,
-            'chinese_name': intake_to_chinese[food_type],
+            'chinese_name': food_names[food_type],
             'suggestion': suggestion
         }
     
@@ -845,7 +872,7 @@ def nutrition_assessment(user_intake, population_group):
 
 def generate_personalized_plan(user_intake, population_group, fridge_items=None, language='zh-CN'):
     """分人群差异化饮食方案生成"""
-    assessment = nutrition_assessment(user_intake, population_group)
+    assessment = nutrition_assessment(user_intake, population_group, language)
     
     population_info = {
         'adults': '成年人,需要均衡营养以维持身体机能',
@@ -932,7 +959,7 @@ Please respond entirely in English."""
 
 def generate_daily_recommendation(user_intake, population_group, fridge_items, language='zh-CN'):
     """基于现有食材 + 营养数据的每日饮食推荐"""
-    assessment = nutrition_assessment(user_intake, population_group)
+    assessment = nutrition_assessment(user_intake, population_group, language)
     
     recommended_ingredients = []
     for food_type, data in assessment.items():
