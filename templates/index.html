@@ -2011,10 +2011,16 @@
             const dailyRecBtn = document.getElementById('daily-rec-btn');
             if (dailyRecBtn) {
                 dailyRecBtn.disabled = false;
-                dailyRecBtn.style.display = 'block';
+                // 🔧 增强修复：使用setProperty确保样式优先级
+                dailyRecBtn.style.setProperty('display', 'block', 'important');
+                dailyRecBtn.style.visibility = 'visible';
+                dailyRecBtn.style.opacity = '1';
                 //  根据当前语言设置按钮文本
                 const btnText = window.i18n ? window.i18n.t('home.generate_daily_rec_button') : '✨ AI 生成今日推荐';
                 dailyRecBtn.innerHTML = btnText;
+                console.log('✅ updateUI 已恢复按钮状态');
+            } else {
+                console.error('❌ updateUI 中找不到 daily-rec-btn 按钮');
             }
                     
             // 🔑 关键修复：更新计数器显示
@@ -3213,6 +3219,12 @@
         
         async function generateDailyRecommendation() {
             const btn = document.getElementById('daily-rec-btn');
+            if (!btn) {
+                console.error('❌ 找不到 daily-rec-btn 按钮元素');
+                return;
+            }
+            
+            console.log(' 开始生成饮食推荐，按钮状态:', btn.style.display);
             btn.disabled = true;
             // 🌐 修复：根据当前语言设置按钮文本
             const btnText = window.i18n ? window.i18n.t('common.generating_recommendation') : '🍽️ 正在为您生成今日饮食推荐...';
@@ -3271,10 +3283,16 @@
                 const btn = document.getElementById('daily-rec-btn');
                 if (btn) {
                     btn.disabled = false;
-                    btn.style.display = 'block';  //  确保按钮可见
+                    // 🔧 增强修复：使用!important确保样式不被覆盖
+                    btn.style.setProperty('display', 'block', 'important');
+                    btn.style.visibility = 'visible';
+                    btn.style.opacity = '1';
                     //  根据当前语言设置按钮文本
                     const btnText = window.i18n ? window.i18n.t('home.generate_daily_rec_button') : '✨ AI 生成今日推荐';
                     btn.innerHTML = btnText;
+                    console.log('✅ 按钮已恢复，最终状态:', btn.style.display, btn.style.visibility);
+                } else {
+                    console.error(' finally块中找不到 daily-rec-btn 按钮');
                 }
             }
         }
