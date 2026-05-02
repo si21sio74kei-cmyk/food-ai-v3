@@ -331,12 +331,8 @@
     "upload_hint_subtitle": "Supports JPG, PNG, WebP formats",
     "select_image_button": "📤 Select Image",
     "take_photo_button": "📷 Take Photo",
-    "recognize_button": "🔍 Start Recognition",
-    "result_title": "✨ Recognition Result",
-    "recognized_label": "📝 Recognized Ingredients (Editable):",
-    "recognized_placeholder": "e.g., tomato, egg, green pepper",
-    "edit_hint": "💡 Tip: If recognition is inaccurate, you can manually edit, separate with commas",
-    "confirm_button": "✅ Confirm and Record Intake Data"
+    "recognize_button": " Start Recognition",
+    "result_title": "✨ Recognition Result"
   },
   "voice": {
     "title": "Voice Input",

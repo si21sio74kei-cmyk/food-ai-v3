@@ -3914,6 +3914,7 @@
             const recordBtnText = window.i18n ? window.i18n.t('voice.record_button') : '🎤 按住说话';
             document.getElementById('record-btn').innerHTML = recordBtnText;
             document.getElementById('early-stop-btn').style.display = 'none';
+            document.getElementById('early-stop-btn').disabled = false;  // 🔑 关键修复：恢复按钮可用状态
             document.getElementById('voice-confirm-buttons').style.display = 'none';
         }
 

@@ -332,11 +332,7 @@
     "select_image_button": "📤 选择图片",
     "take_photo_button": " 拍照",
     "recognize_button": " 开始识别",
-    "result_title": "✨ 识别结果",
-    "recognized_label": " 识别到的食材(可编辑):",
-    "recognized_placeholder": "例如:西红柿,鸡蛋,青椒",
-    "edit_hint": "💡 提示:如果识别不准确,您可以手动修改,用逗号分隔",
-    "confirm_button": "✅ 确认并录入摄入数据"
+    "result_title": "✨ 识别结果"
   },
   "voice": {
     "title": "语音输入",
