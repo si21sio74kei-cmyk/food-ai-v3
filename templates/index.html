@@ -2294,6 +2294,7 @@
                 
                 const peopleNum = parseInt(document.getElementById('people-slider').value);
                 const appetite = parseFloat(document.getElementById('appetite-slider').value);
+                const mealType = document.querySelector('input[name="meal-type"]:checked').value;  // 🔑 新增：获取用餐类型
                 
                 // 如果结果区域已经显示，则实时更新
                 const resultDiv = document.getElementById('recipe-result');
@@ -2307,7 +2308,8 @@
                         body: JSON.stringify({
                             custom_ingredients: customIngredients,
                             people_num: peopleNum,
-                            appetite: appetite
+                            appetite: appetite,
+                            meal_type: mealType  // 🔑 新增：传递用餐类型
                         })
                     });
                     

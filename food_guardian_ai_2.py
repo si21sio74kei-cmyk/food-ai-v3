@@ -1083,13 +1083,13 @@ def get_smart_portion(ingredient_name):
     # 3. 失败则使用默认值
     return 100
 
-def calculate_impact(ingredients, people_num=3, portion_coefficient=1.0):
+def calculate_impact(ingredients, people_num=3, portion_coefficient=1.0, meal_type='home'):
     """计算环保影响"""
     total_portion = 0
     for ing in ingredients:
         # 🔑 关键改进：使用智能份量获取（数据库 + AI识别）
         base = get_smart_portion(ing)
-        multiplier = MEAL_MULTIPLIERS['home'] * portion_coefficient
+        multiplier = MEAL_MULTIPLIERS.get(meal_type, 1.0) * portion_coefficient
         total_portion += base * people_num * multiplier
 
     traditional_portion = total_portion * (1 + WASTE_RATIO)
@@ -1583,7 +1583,7 @@ def generate_recipe():
         
         if api_result['success']:
             # 计算环保影响
-            impact = calculate_impact(ingredients, people_num, appetite)
+            impact = calculate_impact(ingredients, people_num, appetite, meal_type)
             
             return jsonify({
                 'success': True,
@@ -1605,6 +1605,7 @@ def calculate_impact_api():
     custom_ingredients = data.get('custom_ingredients', '')
     people_num = data.get('people_num', 3)
     appetite = data.get('appetite', 1.0)
+    meal_type = data.get('meal_type', 'home')  # 🔑 新增：接收用餐类型
     
     # 解析食材
     ingredients = [i.strip() for i in custom_ingredients.split(',') if i.strip()]
@@ -1613,7 +1614,7 @@ def calculate_impact_api():
         return jsonify({'success': False, 'error': '请至少输入一种食材'})
     
     # 使用本地公式快速计算
-    impact = calculate_impact(ingredients, people_num, appetite)
+    impact = calculate_impact(ingredients, people_num, appetite, meal_type)
     
     return jsonify({
         'success': True,
