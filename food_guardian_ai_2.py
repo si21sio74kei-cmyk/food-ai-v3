@@ -57,25 +57,33 @@ COLORS = {
     'separator': '#E0E0E0'
 }
 
-BASE_PORTIONS = {
-    'tomato': 80, 'chicken': 120, 'potato': 90, 'egg': 60, 'beef': 130, 'fish': 110
-}
+# ====================== 食材数据库加载 ======================
+def load_ingredient_database():
+    """加载食材数据库"""
+    db_path = os.path.join(os.path.dirname(__file__), 'ingredient_database.json')
+    
+    if os.path.exists(db_path):
+        try:
+            with open(db_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"⚠️ 加载食材数据库失败: {e}，使用默认配置")
+    
+    # 返回空配置（未知食材将由AI自动识别）
+    return {
+        'base_portions': {},
+        'ingredient_map': {}
+    }
+
+# 全局加载一次
+INGREDIENT_DB = load_ingredient_database()
+BASE_PORTIONS = INGREDIENT_DB.get('base_portions', {})
+INGREDIENT_MAP = INGREDIENT_DB.get('ingredient_map', {})
 
 MEAL_MULTIPLIERS = {'home': 1.0, 'healthy': 0.9, 'vegetarian': 0.85, 'banquet': 1.15}
 
 ENV_FACTORS = {'water_per_g': 0.5, 'co2_per_g': 0.003}
 WASTE_RATIO = 0.25
-
-INGREDIENT_MAP = {
-    '番茄': 'tomato', '西红柿': 'tomato', '鸡肉': 'chicken', '鸡胸肉': 'chicken',
-    '土豆': 'potato', '马铃薯': 'potato', '鸡蛋': 'egg', '蛋': 'egg',
-    '牛肉': 'beef', '猪肉': 'beef', '羊肉': 'beef', '鱼': 'fish', '鱼类': 'fish', '鱼肉': 'fish', '虾': 'fish',
-    '青菜': 'tomato', '菜': 'tomato', '白菜': 'tomato', '生菜': 'tomato', '菠菜': 'tomato',
-    '萝卜': 'potato', '红薯': 'potato', '山药': 'potato', '芋头': 'potato', '莲藕': 'potato',
-    '莴笋': 'potato', '黄瓜': 'tomato', '冬瓜': 'tomato', '南瓜': 'tomato', '丝瓜': 'tomato',
-    '苦瓜': 'tomato', '菇': 'tomato', '菌': 'tomato', '香菇': 'tomato', '金针菇': 'tomato',
-    '豆腐': 'tofu', '豆干': 'tofu', '豆芽': 'bean_sprout', '腐竹': 'tofu'
-}
 
 # ====================== 数据持久化 ======================
 def load_data():
@@ -90,7 +98,8 @@ def load_data():
             'population_group': 'adults',
             'daily_intake_records': [],
             'fridge_inventory': [],
-            'generation_count': 0
+            'generation_count': 0,
+            'chat_history': []  # 🔑 新增：聊天历史
         })
     
     # 本地环境使用文件存储
@@ -108,7 +117,8 @@ def load_data():
         'population_group': 'adults',
         'daily_intake_records': [],
         'fridge_inventory': [],
-        'generation_count': 0  # 关键修复：添加计数器
+        'generation_count': 0,  # 关键修复：添加计数器
+        'chat_history': []  # 🔑 新增：聊天历史
     }
 
 def save_data(data):
@@ -1043,18 +1053,44 @@ Please respond entirely in English."""
     except Exception as e:
         return f"生成推荐时出错:{str(e)}"
 
+def get_smart_portion(ingredient_name):
+    """智能获取食材份量：先查数据库，未知食材调用AI识别并缓存"""
+    # 1. 先查本地数据库
+    ing_en = INGREDIENT_MAP.get(ingredient_name, ingredient_name.lower())
+    if ing_en in BASE_PORTIONS:
+        return BASE_PORTIONS[ing_en]
+    
+    # 2. 本地没有，调用AI估算
+    try:
+        prompt = f"""请估算以下食材的标准份量（克/人）：
+食材：{ingredient_name}
+只需返回数字，不要其他文字。"""
+        
+        api_result = call_ai_api(prompt, api_type="auto")
+        if api_result['success']:
+            import re
+            match = re.search(r'(\d+)', api_result['content'])
+            if match:
+                portion = int(match.group(1))
+                # 缓存到内存中（本次运行有效）
+                BASE_PORTIONS[ing_en] = portion
+                INGREDIENT_MAP[ingredient_name] = ing_en
+                print(f"✅ AI识别新食材: {ingredient_name} -> {ing_en} ({portion}g)")
+                return portion
+    except Exception as e:
+        print(f"⚠️ AI识别食材失败: {e}，使用默认值")
+    
+    # 3. 失败则使用默认值
+    return 100
+
 def calculate_impact(ingredients, people_num=3, portion_coefficient=1.0):
     """计算环保影响"""
     total_portion = 0
     for ing in ingredients:
-        ing_en = INGREDIENT_MAP.get(ing, ing.lower())
-        
-        if ing_en in BASE_PORTIONS:
-            base = BASE_PORTIONS[ing_en]
-            multiplier = MEAL_MULTIPLIERS['home'] * portion_coefficient
-            total_portion += base * people_num * multiplier
-        else:
-            total_portion += 100 * people_num * portion_coefficient
+        # 🔑 关键改进：使用智能份量获取（数据库 + AI识别）
+        base = get_smart_portion(ing)
+        multiplier = MEAL_MULTIPLIERS['home'] * portion_coefficient
+        total_portion += base * people_num * multiplier
 
     traditional_portion = total_portion * (1 + WASTE_RATIO)
     waste_reduced = traditional_portion - total_portion
@@ -1490,11 +1526,20 @@ def get_data():
     """获取用户数据"""
     data = load_data()
     
-    # 🔑 关键修复：确保旧数据文件也包含 generation_count 字段
+    # 🔑 关键修复：确保旧数据文件也包含新字段
+    need_save = False
     if 'generation_count' not in data:
         data['generation_count'] = 0
-        save_data(data)  # 立即保存，避免下次再检查
+        need_save = True
         print('🔧 [数据迁移] 已为旧数据添加 generation_count 字段')
+    
+    if 'chat_history' not in data:
+        data['chat_history'] = []
+        need_save = True
+        print('🔧 [数据迁移] 已为旧数据添加 chat_history 字段')
+    
+    if need_save:
+        save_data(data)  # 立即保存，避免下次再检查
     
     return jsonify({'success': True, 'data': data})
 
@@ -1552,6 +1597,28 @@ def generate_recipe():
             })
     except Exception as e:
         return jsonify({'success': False, 'error': f'服务器错误:{str(e)}'})
+
+@app.route('/api/calculate_impact', methods=['POST'])
+def calculate_impact_api():
+    """仅计算环保影响，不生成食谱（用于实时更新）"""
+    data = request.json
+    custom_ingredients = data.get('custom_ingredients', '')
+    people_num = data.get('people_num', 3)
+    appetite = data.get('appetite', 1.0)
+    
+    # 解析食材
+    ingredients = [i.strip() for i in custom_ingredients.split(',') if i.strip()]
+    
+    if not ingredients:
+        return jsonify({'success': False, 'error': '请至少输入一种食材'})
+    
+    # 使用本地公式快速计算
+    impact = calculate_impact(ingredients, people_num, appetite)
+    
+    return jsonify({
+        'success': True,
+        'impact': impact
+    })
 
 @app.route('/api/nutrition_assess', methods=['POST'])
 def nutrition_assess():
@@ -1710,7 +1777,7 @@ def save_intake():
     else:
         # 降级方案：使用简化的预警逻辑
         for food_type in ['vegetables', 'fruits', 'meat', 'eggs']:
-            amount = intake_record.get(food_type, 0)
+            amount = total_intake.get(food_type, 0)  # 🔑 修复：使用今日总和而非单条记录
             if amount > 0:
                 if food_type == 'meat' and total_intake['meat'] > 300:
                     warnings.append(f"⚠️ 肉类摄入偏高,建议减少红肉,增加鱼类")

@@ -1758,7 +1758,8 @@
             co2_reduced: 0,
             daily_intake_records: [],
             fridge_inventory: [],
-            generation_count: 0  // 🔑 关键修复：添加计数器字段
+            generation_count: 0,  // 🔑 关键修复：添加计数器字段
+            chat_history: []  // 🔑 新增：保存聊天历史
         };
 
         /**
@@ -1968,6 +1969,12 @@
                 const result = await response.json();
                 if (result.success) {
                     appData = result.data;
+                    
+                    // 🔑 关键修复：确保 chat_history 字段存在
+                    if (!appData.chat_history) {
+                        appData.chat_history = [];
+                    }
+                    
                     updateUI();
                     
                     // 🆕 关键修复：每次加载数据后，自动刷新摄入表格
@@ -2054,6 +2061,11 @@
             // 特殊页面处理：切换到冰箱页面时自动加载库存
             if (pageName === 'fridge') {
                 loadFridgeItems();
+            }
+            
+            // 🔑 关键修复：切换到聊天页面时恢复聊天历史
+            if (pageName === 'chat') {
+                restoreChatHistory();
             }
         }
 
@@ -2265,45 +2277,51 @@
             }
         }
 
-        // 实时计算环保数据
-        async function updateImpactRealtime() {
-            const customIngredients = document.getElementById('custom-ingredients').value.trim();
-            if (!customIngredients) return; // 没有食材不计算
-            
-            const peopleNum = parseInt(document.getElementById('people-slider').value);
-            const appetite = parseFloat(document.getElementById('appetite-slider').value);
-            
-            // 如果结果区域已经显示，则实时更新
-            const resultDiv = document.getElementById('recipe-result');
-            if (resultDiv.style.display === 'none') return;
-            
-            try {
-                // 🌐 获取当前语言
-                const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
-                
-                const response = await fetch('/api/generate_recipe', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        custom_ingredients: customIngredients,
-                        people_num: peopleNum,
-                        meal_type: document.querySelector('input[name="meal-type"]:checked').value,
-                        appetite: appetite,
-                        use_fridge: document.getElementById('use-fridge').checked,
-                        language: currentLanguage  // 🌐 传递语言参数
-                    })
-                });
-                
-                const result = await response.json();
-                if (result.success && result.impact) {
-                    // 只更新环保数据，不更新食谱内容
-                    document.getElementById('impact-waste').textContent = `${result.impact.food_waste} g`;
-                    document.getElementById('impact-water').textContent = `${result.impact.water} L`;
-                    document.getElementById('impact-co2').textContent = `${result.impact.carbon} g`;
-                }
-            } catch (error) {
-                console.error('实时计算环保数据失败:', error);
+        // 🔑 防抖定时器
+        let impactDebounceTimer = null;
+
+        // 实时计算环保数据（带防抖）
+        function updateImpactRealtime() {
+            // 清除之前的定时器
+            if (impactDebounceTimer) {
+                clearTimeout(impactDebounceTimer);
             }
+            
+            // 延迟300ms执行，避免频繁调用
+            impactDebounceTimer = setTimeout(async () => {
+                const customIngredients = document.getElementById('custom-ingredients').value.trim();
+                if (!customIngredients) return; // 没有食材不计算
+                
+                const peopleNum = parseInt(document.getElementById('people-slider').value);
+                const appetite = parseFloat(document.getElementById('appetite-slider').value);
+                
+                // 如果结果区域已经显示，则实时更新
+                const resultDiv = document.getElementById('recipe-result');
+                if (resultDiv.style.display === 'none') return;
+                
+                try {
+                    // 🔑 关键修复：调用专门的环保计算API，而不是重新生成食谱
+                    const response = await fetch('/api/calculate_impact', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            custom_ingredients: customIngredients,
+                            people_num: peopleNum,
+                            appetite: appetite
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success && result.impact) {
+                        // 只更新环保数据，不影响已生成的食谱内容
+                        document.getElementById('impact-waste').textContent = `${result.impact.food_waste} g`;
+                        document.getElementById('impact-water').textContent = `${result.impact.water} L`;
+                        document.getElementById('impact-co2').textContent = `${result.impact.carbon} g`;
+                    }
+                } catch (error) {
+                    console.error('实时计算环保数据失败:', error);
+                }
+            }, 300);
         }
 
         async function generateRecipe() {
@@ -3007,16 +3025,30 @@
                 const result = await response.json();
                 
                 // 移除加载消息
-                document.getElementById(loadingId).remove();
+                const loadingMsg = document.getElementById(loadingId);
+                if (loadingMsg) {
+                    loadingMsg.remove();
+                    // 也从历史记录中移除
+                    appData.chat_history = appData.chat_history.filter(msg => msg.id !== loadingId);
+                }
                 
                 if (result.success) {
                     addChatMessage(result.reply, 'ai');
                 } else {
                     addChatMessage(handleApiError(result.error), 'ai');
                 }
+                
+                // 🔑 关键修复：保存聊天历史到服务器
+                await saveData();
+                
             } catch (error) {
-                document.getElementById(loadingId).remove();
+                const loadingMsg = document.getElementById(loadingId);
+                if (loadingMsg) {
+                    loadingMsg.remove();
+                    appData.chat_history = appData.chat_history.filter(msg => msg.id !== loadingId);
+                }
                 addChatMessage('❌ 网络错误,请重试', 'ai');
+                await saveData();
             }
         }
 
@@ -3061,7 +3093,69 @@
             container.appendChild(msgDiv);
             container.scrollTop = container.scrollHeight;
             
+            // 🔑 关键修复：保存消息到历史记录
+            appData.chat_history.push({ text, sender, id: msgId });
+            
             return msgId;
+        }
+
+        // 🔑 关键修复：恢复聊天历史
+        function restoreChatHistory() {
+            const container = document.getElementById('chat-messages');
+            if (!container) return;
+            
+            // 清空当前显示
+            container.innerHTML = '';
+            
+            // 恢复保存的历史
+            if (appData.chat_history && appData.chat_history.length > 0) {
+                appData.chat_history.forEach(msg => {
+                    addChatMessageWithoutSave(msg.text, msg.sender);
+                });
+            }
+        }
+
+        // 不保存的添加消息版本（用于恢复历史时避免重复保存）
+        function addChatMessageWithoutSave(text, sender) {
+            const container = document.getElementById('chat-messages');
+            const msgDiv = document.createElement('div');
+            const msgId = 'msg-' + Date.now();
+            msgDiv.id = msgId;
+            
+            msgDiv.style.cssText = `
+                margin: 12px 0;
+                padding: 12px 16px;
+                border-radius: 16px;
+                max-width: 80%;
+                word-wrap: break-word;
+                animation: fadeInUp 0.3s ease-out;
+            `;
+            
+            if (sender === 'user') {
+                msgDiv.style.cssText += `
+                    background: linear-gradient(135deg, var(--primary), var(--secondary));
+                    color: white;
+                    margin-left: auto;
+                    border-bottom-right-radius: 4px;
+                `;
+            } else {
+                msgDiv.style.cssText += `
+                    background: rgba(255, 255, 255, 0.8);
+                    color: var(--text-primary);
+                    margin-right: auto;
+                    border-bottom-left-radius: 4px;
+                    line-height: 1.6;
+                `;
+            }
+                    
+            // AI 消息使用 innerHTML 以支持 Markdown 格式化
+            if (sender === 'ai') {
+                msgDiv.innerHTML = formatMarkdown(text);
+            } else {
+                msgDiv.textContent = text;
+            }
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
         }
 
         // ==================== 智能冰箱功能 ====================
