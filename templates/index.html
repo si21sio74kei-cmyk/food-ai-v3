@@ -3502,35 +3502,14 @@
             const fruits = parseInt(document.getElementById('intake-fruits-home').value) || 0;
             const meat = parseInt(document.getElementById('intake-meat-home').value) || 0;
             const eggs = parseInt(document.getElementById('intake-eggs-home').value) || 0;
-        
-            console.log('📊 步骤1 - 用户输入的值:', { vegetables, fruits, meat, eggs });
-        
-            // 🔧 关键修复：保存当前输入到后端，并直接使用返回的总和
-            try {
-                const saveResult = await safeApiCall('/api/save_intake', {
-                    body: { vegetables, fruits, meat, eggs }
-                });
-                console.log('✅ 步骤2 - 已保存到后端');
-                        
-                // 🔧 关键优化：直接使用后端返回的总和，而不是重新加载
-                if (saveResult.success && saveResult.total_intake) {
-                    const totalIntake = saveResult.total_intake;
-                    console.log(' 步骤3 - 后端返回的总和数据:', totalIntake);
-                            
-                    // 更新输入框显示总和
-                    updateIntakeInputFields(totalIntake);
-                            
-                    // 用后端计算的总和进行评估
-                    console.log('🚀 步骤4 - 开始评估，使用总和:', totalIntake);
-                    await performNutritionAssessment(totalIntake);
-                } else {
-                    console.error('❌ 保存失败或未返回总和数据');
-                }
-            } catch (error) {
-                console.error(' 保存或评估失败:', error);
-                const msg = window.i18n ? window.i18n.t('common.assessment_failed') : '❌ 评估失败';
-                showToast(msg);
-            }
+                
+            console.log('📊 步骤1 - 输入框当前值:', { vegetables, fruits, meat, eggs });
+                
+            // 🔧 关键修复：直接使用输入框的值进行评估，不再调用save_intake
+            // 因为数据已经在点击"保存记录"时保存过了，这里只是评估
+            const intake = { vegetables, fruits, meat, eggs };
+            console.log('🚀 步骤2 - 直接使用输入框数据进行评估:', intake);
+            await performNutritionAssessment(intake);
         }
 
         async function showNutritionReport() {
