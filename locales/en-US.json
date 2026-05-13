@@ -310,7 +310,8 @@
     "question_meat_alternative": "Meat alternatives?",
     "question_remove_fishy": "How to remove fishy smell?",
     "input_placeholder": "Enter your question...",
-    "send_button": "Send"
+    "send_button": "Send",
+    "ai_thinking_short": "🤖 AI is thinking..."
   },
   "camera": {
     "title": "Photo Recognize",
@@ -361,8 +362,7 @@
     "recognition_failed": "❌ Voice recognition failed",
     "recognition_error": "❌ Recognition error:",
     "re_record": "🎤 Re-record",
-    "ai_thinking": "🤖 AI is thinking about your question, please wait...\n\n",
-    "ai_thinking_short": "AI is thinking..."
+    "ai_thinking": "🤖 AI is thinking about your question, please wait...\n\n"
   },
   "shopping": {
     "title": "Smart Shopping List",
