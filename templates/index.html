@@ -2966,10 +2966,24 @@
             const meatInput = document.getElementById('intake-meat-home');
             const eggsInput = document.getElementById('intake-eggs-home');
             
-            if (vegetablesInput) vegetablesInput.value = totalIntake.vegetables || 0;
-            if (fruitsInput) fruitsInput.value = totalIntake.fruits || 0;
-            if (meatInput) meatInput.value = totalIntake.meat || 0;
-            if (eggsInput) eggsInput.value = totalIntake.eggs || 0;
+            console.log('🔧 updateIntakeInputFields 被调用，总和数据:', totalIntake);
+            
+            if (vegetablesInput) {
+                vegetablesInput.value = totalIntake.vegetables || 0;
+                console.log(`   🥬 蔬菜输入框更新为: ${vegetablesInput.value}`);
+            }
+            if (fruitsInput) {
+                fruitsInput.value = totalIntake.fruits || 0;
+                console.log(`   🍎 水果输入框更新为: ${fruitsInput.value}`);
+            }
+            if (meatInput) {
+                meatInput.value = totalIntake.meat || 0;
+                console.log(`   🥩 肉类输入框更新为: ${meatInput.value}`);
+            }
+            if (eggsInput) {
+                eggsInput.value = totalIntake.eggs || 0;
+                console.log(`   🥚 蛋类输入框更新为: ${eggsInput.value}`);
+            }
             
             console.log('✅ 已更新摄入输入框为今日总和');
         }
@@ -3432,12 +3446,15 @@
             const meat = parseInt(document.getElementById('intake-meat-home').value) || 0;
             const eggs = parseInt(document.getElementById('intake-eggs-home').value) || 0;
 
+            console.log('💾 saveIntakeHome - 用户输入的值:', { vegetables, fruits, meat, eggs });
+
             try {
                 const result = await safeApiCall('/api/save_intake', {
                     body: { vegetables, fruits, meat, eggs }
                 });
 
                 if (result.success) {
+                    console.log('✅ 保存成功，后端返回的总和:', result.total_intake);
                     const msg = window.i18n ? window.i18n.t('common.intake_saved') : '✅ 摄入数据已保存';
                     showToast(msg);
                                     
