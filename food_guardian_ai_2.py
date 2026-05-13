@@ -839,17 +839,11 @@ def nutrition_assessment(user_intake, population_group, language='zh-CN'):
         food_name = food_names[food_type]
         
         if is_partial_entry and intake == 0:
+            status = '未录入' if language == 'zh-CN' else 'Not Recorded'
             if language == 'en-US':
                 suggestion = f"Not yet recorded {food_name}, if consumed please supplement the record"
             else:
                 suggestion = f"暂未录入{food_name},如已摄入请补充录入"
-            assessment[food_type] = {
-                'intake': intake,
-                'status': '未录入' if language == 'zh-CN' else 'Not Recorded',
-                'gap': 0,
-                'chinese_name': food_names[food_type],  # 保留中文名用于前端显示
-                'suggestion': suggestion
-            }
         elif intake < min_rec:
             status = "不足" if language == 'zh-CN' else "Insufficient"
             gap = min_rec - intake
@@ -1117,6 +1111,15 @@ def get_language_from_request():
 def build_recipe_prompt(ingredients, people_num, meal_type, appetite, use_fridge, language='zh-CN'):
     """根据语言构建食谱生成 Prompt"""
     
+    # 根据餐型设置风格描述
+    meal_style_map = {
+        'home': {'zh': '家常菜（温馨实用、简单易做）', 'en': 'Home-style cooking (warm, practical, easy to make)'},
+        'healthy': {'zh': '健康餐（低脂低糖、营养均衡）', 'en': 'Healthy meal (low-fat, low-sugar, nutritionally balanced)'},
+        'vegetarian': {'zh': '素食（纯植物食材、营养丰富）', 'en': 'Vegetarian (plant-based ingredients, nutritionally rich)'},
+        'banquet': {'zh': '宴客菜（精致美观、适合招待客人）', 'en': 'Banquet dish (elegant presentation, suitable for entertaining guests)'}
+    }
+    meal_style = meal_style_map.get(meal_type, meal_style_map['home'])
+    
     if language == 'en-US':
         # 英文 Prompt
         ingredients_str = ', '.join(ingredients)
@@ -1130,8 +1133,9 @@ def build_recipe_prompt(ingredients, people_num, meal_type, appetite, use_fridge
 - Fridge ingredients: {fridge_str}
 - Number of people: {people_num}
 - Appetite level: {appetite}
+- Meal type: {meal_style['en']}
 
-【⚠️ IMPORTANT PRINCIPLE: Reasonable combination, do not force mismatched ingredients!】
+【️ IMPORTANT PRINCIPLE: Reasonable combination, do not force mismatched ingredients!】
 **This is the most important rule, please follow strictly:**
 1. **If ingredients are not suitable to be mixed together, absolutely DO NOT force them into one dish!**
    - ❌ Wrong example: User inputs "milk, apple, egg" → Make "Milk Apple Scrambled Eggs" (disgusting!)
@@ -1262,6 +1266,7 @@ Please respond entirely in English."""
 - 冰箱现有食材：{fridge_str}
 - 就餐人数：{people_num}人
 - 饭量系数：{appetite}
+- 用餐类型：{meal_style['zh']}
 
 【⚠️ 重要原则：合理搭配，不要硬凑！】
 **这是最重要的规则，请务必遵守：**
@@ -1335,7 +1340,7 @@ Please respond entirely in English."""
    - 如果同类型食材过多（如 3 种蔬菜），应该分成不同的菜品，不要全部堆在一起
 
 8. **每个菜品都必须包含以下完整结构**：
-   【菜名】xxx（要体现“家常”特色）
+   【菜名】xxx（根据用餐类型调整风格：家常菜要温馨实用、健康餐要低脂低糖、素食要营养丰富、宴客菜要精致美观）
    【食材类别】xxx（如：肉类 + 蔬菜类、蛋类 + 豆制品等）
    【用料清单】
    - 主料 1: xxx 克（精准计算，考虑人数和饭量系数）
@@ -1394,6 +1399,7 @@ Please respond entirely in English."""
 - 主要食材：{', '.join(ingredients)}
 - 就餐人数：{people_num}人
 - 饭量系数：{appetite}
+- 用餐类型：{meal_style['zh']}
 
 【⚠️ 重要原则：合理搭配，不要硬凑！】
 **这是最重要的规则，请务必遵守：**
@@ -1450,7 +1456,7 @@ Please respond entirely in English."""
    - 每个菜品应该包含不同类别的食材（如：肉类 + 蔬菜、蛋类 + 蔬菜），营养均衡
 
 5. **每个菜品都必须包含以下完整结构**：
-   【菜名】xxx（要体现“家常”特色）
+   【菜名】xxx（根据用餐类型调整风格：家常菜要温馨实用、健康餐要低脂低糖、素食要营养丰富、宴客菜要精致美观）
    【食材类别】xxx（如：肉类 + 蔬菜类、蛋类 + 豆制品等）
    【用料清单】
    - 主料 1: xxx 克（精准计算，考虑人数和饭量系数）
@@ -1701,8 +1707,9 @@ def save_intake():
         records_to_remove = today_records[:-3]  # 除了最新3条外的所有记录
         for old_record in records_to_remove:
             all_records.remove(old_record)
-            print(f"⚠️ 今日记录超过3条，已将旧记录移入历史: {old_record}")
+            print(f"⚠️ 今日记录超过3条，已移除旧记录: {old_record}")
         current_data['daily_intake_records'] = all_records
+        print(f"✅ 保留最新3条记录，共移除 {len(records_to_remove)} 条旧记录")
     
     save_data(current_data)
     

@@ -3390,16 +3390,28 @@
                 const btn = document.getElementById('daily-rec-btn');
                 if (btn) {
                     btn.disabled = false;
-                    // 🔧 增强修复：使用!important确保样式不被覆盖
+                    // 🔧 增强修复：直接赋值+setProperty双保险
+                    btn.style.display = 'block';
                     btn.style.setProperty('display', 'block', 'important');
                     btn.style.visibility = 'visible';
                     btn.style.opacity = '1';
-                    //  根据当前语言设置按钮文本
+                    // 🌐 根据当前语言设置按钮文本
                     const btnText = window.i18n ? window.i18n.t('home.generate_daily_rec_button') : '✨ AI 生成今日推荐';
                     btn.innerHTML = btnText;
                     console.log('✅ 按钮已恢复，最终状态:', btn.style.display, btn.style.visibility);
+                    
+                    // 🔧 额外保险：延迟二次确认按钮可见性（防止DOM重排后丢失）
+                    setTimeout(() => {
+                        const checkBtn = document.getElementById('daily-rec-btn');
+                        if (checkBtn && (checkBtn.style.display === 'none' || checkBtn.style.visibility === 'hidden')) {
+                            checkBtn.style.display = 'block';
+                            checkBtn.style.setProperty('display', 'block', 'important');
+                            checkBtn.style.visibility = 'visible';
+                            console.log('✅ 二次确认恢复按钮可见性');
+                        }
+                    }, 100);
                 } else {
-                    console.error(' finally块中找不到 daily-rec-btn 按钮');
+                    console.error('❌ finally块中找不到 daily-rec-btn 按钮');
                 }
             }
         }
@@ -3468,7 +3480,18 @@
                     }
                     
                     // 刷新表格
-                    loadTodayIntakeTable();
+                    await loadTodayIntakeTable();
+                    
+                    // 🔧 新增：检查今日记录数，如果超过3条则提示用户
+                    const today = getChinaDate();
+                    const currentData = await loadData();
+                    const todayRecords = (currentData.daily_intake_records || []).filter(r => r.date === today);
+                    if (todayRecords.length >= 3) {
+                        const limitMsg = window.i18n 
+                            ? '⚠️ 今日已达3条记录上限，新记录将替换最旧的记录'
+                            : '⚠️ Today has reached the 3-record limit. New records will replace the oldest one.';
+                        setTimeout(() => showToast(limitMsg), 1000);
+                    }
                 }
             } catch (error) {
                 const msg = window.i18n ? window.i18n.t('common.save_failed') : '❌ 保存失败';
@@ -3611,13 +3634,6 @@
                     });
                             
                     html += '</tbody></table></div>';
-                            
-                    // 如果今日记录超过3条，显示提示
-                    if (todayRecords.length > 3) {
-                        html += `<div style="margin-top: 12px; padding: 10px; background: rgba(255,140,66,0.1); border-radius: 8px; font-size: 13px; color: var(--text-secondary);">`;
-                        html += `💡 提示：今日共有 ${todayRecords.length} 条记录，只显示最新3条。旧记录已自动移入7天历史。`;
-                        html += `</div>`;
-                    }
                             
                     tableDiv.innerHTML = html;
                 }
