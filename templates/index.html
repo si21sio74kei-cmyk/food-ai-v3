@@ -2744,11 +2744,13 @@
                     console.log(`✅ [自动录入完成] 第${count}餐数据已保存`);
                 } else {
                     console.error('  ❌ 保存失败:', saveResult.error);
-                    showToast('❌ 保存失败: ' + saveResult.error);
+                    const errorMsg = window.i18n ? window.i18n.t('common.save_failed') : '❌ 保存失败';
+                    showToast(errorMsg + ': ' + saveResult.error);
                 }
             } catch (error) {
                 console.error('[自动录入异常]:', error);
-                showToast('❌ 自动录入失败: ' + error.message);
+                const errorMsg = window.i18n ? window.i18n.t('common.auto_intake_failed') : '❌ 自动录入失败';
+                showToast(errorMsg + ': ' + error.message);
             }
         }
                 
@@ -2959,11 +2961,13 @@
                     console.log('✅ [自动评估完成]');
                 } else {
                     console.error('  ❌ 保存失败:', saveResult.error);
-                    showToast('❌ 保存失败: ' + saveResult.error);
+                    const errorMsg = window.i18n ? window.i18n.t('common.save_failed') : '❌ 保存失败';
+                    showToast(errorMsg + ': ' + saveResult.error);
                 }
             } catch (error) {
                 console.error('[自动录入异常]:', error);
-                showToast('❌ 自动录入失败: ' + error.message);
+                const errorMsg = window.i18n ? window.i18n.t('common.auto_intake_failed') : '❌ 自动录入失败';
+                showToast(errorMsg + ': ' + error.message);
             }
         }
         
@@ -3712,7 +3716,8 @@
                         await performNutritionAssessment(totalIntake);
                     }
                 } else {
-                    showToast('❌ 保存失败: ' + handleApiError(result.error || 'common.error_unknown'));
+                    const errorMsg = window.i18n ? window.i18n.t('common.save_failed') : '❌ 保存失败';
+                    showToast(errorMsg + ': ' + handleApiError(result.error || 'common.error_unknown'));
                 }
             } catch (error) {
                 console.error('保存编辑失败:', error);
@@ -3796,7 +3801,8 @@
         async function confirmRecognizedIngredients() {
             const ingredientsInput = document.getElementById('recognized-ingredients-input');
             if (!ingredientsInput) {
-                showToast('❌ 未找到食材输入框');
+                const msg = window.i18n ? window.i18n.t('common.input_box_not_found') : '❌ 未找到食材输入框';
+                showToast(msg);
                 return;
             }
             
@@ -3826,7 +3832,8 @@
                 }, 1500);
             } catch (error) {
                 console.error('   ❌ 自动录入失败:', error);
-                showToast('❌ 录入失败: ' + error.message);
+                const errorMsg = window.i18n ? window.i18n.t('common.intake_save_failed') : '❌ 录入失败';
+                showToast(errorMsg + ': ' + error.message);
             }
         }
 
