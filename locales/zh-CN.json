@@ -79,8 +79,7 @@
     "confirm_delete": "确定要删除这条记录吗?",
     "history_modal_title": "📅 近 7 天摄入记录",
     "date_header": "日期",
-    "record_count_header": "记录数",
-    "total_header": "总计(g)"
+    "record_count_label": "条记录"
   },
   "recipe": {
     "title": "智能食谱生成器",
@@ -360,7 +359,8 @@
     "recognition_failed": "❌ 语音识别失败",
     "recognition_error": "❌ 识别错误：",
     "re_record": "🎤 重新录音",
-    "ai_thinking": " AI 正在思考您的问题，请稍候...\n\n"
+    "ai_thinking": " AI 正在思考您的问题,请稍候...\n\n",
+    "ai_thinking_short": "AI正在思考..."
   },
   "shopping": {
     "title": "智能采购清单",

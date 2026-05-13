@@ -80,7 +80,8 @@
     "history_modal_title": "📅 Last 7 Days Intake Records",
     "date_header": "Date",
     "record_count_header": "Records",
-    "total_header": "Total(g)"
+    "total_header": "Total(g)",
+    "record_count_label": "records"
   },
   "recipe": {
     "title": "Smart Recipe Generator",
@@ -360,7 +361,8 @@
     "recognition_failed": "❌ Voice recognition failed",
     "recognition_error": "❌ Recognition error:",
     "re_record": "🎤 Re-record",
-    "ai_thinking": "🤖 AI is thinking about your question, please wait...\n\n"
+    "ai_thinking": "🤖 AI is thinking about your question, please wait...\n\n",
+    "ai_thinking_short": "AI is thinking..."
   },
   "shopping": {
     "title": "Smart Shopping List",

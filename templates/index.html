@@ -3012,8 +3012,9 @@
             addChatMessage(message, 'user');
             input.value = '';
             
-            // 显示加载中
-            const loadingId = addChatMessage('🤖 AI正在思考...', 'ai');
+            //  国际化：显示加载中的AI思考提示
+            const aiThinkingText = window.i18n ? window.i18n.t('chat.ai_thinking_short') : '🤖 AI正在思考...';
+            const loadingId = addChatMessage(aiThinkingText, 'ai');
             
             try {
                 // 🌐 获取当前语言
@@ -3727,7 +3728,9 @@
                         let html = '';
                         result.history.forEach(day => {
                             html += `<div style="margin-bottom: 20px; padding: 16px; background: rgba(255,255,255,0.5); border-radius: 12px;">`;
-                            html += `<div style="font-weight: 600; margin-bottom: 8px;">📅 ${day.date} (${day.record_count}条记录)</div>`;
+                            // 🌐 国际化：显示记录数标签
+                            const recordCountLabel = window.i18n ? window.i18n.t('home.record_count_label') : '条记录';
+                            html += `<div style="font-weight: 600; margin-bottom: 8px;">📅 ${day.date} (${day.record_count}${recordCountLabel})</div>`;
                             html += `<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">`;
                             html += `<div>🥬 蔬菜: ${day.vegetables}g</div>`;
                             html += `<div>🍎 水果: ${day.fruits}g</div>`;
