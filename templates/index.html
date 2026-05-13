@@ -3482,26 +3482,21 @@
         // ==================== 显示营养报告 ====================
         // 从首页立即评估（不跳转页面）
         async function performNutritionAssessmentFromHome() {
-            // 🔧 关键修复：先从输入框读取当前值
+            // 🔧 关键修复：先刷新数据，获取今日所有记录的总和
+            await loadTodayIntakeTable();
+            
+            // 从输入框读取当前值（此时已经是总和）
             const vegetables = parseInt(document.getElementById('intake-vegetables-home').value) || 0;
             const fruits = parseInt(document.getElementById('intake-fruits-home').value) || 0;
             const meat = parseInt(document.getElementById('intake-meat-home').value) || 0;
             const eggs = parseInt(document.getElementById('intake-eggs-home').value) || 0;
 
-            // 🔧 关键修复：先自动保存数据，防止手动评估时数据丢失
-            try {
-                await safeApiCall('/api/save_intake', {
-                    body: { vegetables, fruits, meat, eggs }
-                });
-                console.log('✅ 评估前已自动保存摄入数据');
-            } catch (error) {
-                console.warn('⚠️ 自动保存失败，继续评估:', error);
-            }
+            console.log('📊 手动评估数据（总和）:', { vegetables, fruits, meat, eggs });
 
             const intake = { vegetables, fruits, meat, eggs };
             await performNutritionAssessment(intake);
             
-            // 🔧 关键修复：评估完成后，重新加载今日摄入表格，确保输入框显示所有4个数值
+            // 🔧 关键修复：评估完成后，再次刷新数据确保输入框显示正确
             await loadTodayIntakeTable();
         }
 
