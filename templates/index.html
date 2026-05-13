@@ -1289,7 +1289,7 @@
                 </div>
             </div>
 
-            <!-- 今日摄入记录录入 -->
+            <!-- 今日饮食摄入记录 - 输入卡片 -->
             <div class="card">
                 <div class="card-title" data-i18n="home.intake_record_title">📝 今日饮食摄入记录</div>
                 <div class="card-subtitle" data-i18n="home.intake_record_subtitle">请录入您今日已摄入的各类食材重量(克)</div>
@@ -1297,34 +1297,32 @@
                 <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
                     <div class="input-group">
                         <label class="input-label" data-i18n="home.vegetables_label">🥬 蔬菜 (g)</label>
-                        <input type="number" id="intake-vegetables-home" class="input-field" placeholder="0" min="0" value="0">
+                        <input type="number" id="intake-vegetables-home" class="input-field" placeholder="0" min="0" value="0" style="display: block; visibility: visible;">
                     </div>
                     <div class="input-group">
                         <label class="input-label" data-i18n="home.fruits_label">🍎 水果 (g)</label>
-                        <input type="number" id="intake-fruits-home" class="input-field" placeholder="0" min="0" value="0">
+                        <input type="number" id="intake-fruits-home" class="input-field" placeholder="0" min="0" value="0" style="display: block; visibility: visible;">
                     </div>
                     <div class="input-group">
                         <label class="input-label" data-i18n="home.meat_label">🥩 肉类 (g)</label>
-                        <input type="number" id="intake-meat-home" class="input-field" placeholder="0" min="0" value="0">
+                        <input type="number" id="intake-meat-home" class="input-field" placeholder="0" min="0" value="0" style="display: block; visibility: visible;">
                     </div>
                     <div class="input-group">
-                        <label class="input-label" data-i18n="home.eggs_label">🥚 蛋类 (g)</label>
-                        <input type="number" id="intake-eggs-home" class="input-field" placeholder="0" min="0" value="0">
+                        <label class="input-label" data-i18n="home.eggs_label"> 蛋类 (g)</label>
+                        <input type="number" id="intake-eggs-home" class="input-field" placeholder="0" min="0" value="0" style="display: block; visibility: visible;">
                     </div>
                 </div>
                 
                 <div style="display: flex; gap: 12px; margin-top: 16px;">
-                    <button class="btn btn-primary" onclick="saveIntakeHome()" style="flex: 1;" data-i18n="home.save_intake_home_button">💾 保存记录</button>
-                    <button class="btn btn-secondary" onclick="performNutritionAssessmentFromHome()" style="flex: 1;" data-i18n="home.assess_now_button">🔍 立即评估</button>
+                    <button class="btn btn-primary" onclick="saveIntakeHome()" style="flex: 1; display: block; visibility: visible;" data-i18n="home.save_intake_home_button">💾 保存记录</button>
+                    <button class="btn btn-secondary" onclick="performNutritionAssessmentFromHome()" style="flex: 1; display: block; visibility: visible;" data-i18n="home.assess_now_button">🔍 立即评估</button>
                 </div>
-                
-                <!-- 评估报告展示区（新增） -->
-                <div id="home-assessment-result" style="display: none; margin-top: 20px;">
-                    <div style="background: rgba(255,140,66,0.05); border-left: 4px solid var(--primary); padding: 16px; border-radius: 8px;">
-                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 12px;" data-i18n="home.assessment_report_title">📊 营养评估报告</div>
-                        <div id="home-assessment-content" style="white-space: pre-wrap; color: var(--text-secondary); line-height: 1.8; font-size: 14px;"></div>
-                    </div>
-                </div>
+            </div>
+            
+            <!-- 营养评估报告 - 独立卡片 -->
+            <div id="home-assessment-result-container" class="card" style="display: none; margin-top: 16px;">
+                <div class="card-title" data-i18n="home.assessment_report_title"> 营养评估报告</div>
+                <div id="home-assessment-content" class="result-box"></div>
             </div>
 
             <!-- 今日摄入概览表格 -->
@@ -2547,8 +2545,8 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    // 显示评估结果（在首页的评估报告区域）
-                    const assessmentResultDiv = document.getElementById('home-assessment-result');
+                    // 显示评估结果（使用新的独立卡片容器）
+                    const assessmentResultDiv = document.getElementById('home-assessment-result-container');
                     const assessmentContentDiv = document.getElementById('home-assessment-content');
                     
                     if (assessmentResultDiv && assessmentContentDiv) {
@@ -2565,7 +2563,7 @@
                         showToast(successMsg);
                         
                         // 滚动到评估结果区域
-                        assessmentResultDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        assessmentResultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         
                         console.log('✅ 营养评估报告已显示');
                     } else {
