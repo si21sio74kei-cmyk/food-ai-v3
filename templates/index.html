@@ -3488,24 +3488,32 @@
             const meat = parseInt(document.getElementById('intake-meat-home').value) || 0;
             const eggs = parseInt(document.getElementById('intake-eggs-home').value) || 0;
 
-            console.log('📊 手动评估数据（输入框当前值）:', { vegetables, fruits, meat, eggs });
+            console.log('📊 用户输入的值:', { vegetables, fruits, meat, eggs });
 
-            // 🔧 关键修复：先保存数据到后端，确保记录完整
+            // 🔧 关键修复：先保存当前输入到后端
             try {
                 await safeApiCall('/api/save_intake', {
                     body: { vegetables, fruits, meat, eggs }
                 });
-                console.log('✅ 评估前已保存摄入数据');
+                console.log('✅ 已保存当前输入');
             } catch (error) {
-                console.warn('⚠️ 保存失败，继续评估:', error);
+                console.warn('️ 保存失败:', error);
             }
 
-            // 用输入框的值进行评估
-            const intake = { vegetables, fruits, meat, eggs };
-            await performNutritionAssessment(intake);
-            
-            // 🔧 关键修复：评估完成后，刷新数据确保输入框显示所有记录的总和
+            // 🔧 关键修复：从后端加载所有记录的总和，而不是用输入框的值
             await loadTodayIntakeTable();
+            
+            // 读取总和（此时输入框已更新为总和）
+            const totalVegetables = parseInt(document.getElementById('intake-vegetables-home').value) || 0;
+            const totalFruits = parseInt(document.getElementById('intake-fruits-home').value) || 0;
+            const totalMeat = parseInt(document.getElementById('intake-meat-home').value) || 0;
+            const totalEggs = parseInt(document.getElementById('intake-eggs-home').value) || 0;
+
+            console.log('📊 评估使用总和数据:', { vegetables: totalVegetables, fruits: totalFruits, meat: totalMeat, eggs: totalEggs });
+
+            // 用总和进行评估
+            const intake = { vegetables: totalVegetables, fruits: totalFruits, meat: totalMeat, eggs: totalEggs };
+            await performNutritionAssessment(intake);
         }
 
         async function showNutritionReport() {
