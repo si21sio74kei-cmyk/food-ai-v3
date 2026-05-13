@@ -3390,30 +3390,39 @@
                 showToast(msg);
                 console.error(error);
             } finally {
-                //  关键修复：确保按钮始终恢复可用状态并强制显示
+                // 🔧 关键修复：确保按钮始终恢复可用状态并强制显示
                 const btn = document.getElementById('daily-rec-btn');
                 if (btn) {
                     btn.disabled = false;
-                    // 🔧 增强修复：直接赋值+setProperty双保险
-                    btn.style.display = 'block';
+                    // 🔧 增强修复：使用setProperty确保样式优先级
                     btn.style.setProperty('display', 'block', 'important');
-                    btn.style.visibility = 'visible';
-                    btn.style.opacity = '1';
+                    btn.style.setProperty('visibility', 'visible', 'important');
+                    btn.style.setProperty('opacity', '1', 'important');
                     // 🌐 根据当前语言设置按钮文本
                     const btnText = window.i18n ? window.i18n.t('home.generate_daily_rec_button') : '✨ AI 生成今日推荐';
                     btn.innerHTML = btnText;
                     console.log('✅ 按钮已恢复，最终状态:', btn.style.display, btn.style.visibility);
-                    
+                                
                     // 🔧 额外保险：延迟二次确认按钮可见性（防止DOM重排后丢失）
                     setTimeout(() => {
                         const checkBtn = document.getElementById('daily-rec-btn');
-                        if (checkBtn && (checkBtn.style.display === 'none' || checkBtn.style.visibility === 'hidden')) {
-                            checkBtn.style.display = 'block';
-                            checkBtn.style.setProperty('display', 'block', 'important');
-                            checkBtn.style.visibility = 'visible';
-                            console.log('✅ 二次确认恢复按钮可见性');
+                        if (checkBtn) {
+                            const computedStyle = window.getComputedStyle(checkBtn);
+                            if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden' || computedStyle.opacity === '0') {
+                                checkBtn.style.setProperty('display', 'block', 'important');
+                                checkBtn.style.setProperty('visibility', 'visible', 'important');
+                                checkBtn.style.setProperty('opacity', '1', 'important');
+                                console.log('✅ 二次确认恢复按钮可见性');
+                            }
                         }
                     }, 100);
+                                
+                    // 🔧 第三次保险：确保updateUI也被调用（与自动生成流程一致）
+                    if (typeof updateUI === 'function') {
+                        setTimeout(() => {
+                            updateUI();
+                        }, 150);
+                    }
                 } else {
                     console.error('❌ finally块中找不到 daily-rec-btn 按钮');
                 }
