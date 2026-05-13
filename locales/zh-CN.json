@@ -48,6 +48,7 @@
     "reset_stats_button": "🔄 清零统计",
     "daily_recommendation_title": "🍽️ 今日饮食推荐",
     "daily_recommendation_subtitle": "基于您的营养状况和冰箱食材,AI 为您生成专属饮食建议",
+    "daily_rec_result_title": "📋 推荐结果",
     "generate_daily_rec_button": "✨ AI 生成今日推荐",
     "food_weight_query_title": "⚖️ 食材重量查询",
     "food_weight_query_subtitle": "💡 输入食材名称,查询常见食物的近似重量(帮助您估算摄入量)",

@@ -3440,23 +3440,18 @@
                 if (result.success) {
                     const msg = window.i18n ? window.i18n.t('common.intake_saved') : '✅ 摄入数据已保存';
                     showToast(msg);
-                    
-                    // 清空输入框
-                    document.getElementById('intake-vegetables-home').value = '0';
-                    document.getElementById('intake-fruits-home').value = '0';
-                    document.getElementById('intake-meat-home').value = '0';
-                    document.getElementById('intake-eggs-home').value = '0';
-                    
+                                    
+                    //  关键修复：不再清空输入框，而是重新加载数据显示今日总和
+                    // 这样二次评估时四个数据（蔬菜、水果、肉类、蛋类）都会固定显示
+                    await loadTodayIntakeTable();
+                                    
                     // 显示预警信息
                     if (result.warnings && result.warnings.length > 0) {
                         result.warnings.forEach(warning => {
                             setTimeout(() => showToast(warning), 500);
                         });
                     }
-                    
-                    // 刷新表格
-                    await loadTodayIntakeTable();
-                    
+                                    
                     // 🔧 新增：检查今日记录数，如果超过3条则提示用户
                     const today = getChinaDate();
                     const currentData = await loadData();

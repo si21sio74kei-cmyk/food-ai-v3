@@ -48,6 +48,7 @@
     "reset_stats_button": "🔄 Reset Statistics",
     "daily_recommendation_title": "🍽️ Today's Dietary Recommendation",
     "daily_recommendation_subtitle": "AI generates personalized dietary suggestions based on your nutrition status and fridge ingredients",
+    "daily_rec_result_title": "📋 Recommendation Results",
     "generate_daily_rec_button": "✨ AI Generate Today's Recommendation",
     "food_weight_query_title": "⚖️ Food Weight Query",
     "food_weight_query_subtitle": "💡 Enter food name to query approximate weight of common foods (helps you estimate intake)",
