@@ -1267,7 +1267,8 @@
                     ✨ AI 生成今日推荐
                 </button>
                 
-                <div id="daily-recommendation-result" style="display: none;">
+                <!-- 饮食推荐内容始终显示，初始为空 -->
+                <div id="daily-recommendation-result">
                     <div id="daily-recommendation-content" class="result-box"></div>
                 </div>
             </div>
@@ -2014,21 +2015,7 @@
             document.getElementById('stat-water').textContent = `${appData.water_saved || 0} L`;
             document.getElementById('stat-co2').textContent = `${appData.co2_reduced || 0} g`;
             
-            // 🔧 关键修复：确保"今日饮食推荐"按钮始终可见且可用
-            const dailyRecBtn = document.getElementById('daily-rec-btn');
-            if (dailyRecBtn) {
-                dailyRecBtn.disabled = false;
-                // 🔧 增强修复：使用setProperty确保样式优先级
-                dailyRecBtn.style.setProperty('display', 'block', 'important');
-                dailyRecBtn.style.visibility = 'visible';
-                dailyRecBtn.style.opacity = '1';
-                //  根据当前语言设置按钮文本
-                const btnText = window.i18n ? window.i18n.t('home.generate_daily_rec_button') : '✨ AI 生成今日推荐';
-                dailyRecBtn.innerHTML = btnText;
-                console.log('✅ updateUI 已恢复按钮状态');
-            } else {
-                console.error('❌ updateUI 中找不到 daily-rec-btn 按钮');
-            }
+            // 🔧 简化方案：按钮始终固定显示，无需额外恢复逻辑
                     
             // 🔑 关键修复：更新计数器显示
             const currentCount = appData.generation_count || 0;
@@ -3329,8 +3316,9 @@
                 return;
             }
             
-            console.log(' 开始生成饮食推荐，按钮状态:', btn.style.display);
+            // 🔧 简化方案：按钮始终保持可见，只更新文本状态
             btn.disabled = true;
+            const originalText = btn.innerHTML;
             // 🌐 修复：根据当前语言设置按钮文本
             const btnText = window.i18n ? window.i18n.t('common.generating_recommendation') : '🍽️ 正在为您生成今日饮食推荐...';
             btn.innerHTML = '<span class="loading"></span> ' + btnText;
@@ -3348,8 +3336,7 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    document.getElementById('daily-recommendation-result').style.display = 'block';
-                    
+                    // 🔧 简化：结果区域始终显示，直接更新内容
                     if (result.is_multi_group) {
                         // 多人群模式：显示各人群的饮食推荐
                         // 🌐 根据当前语言生成标题和描述
@@ -3390,42 +3377,10 @@
                 showToast(msg);
                 console.error(error);
             } finally {
-                // 🔧 关键修复：确保按钮始终恢复可用状态并强制显示
-                const btn = document.getElementById('daily-rec-btn');
-                if (btn) {
-                    btn.disabled = false;
-                    // 🔧 增强修复：使用setProperty确保样式优先级
-                    btn.style.setProperty('display', 'block', 'important');
-                    btn.style.setProperty('visibility', 'visible', 'important');
-                    btn.style.setProperty('opacity', '1', 'important');
-                    // 🌐 根据当前语言设置按钮文本
-                    const btnText = window.i18n ? window.i18n.t('home.generate_daily_rec_button') : '✨ AI 生成今日推荐';
-                    btn.innerHTML = btnText;
-                    console.log('✅ 按钮已恢复，最终状态:', btn.style.display, btn.style.visibility);
-                                
-                    // 🔧 额外保险：延迟二次确认按钮可见性（防止DOM重排后丢失）
-                    setTimeout(() => {
-                        const checkBtn = document.getElementById('daily-rec-btn');
-                        if (checkBtn) {
-                            const computedStyle = window.getComputedStyle(checkBtn);
-                            if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden' || computedStyle.opacity === '0') {
-                                checkBtn.style.setProperty('display', 'block', 'important');
-                                checkBtn.style.setProperty('visibility', 'visible', 'important');
-                                checkBtn.style.setProperty('opacity', '1', 'important');
-                                console.log('✅ 二次确认恢复按钮可见性');
-                            }
-                        }
-                    }, 100);
-                                
-                    // 🔧 第三次保险：确保updateUI也被调用（与自动生成流程一致）
-                    if (typeof updateUI === 'function') {
-                        setTimeout(() => {
-                            updateUI();
-                        }, 150);
-                    }
-                } else {
-                    console.error('❌ finally块中找不到 daily-rec-btn 按钮');
-                }
+                // 🔧 简化方案：只恢复按钮文本和可用状态，不操作显示样式
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                console.log('✅ 按钮已恢复');
             }
         }
 
