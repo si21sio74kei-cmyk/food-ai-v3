@@ -840,6 +840,7 @@ def nutrition_assessment(user_intake, population_group, language='zh-CN'):
         
         if is_partial_entry and intake == 0:
             status = '未录入' if language == 'zh-CN' else 'Not Recorded'
+            gap = 0  # 未录入时差距为0
             if language == 'en-US':
                 suggestion = f"Not yet recorded {food_name}, if consumed please supplement the record"
             else:
