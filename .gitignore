@@ -36,9 +36,6 @@ Thumbs.db
 # Lingma AI
 .lingma/
 
-# 子目录（避免嵌套Git仓库）
-Food-AI-Upload/
-
 # 临时文件
 *.tmp
 *.temp
