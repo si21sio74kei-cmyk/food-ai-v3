@@ -42,3 +42,6 @@ Food-AI-Upload/
 # 临时文件
 *.tmp
 *.temp
+
+# 大型Python脚本（不上传到GitHub）
+food_guardian_ai.py
