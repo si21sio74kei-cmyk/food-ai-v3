@@ -1,12 +1,20 @@
 # Web 框架
-flask==3.0.0
-flask-cors==4.0.0
+flask==3.0.2
+flask-cors==4.0.1
 
 # AI API
-requests==2.31.0
+requests==2.34.2
+python-dotenv==1.2.2
+customtkinter==6.0.0
 
 # 数据处理
-json5==0.9.14
+json5==0.10.0
+numpy==2.1.1
+opencv-python==4.10.0.84
+
+# 语音识别与文本转语音
+SpeechRecognition==3.17.0
+pyttsx3==2.88
 
 # 图像处理（拍照识菜功能）
-Pillow==10.1.0
+Pillow==11.0.0

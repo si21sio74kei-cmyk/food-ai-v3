@@ -13,9 +13,21 @@ from flask import Flask, render_template, request, jsonify, send_from_directory
 import json
 import os
 import requests
+import sys
 import time
 import threading
 from datetime import datetime, timezone, timedelta
+from dotenv import load_dotenv
+
+# 读取本地 .env 文件，确保本地运行时也能读取 API Key
+load_dotenv()
+
+# Windows 控制台默认 GBK 编码会导致 emoji 打印失败，统一设置为 UTF-8
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
 
 # 中国时区 (UTC+8)
 CHINA_TZ = timezone(timedelta(hours=8))
@@ -38,7 +50,7 @@ if not ZHIPU_API_KEY or not ZHIPU_API_KEY_TEXT:
     print("请在Vercel环境变量中配置 ZHIPU_API_KEY 和 ZHIPU_API_KEY_TEXT")
     print("或创建 .env 文件（仅本地开发使用）\n")
 
-API_TIMEOUT = 90
+API_TIMEOUT = 120
 API_MAX_RETRIES = 3
 
 # 启用详细日志
@@ -2629,7 +2641,7 @@ tomato,egg,bell pepper"""
             "temperature": 0.3
         }
         
-        response = requests.post(ZHIPU_API_URL, headers=headers, json=payload, timeout=30)
+        response = requests.post(ZHIPU_API_URL, headers=headers, json=payload, timeout=90)
         
         if response.status_code == 200:
             result = response.json()
@@ -2867,9 +2879,9 @@ def voice_recognize():
             headers=headers,
             files=files,
             data=data,
-            timeout=60
+            timeout=90
         )
-        
+
         if response.status_code == 200:
             result = response.json()
             text = result.get('text', '')
