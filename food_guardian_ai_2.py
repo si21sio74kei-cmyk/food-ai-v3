@@ -9,7 +9,7 @@ python food_guardian_ai_2.py
 访问地址: http://localhost:5000
 """
 
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, Response, stream_with_context
 import json
 import os
 import requests
@@ -249,14 +249,123 @@ def _call_zhipu_api(url, api_key, prompt, max_retries):
         'model_used': 'none'
     }
 
+def _call_zhipu_api_stream(url, api_key, prompt):
+    """智谱 AI GLM-4 API 流式调用(SSE生成器)"""
+    if ENABLE_DETAILED_LOGS:
+        print(f"\n🤖 [AI流式调用] 开始调用智谱 API...")
+        print(f"   - Prompt长度: {len(prompt)} 字符")
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    model_priority = [
+        {"name": "glm-4-air", "desc": "GLM-4-Air"},
+        {"name": "glm-4-flash", "desc": "GLM-4-Flash"}
+    ]
+
+    for model_info in model_priority:
+        model_name = model_info["name"]
+
+        if ENABLE_DETAILED_LOGS:
+            print(f"   🔄 尝试模型: {model_info['desc']}")
+
+        payload = {
+            "model": model_name,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 2500,
+            "temperature": 0.7,
+            "stream": True  # 🔑 启用流式输出
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=API_TIMEOUT, stream=True)
+            response.raise_for_status()
+
+            if ENABLE_DETAILED_LOGS:
+                print(f"   ✅ 流式连接建立! 使用模型: {model_name}")
+
+            # 逐行读取SSE事件
+            for line in response.iter_lines(decode_unicode=True):
+                if line is None:
+                    continue
+
+                line = line.strip()
+                if not line:
+                    continue
+
+                # 智谱API SSE格式: data: {...}
+                if line.startswith('data: '):
+                    data_str = line[6:]  # 去掉 "data: " 前缀
+
+                    # 检查是否是结束标记
+                    if data_str == '[DONE]':
+                        if ENABLE_DETAILED_LOGS:
+                            print(f"   ✅ 流式输出完成\n")
+                        return
+
+                    try:
+                        data = json.loads(data_str)
+                        if 'choices' in data and len(data['choices']) > 0:
+                            delta = data['choices'][0].get('delta', {})
+                            content = delta.get('content', '')
+                            if content:
+                                yield content
+                    except json.JSONDecodeError:
+                        continue
+
+            # 如果正常结束(没有收到[DONE]标记)
+            return
+
+        except requests.exceptions.Timeout:
+            if ENABLE_DETAILED_LOGS:
+                print(f"      ❌ 超时: {model_name}")
+            yield f"\n[错误: {model_name} 请求超时]"
+            return
+
+        except requests.exceptions.HTTPError as e:
+            status_code = e.response.status_code if hasattr(e, 'response') else 'Unknown'
+            if ENABLE_DETAILED_LOGS:
+                print(f"      ❌ HTTP错误: {status_code}")
+
+            # 对于401/403/429等认证错误，尝试下一个模型
+            if status_code in [401, 403, 429]:
+                continue
+
+            yield f"\n[错误: HTTP {status_code}]"
+            return
+
+        except Exception as e:
+            if ENABLE_DETAILED_LOGS:
+                print(f"      ❌ 异常: {str(e)}")
+            continue
+
+    # 所有模型都失败
+    if ENABLE_DETAILED_LOGS:
+        print(f"   ❌ 所有模型流式调用失败\n")
+    yield "\n[错误: AI 服务暂时不可用，请稍后重试]"
+
+
+def call_ai_api_stream(prompt):
+    """智能 AI API 流式调用 - 返回SSE生成器"""
+    if ZHIPU_API_KEY:
+        return _call_zhipu_api_stream(ZHIPU_API_URL, ZHIPU_API_KEY, prompt)
+    else:
+        # 返回一个单次生成器
+        def error_gen():
+            yield "\n[错误: 未配置 API Key]"
+        return error_gen()
+
+
 def call_ai_api(prompt, api_type="auto"):
     """智能 AI API 调用函数"""
     max_retries = API_MAX_RETRIES
     api_list = []
-    
+
     if api_type == "auto" and ZHIPU_API_KEY:
         api_list.append({"type": "zhipu", "url": ZHIPU_API_URL, "key": ZHIPU_API_KEY})
-    
+
     if not api_list:
         return {
             'success': False,
@@ -264,23 +373,23 @@ def call_ai_api(prompt, api_type="auto"):
             'error': '未配置 API Key',
             'api_used': 'none'
         }
-    
+
     for api_info in api_list:
         api_name = api_info["type"]
         current_url = api_info["url"]
         current_key = api_info["key"]
-        
+
         try:
             if api_name == "zhipu":
                 result = _call_zhipu_api(current_url, current_key, prompt, max_retries)
-            
+
             if result['success']:
                 result['api_used'] = api_name
                 return result
-        
+
         except Exception as e:
             continue
-    
+
     return {
         'success': False,
         'content': None,
@@ -1856,6 +1965,340 @@ Please respond in a friendly and professional tone in English."""
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+
+# ====================== SSE 流式输出 API ======================
+
+def _sse_response(generator, done_data=None):
+    """将生成器包装为 SSE Response"""
+    def sse_generator():
+        for chunk in generator:
+            yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
+        if done_data:
+            yield f"data: {json.dumps(done_data, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return Response(
+        stream_with_context(sse_generator()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive'
+        }
+    )
+
+
+@app.route('/api/generate_recipe_stream', methods=['POST'])
+def generate_recipe_stream():
+    """生成智能食谱 - SSE流式输出"""
+    data = request.json
+    custom_ingredients = data.get('custom_ingredients', '')
+    people_num = data.get('people_num', 3)
+    meal_type = data.get('meal_type', 'home')
+    appetite = data.get('appetite', 1.0)
+    use_fridge = data.get('use_fridge', False)
+    language = data.get('language', 'zh-CN')
+
+    ingredients = [i.strip() for i in custom_ingredients.split(',') if i.strip()]
+
+    if use_fridge:
+        fridge_data = load_data().get('fridge_inventory', [])
+        fridge_ingredients = [item['name'] for item in fridge_data[:5]]
+        ingredients.extend(fridge_ingredients)
+
+    if not ingredients:
+        def error_gen():
+            msg = '请至少输入一种食材' if language == 'zh-CN' else 'Please enter at least one ingredient'
+            yield f"data: {json.dumps({'error': msg}, ensure_ascii=False)}\n\n"
+        return Response(error_gen(), mimetype='text/event-stream')
+
+    prompt = build_recipe_prompt(ingredients, people_num, meal_type, appetite, use_fridge, language)
+    impact = calculate_impact(ingredients, people_num, appetite, meal_type)
+
+    def generate():
+        full_content = ""
+        for chunk in call_ai_api_stream(prompt):
+            full_content += chunk
+            yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
+        yield f"data: {json.dumps({'done': True, 'impact': impact, 'full_content': full_content}, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive'
+        }
+    )
+
+
+@app.route('/api/chat_stream', methods=['POST'])
+def chat_stream():
+    """AI 对话助手 - SSE流式输出"""
+    data = request.json
+    message = data.get('message', '')
+    language = data.get('language', 'zh-CN')
+
+    if language == 'en-US':
+        prompt = f"""You are a professional smart recipe assistant.
+
+[Response Requirements]
+- Be concise and clear, focus on key points only
+- Avoid lengthy explanations and background introductions
+- Use bullet points instead of long paragraphs
+- Keep responses under 200 words
+- Provide practical advice directly
+
+User question: {message}
+
+Please respond in a friendly and professional tone in English."""
+    else:
+        prompt = f"""你是一个专业的智能食谱助手。
+
+【回复要求】
+- 简洁明了，只回答重点内容
+- 避免冗长的解释和背景介绍
+- 使用要点列表而非长段落
+- 控制在200字以内
+- 直接给出实用建议
+
+用户问题:{message}
+
+请用友好、专业的语气回答。"""
+
+    def generate():
+        full_content = ""
+        for chunk in call_ai_api_stream(prompt):
+            full_content += chunk
+            yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
+        yield f"data: {json.dumps({'done': True, 'full_content': full_content}, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive'
+        }
+    )
+
+
+@app.route('/api/generate_shopping_list_stream', methods=['POST'])
+def generate_shopping_list_stream():
+    """生成智能采购清单 - SSE流式输出"""
+    data = request.json
+    dishes = data.get('dishes', '')
+    people_num = data.get('people_num', 3)
+    include_budget = data.get('include_budget', True)
+    language = data.get('language', 'zh-CN')
+
+    if not dishes:
+        def error_gen():
+            msg = '请输入想吃的菜品' if language == 'zh-CN' else 'Please enter dish names'
+            yield f"data: {json.dumps({'error': msg}, ensure_ascii=False)}\n\n"
+        return Response(error_gen(), mimetype='text/event-stream')
+
+    if language == 'en-US':
+        budget_instruction = "\n6. 💰 **Budget Estimation**: Estimate the price for each ingredient (RMB) and calculate the total amount" if include_budget else ""
+        prompt = f"""Please generate a detailed shopping list for the following dishes for [{people_num} servings]:
+
+[Dishes to Cook] {dishes}
+
+Please generate a complete shopping list including:
+
+1️⃣ **Categorized by Supermarket Sections**
+- 🥬 Vegetables Section: xxx
+- 🥩 Meat Section: xxx
+- 🐟 Seafood Section: xxx
+- 🍞 Grains & Oils Section: xxx
+- 🧂 Condiments Section: xxx
+- 🥛 Dairy Section: xxx
+- ❄️ Frozen Foods Section: xxx
+
+2️⃣ **Precise Quantities** (considering {people_num} servings)
+- Label specific quantities for each ingredient (grams/pieces/ml)
+- Provide suggested amounts for seasonings
+
+3️⃣ **Selection Tips**
+- How to choose fresh ingredients
+- Precautions
+
+4️⃣ **Storage Recommendations**
+- Which ingredients need refrigeration
+- Shelf life reminders
+
+5️⃣ **Alternatives**
+- What are the substitutes if certain ingredients are unavailable{budget_instruction}
+
+Please present in a clear table or list format for easy use while shopping.
+
+Please respond entirely in English."""
+    else:
+        budget_instruction = "\n6. 💰 **预算估算**：为每种食材估算价格（人民币），并计算总金额" if include_budget else ""
+        prompt = f"""请为以下【{people_num}人份】的菜品生成详细的采购清单：
+
+【想吃的菜品】{dishes}
+
+请生成完整的购物清单，包含以下内容：
+
+1️⃣ **按超市区域分类**
+- 🥬 蔬菜区：xxx
+- 🥩 肉类区：xxx
+- 🐟 水产区：xxx
+- 🍞 粮油副食区：xxx
+- 🧂 调味品区：xxx
+- 🥛 乳制品区：xxx
+- ❄️ 冷冻食品区：xxx
+
+2️⃣ **精确用量**（考虑{people_num}人份）
+- 每种食材标注具体用量（克/个/毫升）
+- 适量调味料也要给出建议用量
+
+3️⃣ **挑选建议**
+- 如何挑选新鲜食材
+- 注意事项
+
+4️⃣ **储存建议**
+- 哪些食材需要冷藏
+- 保质期提醒
+
+5️⃣ **替代方案**
+- 如果某些食材买不到，有什么替代品{budget_instruction}
+
+请用清晰的表格或列表格式呈现，方便用户在超市购物时使用。"""
+
+    def generate():
+        full_content = ""
+        for chunk in call_ai_api_stream(prompt):
+            full_content += chunk
+            yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
+        yield f"data: {json.dumps({'done': True, 'full_content': full_content}, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive'
+        }
+    )
+
+
+@app.route('/api/generate_daily_recommendation_stream', methods=['POST'])
+def generate_daily_recommendation_stream():
+    """生成今日饮食推荐 - SSE流式输出"""
+    current_data = load_data()
+    population_group = current_data.get('population_group', 'adults')
+    fridge_items = current_data.get('fridge_inventory', [])
+
+    language = request.json.get('language', 'zh-CN') if request.is_json else 'zh-CN'
+
+    today = get_china_time().strftime('%Y-%m-%d')
+    all_records = current_data.get('daily_intake_records', [])
+    today_records = [r for r in all_records if r.get('date') == today]
+
+    if today_records:
+        latest_3_records = today_records[-3:] if len(today_records) > 3 else today_records
+        user_intake = {
+            'vegetables': sum(r.get('vegetables', 0) for r in latest_3_records),
+            'fruits': sum(r.get('fruits', 0) for r in latest_3_records),
+            'meat': sum(r.get('meat', 0) for r in latest_3_records),
+            'eggs': sum(r.get('eggs', 0) for r in latest_3_records)
+        }
+    else:
+        user_intake = {'vegetables': 0, 'fruits': 0, 'meat': 0, 'eggs': 0}
+
+    try:
+        if population_group == 'all':
+            groups = ['adults', 'teens', 'children', 'elderly']
+            if language == 'en-US':
+                group_names = {'adults': 'Adults', 'teens': 'Teens', 'children': 'Children', 'elderly': 'Elderly'}
+            else:
+                group_names = {'adults': '成年人', 'teens': '青少年', 'children': '儿童', 'elderly': '老年人'}
+
+            if language == 'en-US':
+                prompt = f"""You are a professional nutritionist. Please generate dietary recommendations for the following population groups:
+
+Today's intake data: Vegetables {user_intake.get('vegetables', 0)}g, Fruits {user_intake.get('fruits', 0)}g, Meat {user_intake.get('meat', 0)}g, Eggs {user_intake.get('eggs', 0)}g
+
+Please generate a dietary recommendation for each of the following groups:
+- Adults (18-60 years)
+- Teens (13-17 years)
+- Children (6-12 years)
+- Elderly (60+ years)
+
+For each group, include:
+1. Nutrition summary
+2. 2-3 recommended dishes
+3. Improvement suggestions
+
+Keep each group's recommendation concise (under 150 words each).
+Please respond entirely in English."""
+            else:
+                prompt = f"""你是一位专业营养师。请为以下人群生成饮食推荐：
+
+今日摄入数据：蔬菜{user_intake.get('vegetables', 0)}g、水果{user_intake.get('fruits', 0)}g、肉类{user_intake.get('meat', 0)}g、蛋类{user_intake.get('eggs', 0)}g
+
+请为以下每个年龄段生成饮食推荐：
+- 成年人 (18-60 岁)
+- 青少年 (13-17 岁)
+- 儿童 (6-12 岁)
+- 老年人 (60 岁以上)
+
+每个年龄段包括：
+1. 营养状况总结
+2. 2-3个推荐菜品
+3. 改善建议
+
+保持每个年龄段的推荐简洁（各150字以内）。"""
+
+            def generate():
+                full_content = ""
+                for chunk in call_ai_api_stream(prompt):
+                    full_content += chunk
+                    yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps({'done': True, 'full_content': full_content, 'is_multi_group': True}, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+
+            return Response(
+                stream_with_context(generate()),
+                mimetype='text/event-stream',
+                headers={
+                    'Cache-Control': 'no-cache',
+                    'X-Accel-Buffering': 'no',
+                    'Connection': 'keep-alive'
+                }
+            )
+
+        else:
+            recommendation = generate_daily_recommendation(user_intake, population_group, fridge_items, language)
+
+            def generate():
+                yield f"data: {json.dumps({'content': recommendation, 'done': True}, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+
+            return Response(
+                stream_with_context(generate()),
+                mimetype='text/event-stream',
+                headers={
+                    'Cache-Control': 'no-cache',
+                    'X-Accel-Buffering': 'no',
+                    'Connection': 'keep-alive'
+                }
+            )
+
+    except Exception as e:
+        def error_gen():
+            yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
+        return Response(error_gen(), mimetype='text/event-stream')
+
+
 @app.route('/api/fridge/add', methods=['POST'])
 def add_fridge_item():
     """添加冰箱食材"""
@@ -2835,6 +3278,108 @@ Please respond entirely in English."""
             })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/analyze_nutrition_stream', methods=['POST'])
+def analyze_nutrition_stream():
+    """AI 营养分析 - SSE流式输出"""
+    data = request.json
+    food_input = data.get('food_input', '').strip()
+    people = data.get('people', 3)
+    language = data.get('language', 'zh-CN')
+
+    if not food_input:
+        def error_gen():
+            msg = '请输入食材或食谱名称' if language == 'zh-CN' else 'Please enter food or recipe name'
+            yield f"data: {json.dumps({'error': msg}, ensure_ascii=False)}\n\n"
+        return Response(error_gen(), mimetype='text/event-stream')
+
+    # 复用analyze_nutrition的prompt构建逻辑
+    if language == 'en-US':
+        prompt = f"""Please provide a professional nutritional analysis for the following ingredients/recipe for [{people} servings]:
+
+[Food/Recipe] {food_input}
+
+Please analyze in detail (per serving) according to the following structure:
+
+📋 **Step 1: Ingredient Combination Interpretation**
+- Explain how you understand the user's input ingredients/dishes
+
+1️⃣ **Basic Nutritional Data** (Precise Calculation)
+- Total Calories: XXX kcal
+- Protein: XX g
+- Fat: XX g
+- Carbohydrates: XX g
+- Dietary Fiber: XX g
+
+2️⃣ **Micronutrients** (Estimate)
+- Vitamin A: XX μg
+- Vitamin C: XX mg
+- Calcium: XX mg
+- Iron: XX mg
+- Potassium: XX mg
+
+3️⃣ **Nutritional Balance Assessment**
+- Overall Evaluation: Excellent/Good/Needs Improvement
+
+4️⃣ **Health Recommendations**
+- Suitable for: xxx
+- Consumption Advice: xxx
+- Pairing Suggestions: xxx
+
+5️⃣ **Special Labels** (if applicable)
+- High Protein / Low Fat / Low Carb / High Fiber / Rich in Vitamins: ✅ / ❌
+
+Please respond entirely in English."""
+    else:
+        prompt = f"""请对以下【{people}人份】的食材/食谱进行专业营养分析：
+
+【食材/食谱】{food_input}
+
+请按以下结构详细分析（每人份）：
+
+1️⃣ **基础营养数据**（精确计算）
+- 总热量：XXX 大卡
+- 蛋白质：XX 克
+- 脂肪：XX 克
+- 碳水化合物：XX 克
+- 膳食纤维：XX 克
+
+2️⃣ **微量营养素**（估算）
+- 维生素 A：XX 微克
+- 维生素 C：XX 毫克
+- 钙：XX 毫克
+- 铁：XX 毫克
+
+3️⃣ **营养均衡评估**
+- 总体评价：优秀/良好/需改进
+
+4️⃣ **健康建议**
+- 适合人群：xxx
+- 食用建议：xxx
+- 搭配建议：xxx
+
+5️⃣ **特殊标签**（如有）
+- 高蛋白 / 低脂肪 / 低碳水 / 高纤维 / 富含维生素：✅ / ❌"""
+
+    def generate():
+        full_content = ""
+        for chunk in call_ai_api_stream(prompt):
+            full_content += chunk
+            yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
+        yield f"data: {json.dumps({'done': True, 'full_content': full_content}, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive'
+        }
+    )
+
 
 @app.route('/api/voice_recognize', methods=['POST'])
 def voice_recognize():

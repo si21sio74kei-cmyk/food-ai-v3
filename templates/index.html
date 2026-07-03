@@ -2312,6 +2312,38 @@
             }, 300);
         }
 
+        /**
+         * 🔑 SSE流式读取辅助函数
+         */
+        async function* readSSEStream(response) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                // 保留最后一个不完整的行
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('data: ')) {
+                        const dataStr = trimmed.slice(6);
+                        if (dataStr === '[DONE]') return;
+                        try {
+                            yield JSON.parse(dataStr);
+                        } catch (e) {
+                            // 跳过解析失败的行
+                        }
+                    }
+                }
+            }
+        }
+
         async function generateRecipe() {
             const customIngredients = document.getElementById('custom-ingredients').value.trim();
             if (!customIngredients) {
@@ -2326,15 +2358,18 @@
 
             const btn = document.getElementById('generate-btn');
             btn.disabled = true;
-            // 🌐 修复：根据当前语言设置按钮文本
             const btnText = window.i18n ? window.i18n.t('recipe.generating') : '生成中...';
             btn.innerHTML = '<span class="loading"></span> ' + btnText;
 
+            // 提前显示结果区域，以便流式填充
+            document.getElementById('recipe-result').style.display = 'block';
+            const contentDiv = document.getElementById('recipe-content');
+            contentDiv.innerHTML = '<span class="loading"></span> AI 正在生成...';
+
             try {
-                // 🌐 获取当前语言
                 const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
-                
-                const response = await fetch('/api/generate_recipe', {
+
+                const response = await fetch('/api/generate_recipe_stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2343,92 +2378,81 @@
                         meal_type: mealType,
                         appetite: appetite,
                         use_fridge: useFridge,
-                        language: currentLanguage  // 🌐 传递语言参数
+                        language: currentLanguage
                     })
                 });
 
-                const result = await response.json();
-                
-                if (result.success) {
-                    // 显示结果
-                    document.getElementById('recipe-result').style.display = 'block';
-                    // 使用 formatMarkdown 格式化 AI 返回的内容
-                    document.getElementById('recipe-content').innerHTML = formatMarkdown(result.recipe);
-                    
-                    // 更新环保影响
-                    document.getElementById('impact-waste').textContent = `${result.impact.food_waste} g`;
-                    document.getElementById('impact-water').textContent = `${result.impact.water} L`;
-                    document.getElementById('impact-co2').textContent = `${result.impact.carbon} g`;
-                    
-                    // 更新累计统计
-                    appData.waste_reduced = (appData.waste_reduced || 0) + result.impact.food_waste;
-                    appData.water_saved = (appData.water_saved || 0) + result.impact.water;
-                    appData.co2_reduced = (appData.co2_reduced || 0) + result.impact.carbon;
-                    
-                    // 🔑 关键修复：递增食谱生成计数器
-                    appData.generation_count = (appData.generation_count || 0) + 1;
-                    
-                    await saveData();
-                    updateUI();
-                    
-                    showToast(window.i18n ? window.i18n.t('common.recipe_generated') : '✅ 食谱生成成功');
-                    
-                    // 滚动到结果区域
-                    document.getElementById('recipe-result').scrollIntoView({ behavior: 'smooth' });
-                    
-                    // 🔑 关键修复：基于 generation_count 计算餐数，而不是 daily_intake_records
-                    // 因为用户可能手动添加摄入记录，导致记录数与生成次数不一致
-                    const currentMealCount = appData.generation_count || 0; // 已生成的餐数
-                    const nextMealNum = currentMealCount; // 当前是第几餐（已经+1了）
-                    
-                    console.log(`\n📊 [食谱生成] 检查计数器:`);
-                    console.log(`   - generation_count: ${currentMealCount}`);
-                    console.log(`   - 即将录入第${nextMealNum}餐`);
-                    
-                    // 立即更新UI显示
-                    updateGenerationCounterDisplay(nextMealNum);
-                    
-                    // 🎯 根据餐数决定操作：先录入，再判断是否评估
-                    if (nextMealNum <= 2) {
-                        // 第1-2餐：只录入，不评估
-                        const msgTemplate = window.i18n ? window.i18n.t('common.meal_generated_auto_intake') : '📝 第{num}餐食谱生成，正在自动录入摄入数据...';
-                        showToast(msgTemplate.replace('{num}', nextMealNum));
-                        await autoIntakeOnly(customIngredients, peopleNum, nextMealNum);
-                        
-                        // 🆕 关键修复：录入完成后再次刷新数据，确保下次生成时能读取到最新记录
-                        await loadData();
-                    } else {
-                        // 第3餐：先录入，再评估，最后生成饮食推荐
-                        showToast(window.i18n ? window.i18n.t('common.auto_intake_progress') : '🎉 第3餐食谱生成，正在自动录入并执行营养评估...');
-                        await autoIntakeAndAssess(customIngredients, peopleNum);
-                        
-                        // 🆕 关键修复：评估完成后再次刷新数据
-                        await loadData();
-                        
-                        // 🔧 关键修复：确保评估结果显示后，再更新 UI
-                        updateUI();
-                        
-                        //  新增：第3餐后自动生成饮食推荐
-                        showToast(window.i18n ? window.i18n.t('common.generating_recommendation') : '️ 正在为您生成今日饮食推荐...');
-                        await generateDailyRecommendation();
-                        
-                        // 🔧 关键修复：生成推荐后，确保 UI 完全更新，按钮恢复可用状态
-                        await loadData();
-                        updateUI();
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                let fullContent = '';
+
+                for await (const data of readSSEStream(response)) {
+                    if (data.error) {
+                        contentDiv.innerHTML = `<span style="color: var(--danger);">${data.error}</span>`;
+                        throw new Error(data.error);
                     }
-                } else {
-                    showToast(handleApiError(result.error));
+                    if (data.done) {
+                        // 流式输出完成
+                        fullContent = data.full_content || fullContent;
+
+                        // 更新环保影响
+                        if (data.impact) {
+                            document.getElementById('impact-waste').textContent = `${data.impact.food_waste} g`;
+                            document.getElementById('impact-water').textContent = `${data.impact.water} L`;
+                            document.getElementById('impact-co2').textContent = `${data.impact.carbon} g`;
+
+                            appData.waste_reduced = (appData.waste_reduced || 0) + data.impact.food_waste;
+                            appData.water_saved = (appData.water_saved || 0) + data.impact.water;
+                            appData.co2_reduced = (appData.co2_reduced || 0) + data.impact.carbon;
+                        }
+
+                        appData.generation_count = (appData.generation_count || 0) + 1;
+                        await saveData();
+                        updateUI();
+
+                        showToast(window.i18n ? window.i18n.t('common.recipe_generated') : '✅ 食谱生成成功');
+                        document.getElementById('recipe-result').scrollIntoView({ behavior: 'smooth' });
+
+                        const currentMealCount = appData.generation_count || 0;
+                        const nextMealNum = currentMealCount;
+                        updateGenerationCounterDisplay(nextMealNum);
+
+                        if (nextMealNum <= 2) {
+                            const msgTemplate = window.i18n ? window.i18n.t('common.meal_generated_auto_intake') : '📝 第{num}餐食谱生成，正在自动录入摄入数据...';
+                            showToast(msgTemplate.replace('{num}', nextMealNum));
+                            await autoIntakeOnly(customIngredients, peopleNum, nextMealNum);
+                            await loadData();
+                        } else {
+                            showToast(window.i18n ? window.i18n.t('common.auto_intake_progress') : '🎉 第3餐食谱生成，正在自动录入并执行营养评估...');
+                            await autoIntakeAndAssess(customIngredients, peopleNum);
+                            await loadData();
+                            updateUI();
+                            showToast(window.i18n ? window.i18n.t('common.generating_recommendation') : '️ 正在为您生成今日饮食推荐...');
+                            await generateDailyRecommendation();
+                            await loadData();
+                            updateUI();
+                        }
+                    } else if (data.content) {
+                        // 流式追加内容
+                        if (contentDiv.querySelector('.loading')) {
+                            contentDiv.innerHTML = '';
+                        }
+                        fullContent += data.content;
+                        contentDiv.innerHTML = formatMarkdown(fullContent);
+                        // 自动滚动到底部
+                        contentDiv.scrollTop = contentDiv.scrollHeight;
+                    }
                 }
             } catch (error) {
-                // 显示详细错误信息
                 const errorMsg = error.message || '未知错误';
                 console.error('❌ 生成食谱失败:', error);
                 const msgTemplate = window.i18n ? window.i18n.t('common.network_error_details') : '❌ 网络错误: {error}\n\n请检查:\n1. 服务器是否运行\n2. 网络连接是否正常\n3. API密钥是否有效';
                 showToast(msgTemplate.replace('{error}', errorMsg));
-                
-                // ⚠️ 关键修复：API调用失败时，回滚计数器
+
                 try {
-                    await loadData();  // 重新加载最新数据
+                    await loadData();
                     if (appData.generation_count > 0) {
                         appData.generation_count--;
                         await saveData();
@@ -2440,7 +2464,6 @@
                 }
             } finally {
                 btn.disabled = false;
-                // 🌐 修复：根据当前语言设置按钮文本
                 const btnText = window.i18n ? window.i18n.t('recipe.generate_recipe_button') : '✨ 生成环保菜单';
                 btn.innerHTML = btnText;
             }
@@ -2450,49 +2473,65 @@
         async function analyzeNutrition() {
             const foodInput = document.getElementById('nutrition-input').value.trim();
             const people = parseInt(document.getElementById('nutrition-people').value) || 3;
-            
+
             if (!foodInput) {
                 showToast(window.i18n ? window.i18n.t('common.input_food_required') : '❌ 请输入食材或食谱名称');
                 return;
             }
-            
+
             const btn = document.getElementById('analyze-nutrition-btn');
             btn.disabled = true;
-            // 🌐 修复：根据当前语言设置按钮文本
             const btnText = window.i18n ? window.i18n.t('common.analyzing') : 'AI 分析中...';
             btn.innerHTML = '<span class="loading"></span> ' + btnText;
-            
+
+            // 提前显示结果区域
+            document.getElementById('nutrition-result').style.display = 'block';
+            const contentDiv = document.getElementById('nutrition-analysis-content');
+            contentDiv.innerHTML = '<span class="loading"></span> AI 正在分析...';
+
             try {
-                // 🌐 获取当前语言
                 const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
-                
-                const response = await fetch('/api/analyze_nutrition', {
+
+                const response = await fetch('/api/analyze_nutrition_stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         food_input: foodInput,
                         people: people,
-                        language: currentLanguage  // 🌐 传递语言参数
+                        language: currentLanguage
                     })
                 });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    document.getElementById('nutrition-result').style.display = 'block';
-                    // 使用 formatMarkdown 格式化 AI 返回的内容
-                    document.getElementById('nutrition-analysis-content').innerHTML = formatMarkdown(result.analysis);
-                    document.getElementById('nutrition-result').scrollIntoView({ behavior: 'smooth' });
-                    showToast(window.i18n ? window.i18n.t('common.analysis_success') : '✅ 营养分析完成');
-                } else {
-                    showToast(handleApiError(result.error));
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                let fullContent = '';
+
+                for await (const data of readSSEStream(response)) {
+                    if (data.error) {
+                        contentDiv.innerHTML = `<span style="color: var(--danger);">${data.error}</span>`;
+                        throw new Error(data.error);
+                    }
+                    if (data.done) {
+                        fullContent = data.full_content || fullContent;
+                        contentDiv.innerHTML = formatMarkdown(fullContent);
+                        document.getElementById('nutrition-result').scrollIntoView({ behavior: 'smooth' });
+                        showToast(window.i18n ? window.i18n.t('common.analysis_success') : '✅ 营养分析完成');
+                    } else if (data.content) {
+                        if (contentDiv.querySelector('.loading')) {
+                            contentDiv.innerHTML = '';
+                        }
+                        fullContent += data.content;
+                        contentDiv.innerHTML = formatMarkdown(fullContent);
+                        contentDiv.scrollTop = contentDiv.scrollHeight;
+                    }
                 }
             } catch (error) {
                 showToast(window.i18n ? window.i18n.t('common.analysis_failed') : '❌ 分析失败，请重试');
                 console.error(error);
             } finally {
                 btn.disabled = false;
-                // 🌐 修复：根据当前语言设置按钮文本
                 const btnText = window.i18n ? window.i18n.t('nutrition.analyze_button') : '🔍 AI 营养分析';
                 btn.innerHTML = btnText;
             }
@@ -3005,56 +3044,69 @@
         async function sendChat() {
             const input = document.getElementById('chat-input');
             const message = input.value.trim();
-            
+
             if (!message) return;
-            
+
             // 添加用户消息
             addChatMessage(message, 'user');
             input.value = '';
-            
-            //  国际化：显示加载中的AI思考提示
-            const aiThinkingText = window.i18n ? window.i18n.t('chat.ai_thinking_short') : '🤖 AI正在思考...';
-            const loadingId = addChatMessage(aiThinkingText, 'ai');
-            
+
+            // 添加AI消息占位
+            const msgId = 'msg-' + Date.now();
+            const aiThinkingText = window.i18n ? window.i18n.t('chat.ai_thinking_short') : '...';
+            const aiMsgId = addChatMessage(aiThinkingText, 'ai');
+
             try {
-                // 🌐 获取当前语言
                 const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
-                
-                const response = await fetch('/api/chat', {
+
+                const response = await fetch('/api/chat_stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         message,
-                        language: currentLanguage  // 🌐 传递语言参数
+                        language: currentLanguage
                     })
                 });
 
-                const result = await response.json();
-                
-                // 移除加载消息
-                const loadingMsg = document.getElementById(loadingId);
-                if (loadingMsg) {
-                    loadingMsg.remove();
-                    // 也从历史记录中移除
-                    appData.chat_history = appData.chat_history.filter(msg => msg.id !== loadingId);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
                 }
-                
-                if (result.success) {
-                    addChatMessage(result.reply, 'ai');
-                } else {
-                    addChatMessage(handleApiError(result.error), 'ai');
+
+                let fullContent = '';
+                const aiMsgEl = document.getElementById(aiMsgId);
+
+                for await (const data of readSSEStream(response)) {
+                    if (data.error) {
+                        if (aiMsgEl) aiMsgEl.innerHTML = formatMarkdown('❌ ' + data.error);
+                        throw new Error(data.error);
+                    }
+                    if (data.done) {
+                        fullContent = data.full_content || fullContent;
+                        // 更新历史记录中的文本
+                        if (aiMsgEl) {
+                            aiMsgEl.innerHTML = formatMarkdown(fullContent);
+                        }
+                        // 更新appData中的chat_history
+                        const historyEntry = appData.chat_history.find(h => h.id === aiMsgId);
+                        if (historyEntry) {
+                            historyEntry.text = fullContent;
+                        }
+                    } else if (data.content && aiMsgEl) {
+                        fullContent += data.content;
+                        aiMsgEl.innerHTML = formatMarkdown(fullContent);
+                        // 滚动到底部
+                        const container = document.getElementById('chat-messages');
+                        container.scrollTop = container.scrollHeight;
+                    }
                 }
-                
-                // 🔑 关键修复：保存聊天历史到服务器
+
                 await saveData();
-                
+
             } catch (error) {
-                const loadingMsg = document.getElementById(loadingId);
-                if (loadingMsg) {
-                    loadingMsg.remove();
-                    appData.chat_history = appData.chat_history.filter(msg => msg.id !== loadingId);
+                const aiMsgEl = document.getElementById(aiMsgId);
+                if (aiMsgEl && (!fullContent || fullContent === aiThinkingText)) {
+                    aiMsgEl.innerHTML = '❌ 网络错误,请重试';
                 }
-                addChatMessage('❌ 网络错误,请重试', 'ai');
                 await saveData();
             }
         }
@@ -3261,46 +3313,62 @@
 
             const btn = document.getElementById('shopping-btn');
             btn.disabled = true;
-            // 🌐 修复：根据当前语言设置按钮文本
             const btnText = window.i18n ? window.i18n.t('shopping.generating') : '生成中...';
             btn.innerHTML = '<span class="loading"></span> ' + btnText;
 
+            // 提前显示结果容器
+            const resultContainer = document.getElementById('shopping-result-container');
+            resultContainer.style.display = 'block';
+            const resultDiv = document.getElementById('shopping-result');
+            resultDiv.innerHTML = '<div class="result-box"><span class="loading"></span> AI 正在生成采购清单...</div>';
+
             try {
-                // 🌐 获取当前语言
                 const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
-                
-                const response = await fetch('/api/generate_shopping_list', {
+
+                const response = await fetch('/api/generate_shopping_list_stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         dishes,
                         people_num: peopleNum,
                         include_budget: includeBudget,
-                        language: currentLanguage  // 🌐 传递语言参数
+                        language: currentLanguage
                     })
                 });
 
-                const result = await response.json();
-                
-                if (result.success) {
-                    // 显示结果容器
-                    const resultContainer = document.getElementById('shopping-result-container');
-                    resultContainer.style.display = 'block';
-                    
-                    const resultDiv = document.getElementById('shopping-result');
-                    resultDiv.innerHTML = `
-                        <div class="result-box" style="padding: 20px; background: rgba(255,255,255,0.9); border-radius: 12px; border: 1px solid var(--card-border); line-height: 1.8;">
-                            ${result.shopping_list.replace(/\n/g, '<br>')}
-                        </div>
-                    `;
-                    const msg = window.i18n ? window.i18n.t('common.shopping_list_generated') : '✅ 购物清单生成成功';
-                    showToast(msg);
-                    // 滚动到结果区域
-                    setTimeout(() => {
-                        resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);
-                } else {
-                    showToast(handleApiError(result.error));
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                let fullContent = '';
+
+                for await (const data of readSSEStream(response)) {
+                    if (data.error) {
+                        resultDiv.innerHTML = `<div class="result-box" style="color: var(--danger);">${data.error}</div>`;
+                        throw new Error(data.error);
+                    }
+                    if (data.done) {
+                        fullContent = data.full_content || fullContent;
+                        resultDiv.innerHTML = `
+                            <div class="result-box" style="padding: 20px; background: rgba(255,255,255,0.9); border-radius: 12px; border: 1px solid var(--card-border); line-height: 1.8;">
+                                ${fullContent.replace(/\n/g, '<br>')}
+                            </div>
+                        `;
+                        const msg = window.i18n ? window.i18n.t('common.shopping_list_generated') : '✅ 购物清单生成成功';
+                        showToast(msg);
+                        setTimeout(() => {
+                            resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 100);
+                    } else if (data.content) {
+                        fullContent += data.content;
+                        // 流式更新内容
+                        resultDiv.innerHTML = `
+                            <div class="result-box" style="padding: 20px; background: rgba(255,255,255,0.9); border-radius: 12px; border: 1px solid var(--card-border); line-height: 1.8;">
+                                ${fullContent.replace(/\n/g, '<br>')}
+                            </div>
+                        `;
+                        resultDiv.scrollTop = resultDiv.scrollHeight;
+                    }
                 }
             } catch (error) {
                 const msg = window.i18n ? window.i18n.t('common.network_error_retry') : '❌ 网络错误,请重试';
@@ -3308,7 +3376,6 @@
                 console.error(error);
             } finally {
                 btn.disabled = false;
-                // 🌐 修复：根据当前语言设置按钮文本
                 const btnText = window.i18n ? window.i18n.t('shopping.generate_button') : '📝 生成购物清单';
                 btn.innerHTML = btnText;
             }
@@ -3329,75 +3396,60 @@
                 console.error('❌ 找不到 daily-rec-btn 按钮元素');
                 return;
             }
-            
-            // 🔧 简化方案：按钮始终保持可见，只更新文本状态
+
             btn.disabled = true;
             const originalText = btn.innerHTML;
-            // 🌐 修复：根据当前语言设置按钮文本
             const btnText = window.i18n ? window.i18n.t('common.generating_recommendation') : '🍽️ 正在为您生成今日饮食推荐...';
             btn.innerHTML = '<span class="loading"></span> ' + btnText;
 
+            // 提前显示结果容器
+            const resultContainer = document.getElementById('daily-rec-result-container');
+            resultContainer.style.display = 'block';
+            const contentDiv = document.getElementById('daily-recommendation-content');
+            contentDiv.innerHTML = '<span class="loading"></span> AI 正在生成推荐...';
+
             try {
-                // 🌐 获取当前语言设置
                 const currentLang = getCurrentLanguage();
-                
-                const response = await fetch('/api/generate_daily_recommendation', {
+
+                const response = await fetch('/api/generate_daily_recommendation_stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ language: currentLang })  // 🌐 传递语言参数
+                    body: JSON.stringify({ language: currentLang })
                 });
 
-                const result = await response.json();
-                
-                if (result.success) {
-                    //  显示结果容器（参考采购清单模式）
-                    const resultContainer = document.getElementById('daily-rec-result-container');
-                    resultContainer.style.display = 'block';
-                    
-                    if (result.is_multi_group) {
-                        // 多人群模式：显示各人群的饮食推荐
-                        // 🌐 根据当前语言生成标题和描述
-                        const currentLang = getCurrentLanguage();
-                        let content = '';
-                        
-                        if (currentLang === 'en-US') {
-                            content = '# 👥 Multi-Population Dietary Recommendations\n\n';
-                            content += '*Based on UN WHO nutrition standards, providing personalized dish recommendations for the whole family*\n\n';
-                        } else {
-                            content = '#  多人群饮食推荐\n\n';
-                            content += '*基于联合国 WHO 营养标准，为全家提供个性化菜品推荐*\n\n';
-                        }
-                        
-                        //  关键修复：为每个年龄段添加统一样式的分隔符和标题
-                        let isFirstGroup = true;
-                        for (const [group, recommendation] of Object.entries(result.recommendation)) {
-                            if (!isFirstGroup) {
-                                content += '\n---\n\n';
-                            }
-                            //  使用 h3 而不是 h2，确保颜色统一为黑色
-                            content += `### 🍽️ ${group}\n\n${recommendation}\n\n`;
-                            isFirstGroup = false;
-                        }
-                        document.getElementById('daily-recommendation-content').innerHTML = formatMarkdown(content);
-                    } else {
-                        document.getElementById('daily-recommendation-content').innerHTML = formatMarkdown(result.recommendation);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                let fullContent = '';
+
+                for await (const data of readSSEStream(response)) {
+                    if (data.error) {
+                        contentDiv.innerHTML = `<span style="color: var(--danger);">${data.error}</span>`;
+                        throw new Error(data.error);
                     }
-                    
-                    const msg = window.i18n ? window.i18n.t('common.daily_rec_generated') : '✅ 今日推荐生成成功';
-                    showToast(msg);
-                    // 滚动到结果容器
-                    setTimeout(() => {
-                        resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);
-                } else {
-                    showToast(handleApiError(result.error));
+                    if (data.done) {
+                        fullContent = data.full_content || fullContent;
+                        contentDiv.innerHTML = formatMarkdown(fullContent);
+                        const msg = window.i18n ? window.i18n.t('common.daily_rec_generated') : '✅ 今日推荐生成成功';
+                        showToast(msg);
+                        setTimeout(() => {
+                            resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 100);
+                    } else if (data.content) {
+                        if (contentDiv.querySelector('.loading')) {
+                            contentDiv.innerHTML = '';
+                        }
+                        fullContent += data.content;
+                        contentDiv.innerHTML = formatMarkdown(fullContent);
+                        contentDiv.scrollTop = contentDiv.scrollHeight;
+                    }
                 }
             } catch (error) {
                 const msg = window.i18n ? window.i18n.t('common.network_error_retry') : '❌ 网络错误,请重试';
                 showToast(msg);
                 console.error(error);
             } finally {
-                // 🔧 简化方案：只恢复按钮文本和可用状态，不操作显示样式
                 btn.disabled = false;
                 btn.innerHTML = originalText;
                 console.log('✅ 按钮已恢复');
@@ -4326,54 +4378,64 @@
                 showToast(msg);
                 return;
             }
-            
+
             // 禁用确认按钮
             const buttons = document.querySelectorAll('#voice-confirm-buttons button');
             buttons.forEach(btn => btn.disabled = true);
-            
-            // 显示 AI 正在回复（🌐 根据当前语言显示）
-            const thinkingMsg = window.i18n ? window.i18n.t('voice.ai_thinking') : '🤖 AI 正在思考您的问题，请稍候...\n\n';
-            document.getElementById('voice-input-display').value = thinkingMsg;
-            
+
+            // 显示 AI 正在回复
+            const displayEl = document.getElementById('voice-input-display');
+            const thinkingMsg = window.i18n ? window.i18n.t('voice.ai_thinking') : '🤖 AI 正在思考...\n\n';
+            displayEl.value = thinkingMsg + '问题：' + voiceRecognizedText + '\n\n';
+
             try {
-                // 🌐 获取当前语言
                 const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
-                
-                const response = await fetch('/api/chat', {
+
+                const response = await fetch('/api/chat_stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         message: voiceRecognizedText,
-                        language: currentLanguage  // 🌐 传递语言参数
+                        language: currentLanguage
                     })
                 });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    document.getElementById('voice-input-display').value = `✅ AI 回答：\n\n问题：${voiceRecognizedText}\n\n${result.reply}`;
-                    const msg = window.i18n ? window.i18n.t('common.operation_success') : '✅ AI 已回答';
-                    showToast(msg);
-                } else {
-                    document.getElementById('voice-input-display').value = handleApiError(result.error);
-                    showToast(handleApiError(result.error));
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                let fullContent = '';
+
+                for await (const data of readSSEStream(response)) {
+                    if (data.error) {
+                        displayEl.value = '❌ ' + data.error;
+                        throw new Error(data.error);
+                    }
+                    if (data.done) {
+                        fullContent = data.full_content || fullContent;
+                        displayEl.value = '✅ AI 回答：\n\n问题：' + voiceRecognizedText + '\n\n' + fullContent;
+                        const msg = window.i18n ? window.i18n.t('common.operation_success') : '✅ AI 已回答';
+                        showToast(msg);
+                    } else if (data.content) {
+                        fullContent += data.content;
+                        displayEl.value = '🤖 AI 回答中...\n\n问题：' + voiceRecognizedText + '\n\n' + fullContent;
+                        // 滚动到最新内容
+                        displayEl.scrollTop = displayEl.scrollHeight;
+                    }
                 }
             } catch (error) {
-                document.getElementById('voice-input-display').value = `❌ 网络错误：${error.message}`;
+                displayEl.value = '❌ 网络错误：' + error.message;
                 const msg = window.i18n ? window.i18n.t('common.network_error_retry') : '❌ 网络错误';
                 showToast(msg);
             } finally {
-                //  关键修复：恢复按钮状态并重置语音 UI，让用户可以继续对话
                 buttons.forEach(btn => btn.disabled = false);
-                
-                //  隐藏确认按钮，显示录音按钮，让用户可以继续语音输入
+
                 document.getElementById('voice-confirm-buttons').style.display = 'none';
                 document.getElementById('record-btn').style.display = 'inline-flex';
                 const recordBtnText = window.i18n ? window.i18n.t('voice.record_button') : '🎤 按住说话';
                 document.getElementById('record-btn').innerHTML = recordBtnText;
                 document.getElementById('record-btn').disabled = false;
-                
-                //  清空语音识别文本，准备下一次对话
+
                 voiceRecognizedText = '';
             }
         }
