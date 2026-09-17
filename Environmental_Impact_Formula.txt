@@ -1,0 +1,120 @@
+============================================
+FoodGuardian AI — Environmental Impact Formula
+============================================
+
+When a user generates a recipe, the system calculates
+3 environmental metrics as follows.
+
+
+1. Input (from user's recipe)
+
+  Ingredients    e.g. Chicken, Broccoli, Carrot
+  Diners         e.g. 2 people
+  Meal type      Home / Healthy / Vegetarian / Banquet
+  Appetite       0.5 ~ 2.0 (default 1.0)
+
+
+2. Pre-calculation — Optimal Total Portion
+
+  ┌─────────────────────────────────────────────────────┐
+  │ total = Σ( base × diners × meal_factor × appetite ) │
+  │                                                     │
+  │  base: per-person portion from database              │
+  │        (e.g. chicken = 150g/person)                  │
+  │  meal_factor: Home=1.0  Healthy=0.9                  │
+  │               Vegetarian=0.85  Banquet=1.15          │
+  └─────────────────────────────────────────────────────┘
+
+
+3. The Three Core Formulas
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │                                                              │
+  │   Formula 1 — Food Waste Reduced (g)                          │
+  │                                                              │
+  │   food_waste = total × 0.25                                  │
+  │                        ↑                                     │
+  │               Traditional waste rate 25%                      │
+  │               Source: FAO (UN Food & Agriculture Org.)         │
+  │                                                              │
+  │   Smart portioning avoids the over-buying and over-cooking     │
+  │   that causes ~25% food waste in traditional cooking.          │
+  │                                                              │
+  ├──────────────────────────────────────────────────────────────┤
+  │                                                              │
+  │   Formula 2 — Water Saved (L)                                 │
+  │                                                              │
+  │   water = food_waste × 0.5                                   │
+  │                       ↑                                      │
+  │              Water footprint coefficient: 0.5 L/g             │
+  │              Source: Water Footprint Network                   │
+  │                                                              │
+  │   Every gram of food carries a hidden water footprint of       │
+  │   ~0.5 L across cultivation, irrigation, processing,           │
+  │   and transportation.                                         │
+  │                                                              │
+  ├──────────────────────────────────────────────────────────────┤
+  │                                                              │
+  │   Formula 3 — Carbon Emissions Reduced (g CO₂)                │
+  │                                                              │
+  │   carbon = food_waste × 3.0                                  │
+  │                        ↑                                     │
+  │              Carbon footprint coefficient: 3.0 g CO₂e/g       │
+  │              Source: Food lifecycle carbon footprint research  │
+  │                                                              │
+  │   Every gram of food carries embedded carbon emissions of      │
+  │   ~3.0 g CO₂e across production, transport, storage,           │
+  │   and waste disposal.                                         │
+  │                                                              │
+  └──────────────────────────────────────────────────────────────┘
+
+
+4. Formula Relationship
+
+         User recipe data
+               │
+               ▼
+      ┌────────────────┐
+      │  total = Σ base  │
+      └───────┬────────┘
+              │ × 0.25
+              ▼
+      ┌────────────────┐
+      │   Formula 1    │ → Food Waste Reduced (g)
+      │   food_waste    │
+      └───────┬────────┘
+              │
+       ┌──────┴──────┐
+       │ × 0.5       │ × 3.0
+       ▼             ▼
+   ┌────────┐   ┌────────┐
+   │Formula2│   │Formula3│
+   │ water  │   │ carbon │
+   └────────┘   └────────┘
+   Water Saved   Carbon Reduced
+   (L)           (g CO₂)
+
+
+5. Example: 2 servings of "Chicken + Broccoli + Carrot" home cooking
+
+  Base portions: Chicken 150g + Broccoli 200g + Carrot 150g
+               = 500g/person
+
+  total      = 500 × 2 × 1.0(home) × 1.0(appetite) = 1000g
+
+  Formula 1  food_waste = 1000 × 0.25  = 250.00 g    ← Food Waste Reduced
+  Formula 2  water      =  250 × 0.5   = 125.00 L    ← Water Saved
+  Formula 3  carbon     =  250 × 3.0   =   750 g     ← Carbon Reduced (CO₂e)
+
+
+6. Code Reference
+
+  food_guardian_ai_2.py  calculate_impact()  — main function
+  same file              MEAL_MULTIPLIERS (meal type factors)
+  same file              ENV_FACTORS (water_per_g / co2_per_g)
+  same file              WASTE_RATIO = 0.25
+
+
+* This is a simplified model for educational and awareness purposes.
+  Actual data varies by ingredient origin, transport distance, season,
+  and other factors. References: FAO, Water Footprint Network.

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -22,17 +22,17 @@
             --tertiary: #E8D5B7;
             --accent: #D4A574;  /* 强调色 */
             
-            /* 背景色 - 暖色调渐变 */
-            --background: #F8F5F0;
-            --background-gradient-start: #FAF8F5;
-            --background-gradient-end: #F0EBE3;
+            /* 背景色 - 纯净暖白 */
+            --background: #FAF9F7;
+            --background-gradient-start: #FAF9F7;
+            --background-gradient-end: #F5F3EF;
             --card-bg: #FFFFFF;
             --sidebar-bg: #2D3A2B;
-            
-            /* 卡片样式 */
-            --card-border: rgba(45, 58, 43, 0.08);
-            --card-shadow: 0 4px 20px rgba(45, 58, 43, 0.08);
-            --card-shadow-hover: 0 8px 32px rgba(45, 58, 43, 0.15);
+
+            /* 卡片样式 - 细腻分层阴影 */
+            --card-border: rgba(45, 58, 43, 0.1);
+            --card-shadow: 0 1px 2px rgba(20, 24, 20, 0.04), 0 4px 16px rgba(20, 24, 20, 0.05);
+            --card-shadow-hover: 0 1px 2px rgba(20, 24, 20, 0.04), 0 8px 24px rgba(20, 24, 20, 0.08);
             
             /* 文字颜色 */
             --text-primary: #1A1A1A;
@@ -46,17 +46,17 @@
             --warning: #F39C12;
             --info: #3498DB;
             
-            /* 阴影效果 - 更柔和 */
-            --shadow-sm: 0 2px 12px rgba(45, 58, 43, 0.06);
-            --shadow: 0 4px 20px rgba(45, 58, 43, 0.08);
-            --shadow-lg: 0 8px 32px rgba(45, 58, 43, 0.12);
-            --shadow-hover: 0 12px 48px rgba(45, 58, 43, 0.16);
-            
-            /* 边框圆角 - 更大的圆角 */
-            --radius-sm: 14px;
-            --radius: 20px;
-            --radius-lg: 28px;
-            --radius-xl: 36px;
+            /* 阴影效果 - 细腻分层 */
+            --shadow-sm: 0 1px 2px rgba(20, 24, 20, 0.05);
+            --shadow: 0 1px 2px rgba(20, 24, 20, 0.04), 0 4px 14px rgba(20, 24, 20, 0.06);
+            --shadow-lg: 0 1px 2px rgba(20, 24, 20, 0.05), 0 10px 30px rgba(20, 24, 20, 0.09);
+            --shadow-hover: 0 1px 2px rgba(20, 24, 20, 0.05), 0 14px 36px rgba(20, 24, 20, 0.11);
+
+            /* 边框圆角 - 收敛为克制的圆角 */
+            --radius-sm: 8px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
             
             /* 字体 */
             --font-serif: 'Georgia', 'Times New Roman', 'Noto Serif SC', serif;
@@ -621,6 +621,10 @@
             padding: 8px 6px;
             border-radius: 16px;
             min-height: 48px;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font: inherit;
         }
 
         .tab-icon {
@@ -1148,18 +1152,921 @@
         .icon-btn:active {
             transform: scale(0.92);
         }
+
+        /* ==================== 视觉精修覆盖层（后置覆盖，统一为克制的编辑器风格） ====================
+           设计原则：收敛圆角与阴影层级；移除悬停位移/涟漪/脉冲等浮夸动效；
+           反馈只保留颜色与阴影的短过渡；背景与卡片回归纯净中性色 */
+
+        body {
+            background: #FAF9F7;
+            padding-bottom: 92px;
+        }
+
+        /* 顶栏：紧凑、去入场动画 */
+        .top-bar {
+            height: 60px;
+            padding: 0 28px;
+            animation: none;
+            background: rgba(250, 249, 247, 0.86);
+            box-shadow: 0 1px 0 rgba(45, 58, 43, 0.08);
+        }
+        .logo { font-size: 20px; letter-spacing: -0.2px; }
+        .logo::after { display: none; }
+
+        .page-container { margin-top: 68px; }
+
+        /* 顶栏操作按钮：小尺寸、无涟漪、无位移 */
+        .action-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            font-size: 17px;
+            box-shadow: none;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        .action-btn::before { display: none; }
+        .action-btn:hover { transform: none; box-shadow: none; background: #F1EFEA; }
+        .action-btn:active { transform: scale(0.96); }
+
+        /* 卡片：干净的白、细边框、轻阴影，不再"跳起来" */
+        .card {
+            border-radius: var(--radius-lg);
+            padding: 26px 28px;
+            margin-bottom: 20px;
+            box-shadow: var(--card-shadow);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            transition: box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .card::before { display: none; }
+        .card::after { display: none; }
+        .card:hover {
+            transform: none;
+            box-shadow: var(--card-shadow-hover);
+            border-color: rgba(45, 58, 43, 0.16);
+        }
+
+        .card-title { font-size: 19px; font-weight: 600; margin-bottom: 12px; letter-spacing: -0.2px; }
+        .card-subtitle { font-size: 13.5px; margin-bottom: 18px; }
+
+        /* 统计卡片：深色纯色、去脉冲光斑 */
+        .stats-grid { gap: 14px; margin: 18px 0; }
+        .stat-card {
+            border-radius: var(--radius-lg);
+            padding: 22px 24px;
+            background: linear-gradient(165deg, #2D3A2B 0%, #3A4736 100%);
+            box-shadow: 0 1px 2px rgba(20, 24, 20, 0.12);
+            border: none;
+            transition: none;
+        }
+        .stat-card::before { display: none; }
+        .stat-card::after { display: none; }
+        .stat-card:hover { transform: none; box-shadow: 0 1px 2px rgba(20, 24, 20, 0.12); }
+        .stat-value { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; }
+        .stat-label { font-size: 13px; opacity: 0.75; letter-spacing: 0.2px; }
+
+        /* 输入框：细腻的聚焦光圈 */
+        .input-field { transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+        .input-field:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(45, 58, 43, 0.1);
+        }
+
+        /* 按钮：实色主按钮、细边框次按钮、无涟漪无位移 */
+        .btn {
+            padding: 14px 28px;
+            border-radius: var(--radius);
+            font-size: 15px;
+            font-weight: 600;
+            transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+        .btn::before { display: none; }
+        .btn-primary {
+            background: var(--primary);
+            box-shadow: 0 1px 2px rgba(20, 24, 20, 0.18);
+        }
+        .btn-primary:hover {
+            transform: none;
+            background: #384632;
+            box-shadow: 0 1px 2px rgba(20, 24, 20, 0.18);
+        }
+        .btn-primary:active { transform: scale(0.985); background: var(--primary); }
+        .btn-secondary {
+            border: 1px solid rgba(45, 58, 43, 0.22);
+            box-shadow: none;
+            background: #FFFFFF;
+        }
+        .btn-secondary:hover {
+            transform: none;
+            background: #FAF9F7;
+            border-color: rgba(45, 58, 43, 0.45);
+            box-shadow: none;
+        }
+        .btn-secondary:active { transform: scale(0.985); }
+
+        /* 图标按钮（冰箱等场景）：去位移 */
+        .icon-btn { transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease; }
+        .icon-btn:hover {
+            transform: none;
+            background: white;
+            box-shadow: var(--shadow-sm);
+        }
+        .icon-btn:active { transform: scale(0.95); }
+
+        /* 底部导航：收敛尺寸与阴影 */
+        .tab-bar {
+            height: 58px;
+            bottom: 16px;
+            border-radius: 18px;
+            box-shadow: 0 1px 2px rgba(20, 24, 20, 0.05), 0 12px 32px rgba(20, 24, 20, 0.1);
+            border: 1px solid rgba(45, 58, 43, 0.07);
+            animation: none;
+        }
+        .tab-item { border-radius: 12px; transition: background 0.2s ease; }
+        .tab-icon::before { display: none; }
+        .tab-item.active::before { display: none; }
+
+        /* 页面切换动画：更轻更快 */
+        .page { animation-duration: 0.28s; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 启动遮罩进度条动画 */
+        @keyframes appLoadingSlide {
+            0% { transform: translateX(-120%); }
+            100% { transform: translateX(320%); }
+        }
+
+        /* ==================== 高级化视觉皮肤 ====================
+           目标：从演示感转向成熟产品感。减少强渐变、emoji 依赖和浮动动效，
+           建立更清晰的工具型信息层级。 */
+        :root {
+            --primary: #253026;
+            --primary-light: #465444;
+            --secondary: #8C765E;
+            --secondary-light: #B7A48E;
+            --accent: #C4A15F;
+            --background: #F7F5F0;
+            --card-bg: #FFFEFB;
+            --card-border: rgba(37, 48, 38, 0.10);
+            --card-shadow: 0 1px 2px rgba(24, 28, 24, 0.04), 0 10px 28px rgba(24, 28, 24, 0.055);
+            --card-shadow-hover: 0 1px 2px rgba(24, 28, 24, 0.05), 0 14px 34px rgba(24, 28, 24, 0.075);
+            --text-primary: #1E211D;
+            --text-secondary: #62675F;
+            --text-muted: #90958D;
+            --radius: 10px;
+            --radius-lg: 12px;
+            --radius-xl: 14px;
+        }
+
+        body {
+            background:
+                linear-gradient(rgba(37, 48, 38, 0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(37, 48, 38, 0.025) 1px, transparent 1px),
+                #F7F5F0;
+            background-size: 28px 28px;
+        }
+
+        .top-bar {
+            height: 64px;
+            background: rgba(247, 245, 240, 0.90);
+            border-bottom: 1px solid rgba(37, 48, 38, 0.09);
+            padding: 0 34px;
+        }
+
+        .logo {
+            font-family: var(--font-sans);
+            font-size: 18px;
+            font-weight: 700;
+            color: #1E211D;
+            letter-spacing: 0;
+        }
+
+        .logo::before {
+            content: '';
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--accent);
+            margin-right: 10px;
+            box-shadow: 0 0 0 5px rgba(196, 161, 95, 0.13);
+            vertical-align: 1px;
+        }
+
+        .top-actions { gap: 8px; }
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            background: rgba(255, 254, 251, 0.72);
+            border: 1px solid rgba(37, 48, 38, 0.12);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .page-container {
+            max-width: 1120px;
+            margin-top: 82px;
+            padding: 0 24px 28px;
+        }
+
+        .welcome-banner {
+            background: #FFFEFB;
+            color: var(--text-primary);
+            border-radius: var(--radius-xl);
+            border: 1px solid rgba(37, 48, 38, 0.10);
+            box-shadow: var(--card-shadow);
+            padding: 34px 36px;
+            margin-bottom: 16px;
+        }
+
+        .welcome-banner::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 24px;
+            bottom: 24px;
+            width: 4px;
+            height: auto;
+            background: var(--accent);
+            opacity: 1;
+            filter: none;
+            animation: none;
+            transform: none;
+        }
+
+        .welcome-banner::after { display: none; }
+        .welcome-banner:hover { transform: none; box-shadow: var(--card-shadow); }
+        .welcome-title {
+            font-family: var(--font-sans);
+            font-size: 34px;
+            font-weight: 750;
+            letter-spacing: 0;
+            max-width: 680px;
+        }
+        .welcome-subtitle {
+            color: var(--text-secondary);
+            opacity: 1;
+            max-width: 680px;
+            font-size: 15.5px;
+        }
+
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .tag {
+            margin: 0;
+            padding: 7px 11px;
+            border-radius: 999px;
+            background: rgba(255, 254, 251, 0.68);
+            color: var(--text-secondary);
+            border: 1px solid rgba(37, 48, 38, 0.10);
+            box-shadow: none;
+            font-size: 12.5px;
+            font-weight: 600;
+        }
+        .tag::before { display: none; }
+        .tag:hover {
+            transform: none;
+            box-shadow: none;
+            background: #FFFEFB;
+            color: var(--text-primary);
+            border-color: rgba(37, 48, 38, 0.18);
+        }
+
+        .card {
+            background: rgba(255, 254, 251, 0.94);
+            border: 1px solid rgba(37, 48, 38, 0.10);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            margin-bottom: 18px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .card:hover {
+            transform: none;
+            box-shadow: var(--card-shadow-hover);
+            border-color: rgba(37, 48, 38, 0.14);
+        }
+
+        .card-title {
+            font-family: var(--font-sans);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 0;
+        }
+
+        .card-subtitle {
+            color: var(--text-secondary);
+            font-size: 13.5px;
+            line-height: 1.65;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .stat-card {
+            background: #283226;
+            border-radius: var(--radius-lg);
+            padding: 22px;
+            box-shadow: none;
+        }
+
+        .stat-card:nth-child(2) { background: #4F594C; }
+        .stat-card:nth-child(3) { background: #7A684F; }
+        .stat-value {
+            font-family: var(--font-sans);
+            font-size: 28px;
+            font-weight: 760;
+            letter-spacing: 0;
+        }
+
+        .input-label {
+            color: #343931;
+            font-size: 13px;
+            font-weight: 650;
+            letter-spacing: 0;
+        }
+
+        .input-field {
+            border: 1px solid rgba(37, 48, 38, 0.14);
+            background: #FFFEFB;
+            border-radius: var(--radius);
+            padding: 13px 14px;
+            font-size: 15px;
+        }
+        .input-field:focus {
+            transform: none;
+            border-color: rgba(37, 48, 38, 0.42);
+            box-shadow: 0 0 0 3px rgba(37, 48, 38, 0.08);
+        }
+
+        .btn {
+            min-height: 42px;
+            padding: 11px 18px;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: #253026;
+            color: #FFFEFB;
+            box-shadow: none;
+        }
+        .btn-primary:hover { background: #303B30; box-shadow: none; }
+        .btn-secondary {
+            background: #FFFEFB;
+            color: #253026;
+            border: 1px solid rgba(37, 48, 38, 0.16);
+            box-shadow: none;
+        }
+
+        .radio-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+            gap: 10px;
+        }
+        .radio-item { min-width: 0; }
+        .radio-label {
+            min-height: 58px;
+            padding: 13px 14px;
+            border: 1px solid rgba(37, 48, 38, 0.12);
+            border-radius: 10px;
+            background: #FFFEFB;
+            box-shadow: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .radio-label::before { background: #253026; }
+        .radio-label::after { top: 6px; right: 8px; font-size: 12px; }
+        .radio-item input[type="radio"]:checked + .radio-label {
+            transform: none;
+            box-shadow: none;
+            border-color: #253026;
+            background: #253026;
+            color: #FFFEFB;
+        }
+        .radio-item input[type="radio"]:checked + .radio-label small {
+            color: rgba(255, 254, 251, 0.72);
+        }
+        .radio-item input[type="radio"]:checked + .radio-label::before {
+            opacity: 0;
+        }
+        .radio-item input[type="radio"]:checked + .radio-label:hover {
+            background: #253026;
+            color: #FFFEFB;
+            border-color: #253026;
+        }
+        .radio-label:hover {
+            transform: none;
+            box-shadow: none;
+            color: var(--text-primary);
+            border-color: rgba(37, 48, 38, 0.28);
+        }
+
+        .slider {
+            height: 4px;
+            background: #DCD7CC;
+        }
+        .slider::-webkit-slider-thumb {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #253026;
+            box-shadow: 0 1px 4px rgba(24, 28, 24, 0.14);
+        }
+        .slider::-webkit-slider-thumb:hover { transform: none; }
+
+        .result-box {
+            background: #FBFAF6;
+            border: 1px solid rgba(37, 48, 38, 0.10);
+            box-shadow: none;
+            border-radius: 12px;
+            padding: 20px 22px;
+            line-height: 1.75;
+        }
+        .result-box::before {
+            width: 3px;
+            background: var(--accent);
+        }
+        .result-box::after { display: none; }
+        .result-box h2 { border-bottom: 1px solid rgba(37, 48, 38, 0.12); }
+
+        .tab-bar {
+            max-width: 680px;
+            height: 60px;
+            bottom: 18px;
+            padding: 0 8px;
+            border-radius: 16px;
+            background: rgba(255, 254, 251, 0.92);
+            border: 1px solid rgba(37, 48, 38, 0.12);
+            box-shadow: 0 10px 30px rgba(24, 28, 24, 0.11);
+        }
+        .tab-item {
+            min-height: 46px;
+            border-radius: 11px;
+            gap: 3px;
+        }
+        .tab-icon {
+            font-size: 0;
+            filter: none;
+            transform: none !important;
+        }
+        .tab-icon::after {
+            display: block;
+            font-size: 11px;
+            line-height: 1;
+            font-weight: 750;
+            color: var(--text-muted);
+            letter-spacing: 0;
+        }
+        .tab-item:nth-child(1) .tab-icon::after { content: '01'; }
+        .tab-item:nth-child(2) .tab-icon::after { content: '02'; }
+        .tab-item:nth-child(3) .tab-icon::after { content: '03'; }
+        .tab-item:nth-child(4) .tab-icon::after { content: '04'; }
+        .tab-item:nth-child(5) .tab-icon::after { content: '05'; }
+        .tab-item:nth-child(6) .tab-icon::after { content: '06'; }
+        .tab-item:nth-child(7) .tab-icon::after { content: '07'; }
+        .tab-label {
+            font-size: 10.5px;
+            color: var(--text-muted);
+        }
+        .tab-item.active {
+            background: rgba(37, 48, 38, 0.06);
+        }
+        .tab-item.active .tab-icon::after,
+        .tab-item.active .tab-label {
+            color: var(--text-primary);
+        }
+        .tab-item:hover .tab-label { transform: none; }
+
+        .toast {
+            background: rgba(30, 33, 29, 0.94);
+            border-radius: 10px;
+            box-shadow: 0 12px 30px rgba(24, 28, 24, 0.18);
+        }
+
+        #auth-modal,
+        #history-modal,
+        #image-recognition-modal {
+            background: rgba(30, 33, 29, 0.42) !important;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 16px;
+        }
+
+        #auth-modal > div,
+        #history-modal > div,
+        #image-recognition-modal > div {
+            box-sizing: border-box;
+            border-radius: 16px !important;
+            border: 1px solid rgba(37, 48, 38, 0.12);
+            box-shadow: 0 20px 60px rgba(24, 28, 24, 0.18) !important;
+        }
+
+        #auth-modal > div {
+            width: min(100%, 380px) !important;
+            max-width: 100% !important;
+            padding: clamp(20px, 5vw, 30px) !important;
+        }
+
+        #today-intake-table table {
+            background: #FFFEFB;
+            border: 1px solid rgba(37, 48, 38, 0.10);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .guided-panel {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0;
+            margin: 18px 0 22px;
+            background: #FFFEFB;
+            border: 1px solid rgba(37, 48, 38, 0.10);
+            border-radius: 16px;
+            box-shadow: 0 1px 2px rgba(24, 28, 24, 0.03), 0 10px 26px rgba(24, 28, 24, 0.045);
+            overflow: hidden;
+        }
+
+        .guided-step {
+            display: grid;
+            grid-template-columns: 38px minmax(110px, 0.35fr) minmax(0, 1fr);
+            gap: 16px;
+            align-items: center;
+            background: transparent;
+            border: 0;
+            border-bottom: 1px solid rgba(37, 48, 38, 0.08);
+            border-radius: 0;
+            padding: 18px 20px;
+            box-shadow: none;
+        }
+
+        .guided-step:last-child {
+            border-bottom: 0;
+        }
+
+        .guided-step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #253026;
+            color: #FFFEFB;
+            font-weight: 760;
+            font-size: 13px;
+            margin-bottom: 0;
+        }
+
+        .guided-step-title {
+            font-size: 16px;
+            font-weight: 760;
+            color: var(--text-primary);
+            margin-bottom: 0;
+        }
+
+        .guided-step-text {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.65;
+        }
+
+        .home-section-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 26px 0 12px;
+            color: var(--text-primary);
+            font-size: 15px;
+            font-weight: 760;
+        }
+
+        .home-section-label::before {
+            content: '';
+            width: 22px;
+            height: 2px;
+            background: var(--accent);
+            border-radius: 999px;
+        }
+
+        .home-utility-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .home-utility-grid > .card {
+            margin-bottom: 0;
+        }
+
+        .senior-note {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(196, 161, 95, 0.10);
+            border: 1px solid rgba(196, 161, 95, 0.18);
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .automation-panel {
+            background: #F7F5F0 !important;
+            border: 1px solid rgba(37, 48, 38, 0.12) !important;
+            border-left: 4px solid var(--accent) !important;
+            border-radius: 12px !important;
+            padding: 18px !important;
+            margin: 18px 0 !important;
+        }
+
+        .automation-panel .automation-kicker {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .automation-panel #generation-counter-display {
+            color: #253026 !important;
+        }
+
+        .automation-panel #generation-progress-bar {
+            background: linear-gradient(90deg, #253026, #8C765E) !important;
+        }
+
+        .senior-friendly .card,
+        .senior-friendly .stat-card,
+        .senior-friendly .result-box,
+        .senior-friendly .tab-item,
+        .senior-friendly .action-btn,
+        .senior-friendly .btn,
+        .senior-friendly .radio-label {
+            transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .senior-friendly .card:hover,
+        .senior-friendly .stat-card:hover,
+        .senior-friendly .action-btn:hover,
+        .senior-friendly .tab-item:hover .tab-icon,
+        .senior-friendly .tab-item:hover .tab-label,
+        .senior-friendly .tab-item:active {
+            transform: none !important;
+        }
+
+        .senior-friendly .card::before,
+        .senior-friendly .card::after,
+        .senior-friendly .stat-card::before,
+        .senior-friendly .stat-card::after,
+        .senior-friendly .tab-icon::before,
+        .senior-friendly .result-box::after {
+            display: none !important;
+        }
+
+        .senior-friendly .btn {
+            min-height: 48px;
+            font-size: 15px;
+        }
+
+        .senior-friendly .input-field {
+            min-height: 50px;
+            font-size: 16px;
+        }
+
+        .priority-card {
+            border-color: rgba(37, 48, 38, 0.18);
+            box-shadow: 0 1px 2px rgba(24, 28, 24, 0.04), 0 14px 34px rgba(24, 28, 24, 0.065);
+        }
+
+        .shopping-form-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 150px;
+            gap: 16px;
+            align-items: end;
+        }
+
+        .shopping-budget-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 18px 0 12px;
+            min-height: 28px;
+            cursor: pointer;
+            font-weight: 650;
+            color: var(--text-primary);
+        }
+
+        .shopping-budget-row input {
+            width: 19px;
+            height: 19px;
+            accent-color: var(--primary);
+        }
+
+        .shopping-location-panel {
+            display: grid;
+            grid-template-columns: minmax(190px, 0.8fr) minmax(220px, 1.2fr);
+            gap: 14px;
+            padding: 18px;
+            margin-bottom: 18px;
+            background: #F7F6F2;
+            border: 1px solid rgba(37, 48, 38, 0.11);
+            border-radius: 10px;
+        }
+
+        .shopping-location-panel .input-group { margin-bottom: 0; }
+        .shopping-location-note {
+            grid-column: 1 / -1;
+            color: var(--text-muted);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .home-start-button {
+            min-height: 52px !important;
+            font-size: 16px !important;
+        }
+
+        @media (min-width: 940px) {
+            #page-home {
+                display: none;
+                max-width: 1040px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            #page-home.active { display: block; }
+            #page-home .welcome-banner,
+            #page-home .tags-container {
+                grid-column: auto;
+            }
+        }
+
+        @media (min-width: 1180px) {
+            body {
+                padding-bottom: 40px;
+            }
+
+            .page-container {
+                max-width: 1040px;
+                margin-left: calc(174px + max(28px, (100vw - 1258px) / 2));
+                margin-right: auto;
+                padding-bottom: 52px;
+            }
+
+            .tab-bar {
+                left: max(22px, calc((100vw - 1258px) / 2));
+                top: 82px;
+                bottom: auto;
+                transform: none;
+                width: 154px;
+                max-width: none;
+                height: auto;
+                min-height: 0;
+                flex-direction: column;
+                gap: 6px;
+                padding: 12px;
+                border-radius: 14px;
+                box-shadow: 0 1px 2px rgba(20, 24, 20, 0.04), 0 12px 30px rgba(20, 24, 20, 0.08);
+            }
+
+            .tab-item {
+                flex: none;
+                width: 100%;
+                min-height: 52px;
+                flex-direction: row;
+                justify-content: flex-start;
+                gap: 10px;
+                padding: 0 11px;
+                border: 1px solid transparent;
+                border-radius: 9px;
+            }
+
+            .tab-icon {
+                display: flex;
+                width: 24px;
+                height: 24px;
+                align-items: center;
+                justify-content: center;
+                flex: 0 0 24px;
+                font-size: 15px;
+                filter: grayscale(1) opacity(0.72);
+            }
+
+            .tab-icon::after {
+                display: none;
+            }
+
+            .tab-label {
+                display: block;
+                font-size: 14px;
+                font-weight: 700;
+                color: var(--text-secondary);
+            }
+
+            .tab-item.active {
+                background: #253026;
+                border-color: #253026;
+                box-shadow: 0 5px 14px rgba(37, 48, 38, 0.16);
+            }
+
+            .tab-item.active .tab-label,
+            .tab-item.active .tab-icon {
+                color: #FFFEFB;
+                filter: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .top-bar { padding: 0 16px; }
+            .logo { font-size: 16px; }
+            .page-container {
+                margin-top: 76px;
+                padding: 0 14px 26px;
+            }
+            .welcome-banner { padding: 26px 24px; }
+            .welcome-title { font-size: 27px; }
+            .tab-label { display: none; }
+            .tab-bar { width: calc(100% - 24px); }
+            .guided-panel,
+            .home-utility-grid {
+                grid-template-columns: 1fr;
+            }
+            .guided-step {
+                grid-template-columns: 34px 1fr;
+                gap: 8px 12px;
+                padding: 16px;
+            }
+            .guided-step-text {
+                grid-column: 2;
+            }
+            .tab-label {
+                display: block;
+                font-size: 10.5px;
+            }
+            .tab-item {
+                padding: 6px 3px;
+                flex: 1 0 50px;
+                min-width: 50px;
+            }
+            .tab-bar {
+                justify-content: flex-start;
+                overflow-x: auto;
+                scrollbar-width: none;
+            }
+            .tab-bar::-webkit-scrollbar { display: none; }
+            .shopping-form-grid,
+            .shopping-location-panel {
+                grid-template-columns: 1fr;
+            }
+            .shopping-location-note {
+                grid-column: 1;
+            }
+            #auth-modal {
+                justify-content: flex-start !important;
+                padding: 16px !important;
+            }
+            #auth-modal > div {
+                width: min(340px, calc(100vw - 32px)) !important;
+                max-width: min(340px, calc(100vw - 32px)) !important;
+                margin: 0 !important;
+            }
+        }
     </style>
     <!-- 🌐 国际化模块 -->
     <script src="/static/js/i18n.js"></script>
 </head>
-<body>
+<body class="senior-friendly">
+    <!-- ⏳ 启动加载遮罩：数据就绪前保持画面干净，避免闪现空白/旧内容 -->
+    <div id="app-loading" style="position: fixed; inset: 0; background: #FAF9F7; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.45s ease;">
+        <div style="font-family: Georgia, 'Times New Roman', serif; font-size: 21px; color: #2D3A2B; letter-spacing: 0.5px;">FoodGuardian AI</div>
+        <div style="width: 128px; height: 2px; background: rgba(45,58,43,0.1); margin-top: 20px; border-radius: 1px; overflow: hidden;">
+            <div style="width: 42%; height: 100%; background: #2D3A2B; border-radius: 1px; animation: appLoadingSlide 1.1s ease-in-out infinite;"></div>
+        </div>
+    </div>
+
     <!-- 顶部导航栏 -->
     <div class="top-bar">
-        <div class="logo">🍽️ FoodGuardian AI</div>
+        <div class="logo">FoodGuardian</div>
         <div class="top-actions">
             <!-- 🌐 语言切换按钮 -->
             <button class="action-btn" id="lang-switcher" onclick="toggleLanguage()" title="切换语言">
                 <span id="current-lang-flag">🇨🇳</span>
+            </button>
+            <!-- 👤 账号按钮（登录后数据云端同步） -->
+            <button class="action-btn" id="auth-btn" onclick="handleAuthButtonClick()" title="账号登录">
+                <span id="auth-icon">👤</span>
             </button>
             <button class="action-btn" onclick="openImageRecognition()" data-i18n-title="camera.modal_title" title="拍照识菜">📸</button>
             <button class="action-btn" onclick="switchPage('voice')" data-i18n-title="voice.title" title="语音交互">🎤</button>
@@ -1172,7 +2079,7 @@
         <div id="page-home" class="page active">
             <div class="welcome-banner">
                 <div class="welcome-title" data-i18n="home.welcome_title">让每一口都不被浪费</div>
-                <div class="welcome-subtitle" data-i18n="home.welcome_subtitle">智能食谱 + 环保量化,让家庭用餐更绿色 🌍</div>
+                <div class="welcome-subtitle" data-i18n="home.welcome_subtitle">智能食谱 + 环保量化,让家庭用餐更绿色</div>
             </div>
 
             <div class="tags-container">
@@ -1182,9 +2089,29 @@
                 <span class="tag" data-i18n="home.tag_local_storage">本地数据存储</span>
             </div>
 
+            <div class="guided-panel">
+                <div class="guided-step">
+                    <div class="guided-step-number">1</div>
+                    <div class="guided-step-title" data-i18n="home.workflow_step1_title">选择人群</div>
+                    <div class="guided-step-text" data-i18n="home.workflow_step1_text">先选择年龄段，后续评估会按对应营养标准判断。</div>
+                </div>
+                <div class="guided-step">
+                    <div class="guided-step-number">2</div>
+                    <div class="guided-step-title" data-i18n="home.workflow_step2_title">记录饮食</div>
+                    <div class="guided-step-text" data-i18n="home.workflow_step2_text">录入今天吃过的蔬菜、水果、肉类和蛋类重量。</div>
+                </div>
+                <div class="guided-step">
+                    <div class="guided-step-number">3</div>
+                    <div class="guided-step-title" data-i18n="home.workflow_step3_title">生成建议</div>
+                    <div class="guided-step-text" data-i18n="home.workflow_step3_text">生成 3 次食谱后，会自动评估并给出明日饮食推荐。</div>
+                </div>
+            </div>
+
+            <div class="home-section-label" data-i18n="home.setup_section_title">基础设置</div>
+
             <!-- 用户档案卡片 -->
             <div class="card">
-                <div class="card-title" data-i18n="home.profile_title">👤 你的绿色档案</div>
+                <div class="card-title" data-i18n="home.profile_title">你的绿色档案</div>
                 <div class="card-subtitle" data-i18n="home.profile_subtitle">设置一个昵称,我们会在本机悄悄为你记录每一次节约。</div>
                 
                 <div class="input-group">
@@ -1193,15 +2120,15 @@
                 </div>
                 
                 <button class="btn btn-primary" onclick="saveNickname()" data-i18n="home.save_nickname">
-                    💾 保存昵称
+                    保存昵称
                 </button>
                 
                 <div id="welcome-message" style="margin-top: 16px; color: var(--text-secondary);"></div>
             </div>
 
             <!-- 人群选择卡片 -->
-            <div class="card">
-                <div class="card-title" data-i18n="home.population_label">🏷️ 选择您的人群标签</div>
+            <div class="card priority-card">
+                <div class="card-title" data-i18n="home.population_label">选择您的人群标签</div>
                 <div class="card-subtitle" data-i18n="home.population_subtitle">不同人群有不同的营养摄入标准</div>
                 
                 <div class="radio-group">
@@ -1228,14 +2155,17 @@
                 </div>
                 
                 <!-- 开始按钮（原版有，Web版缺失） -->
-                <button class="btn btn-primary" onclick="switchPage('recipes')" style="width: 100%; margin-top: 20px; height: 45px; font-size: 16px;" data-i18n="home.start_button">
-                    🍳 开始使用智能食谱
+                <button class="btn btn-primary home-start-button" onclick="switchPage('recipes')" style="width: 100%; margin-top: 20px; height: 45px; font-size: 16px;" data-i18n="home.start_button">
+                    开始使用智能食谱
                 </button>
+                <div class="senior-note" data-i18n="home.workflow_note">如果不确定怎么开始，只要先选人群，再点“开始使用智能食谱”。其余功能可以之后慢慢使用。</div>
             </div>
+
+            <div class="home-section-label" data-i18n="home.status_section_title">环保成果与明日建议</div>
 
             <!-- 累计环保贡献 -->
             <div class="card">
-                <div class="card-title" data-i18n="home.eco_contribution_title">🌱 你的累计环保贡献</div>
+                <div class="card-title" data-i18n="home.eco_contribution_title">你的累计环保贡献</div>
                 <div class="card-subtitle" data-i18n="home.eco_contribution_subtitle">仅在本机统计 · 可随时清零</div>
                 
                 <div class="stats-grid">
@@ -1254,34 +2184,36 @@
                 </div>
                 
                 <button class="btn btn-secondary" onclick="resetStats()" style="width: 100%; margin-bottom: 20px;" data-i18n="home.reset_stats_button">
-                    🔄 清零统计
+                    清零统计
                 </button>
             </div>
 
-            <!-- 今日饮食推荐 - 按钮卡片 -->
+            <!-- 明日饮食推荐 - 按钮卡片 -->
             <div class="card">
-                <div class="card-title" data-i18n="home.daily_recommendation_title">🍽️ 今日饮食推荐</div>
-                <div class="card-subtitle" data-i18n="home.daily_recommendation_subtitle">基于您的营养状况和冰箱食材,AI 为您生成专属饮食建议</div>
-                
+                <div class="card-title" data-i18n="home.daily_recommendation_title">明日饮食推荐</div>
+                <div class="card-subtitle" data-i18n="home.daily_recommendation_subtitle">基于今日营养状况和冰箱食材，AI 为您生成明日专属饮食建议</div>
+
                 <button class="btn btn-primary" onclick="generateDailyRecommendation()" id="daily-rec-btn" style="width: 100%; display: block; visibility: visible;" data-i18n="home.generate_daily_rec_button">
-                    ✨ AI 生成今日推荐
+                    AI 生成明日推荐
                 </button>
             </div>
             
             <!-- 饮食推荐结果 - 独立卡片 -->
             <div id="daily-rec-result-container" class="card" style="display: none; margin-top: 16px;">
-                <div class="card-title" data-i18n="home.daily_rec_result_title">📋 推荐结果</div>
+                <div class="card-title" data-i18n="home.daily_rec_result_title">推荐结果</div>
                 <div id="daily-recommendation-content" class="result-box"></div>
             </div>
 
+            <div class="home-section-label" data-i18n="home.tools_section_title">辅助工具</div>
+
             <!-- 食材重量查询 -->
             <div class="card">
-                <div class="card-title" data-i18n="home.food_weight_query_title">⚖️ 食材重量查询</div>
-                <div class="card-subtitle" data-i18n="home.food_weight_query_subtitle">💡 输入食材名称，查询常见食物的近似重量（帮助您估算摄入量）</div>
+                <div class="card-title" data-i18n="home.food_weight_query_title">食材重量查询</div>
+                <div class="card-subtitle" data-i18n="home.food_weight_query_subtitle">输入食材名称，查询常见食物的近似重量（帮助您估算摄入量）</div>
                 
                 <div style="display: flex; gap: 12px; margin-bottom: 16px;">
                     <input type="text" id="food-query-input" class="input-field" data-i18n-placeholder="home.food_weight_placeholder" placeholder="例如：苹果、米饭、鸡蛋..." style="flex: 1;">
-                    <button class="btn btn-primary" onclick="queryFoodWeight()" style="white-space: nowrap;" data-i18n="home.query_button">🔍 查询</button>
+                    <button class="btn btn-primary" onclick="queryFoodWeight()" style="white-space: nowrap;" data-i18n="home.query_button">查询</button>
                 </div>
                 
                 <div id="food-query-result" style="display: none;">
@@ -1289,22 +2221,34 @@
                 </div>
             </div>
 
+            <div class="home-section-label" data-i18n="home.records_section_title">今日记录</div>
+
             <!-- 今日饮食摄入记录 - 输入卡片 -->
-            <div class="card">
-                <div class="card-title" data-i18n="home.intake_record_title">📝 今日饮食摄入记录</div>
+            <div class="card" id="home-intake-card">
+                <div class="card-title" data-i18n="home.intake_record_title">今日饮食摄入记录</div>
                 <div class="card-subtitle" data-i18n="home.intake_record_subtitle">请录入您今日已摄入的各类食材重量(克)</div>
+
+                <div class="input-group">
+                    <label class="input-label" for="intake-meal-type-home" data-i18n="home.meal_type_label">本次餐次</label>
+                    <select id="intake-meal-type-home" class="input-field">
+                        <option value="breakfast" data-i18n="home.meal_breakfast">早餐</option>
+                        <option value="lunch" data-i18n="home.meal_lunch">午餐</option>
+                        <option value="dinner" data-i18n="home.meal_dinner">晚餐</option>
+                        <option value="snack" data-i18n="home.meal_snack">加餐</option>
+                    </select>
+                </div>
                 
                 <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
                     <div class="input-group">
-                        <label class="input-label" data-i18n="home.vegetables_label">🥬 蔬菜 (g)</label>
+                        <label class="input-label" data-i18n="home.vegetables_label">蔬菜 (g)</label>
                         <input type="number" id="intake-vegetables-home" class="input-field" placeholder="0" min="0" value="0" style="display: block; visibility: visible;">
                     </div>
                     <div class="input-group">
-                        <label class="input-label" data-i18n="home.fruits_label">🍎 水果 (g)</label>
+                        <label class="input-label" data-i18n="home.fruits_label">水果 (g)</label>
                         <input type="number" id="intake-fruits-home" class="input-field" placeholder="0" min="0" value="0" style="display: block; visibility: visible;">
                     </div>
                     <div class="input-group">
-                        <label class="input-label" data-i18n="home.meat_label">🥩 肉类 (g)</label>
+                        <label class="input-label" data-i18n="home.meat_label">肉类 (g)</label>
                         <input type="number" id="intake-meat-home" class="input-field" placeholder="0" min="0" value="0" style="display: block; visibility: visible;">
                     </div>
                     <div class="input-group">
@@ -1314,8 +2258,8 @@
                 </div>
                 
                 <div style="display: flex; gap: 12px; margin-top: 16px;">
-                    <button class="btn btn-primary" onclick="saveIntakeHome()" style="flex: 1; display: block; visibility: visible;" data-i18n="home.save_intake_home_button">💾 保存记录</button>
-                    <button class="btn btn-secondary" onclick="performNutritionAssessmentFromHome()" style="flex: 1; display: block; visibility: visible;" data-i18n="home.assess_now_button">🔍 立即评估</button>
+                    <button class="btn btn-primary" onclick="saveIntakeHome()" style="flex: 1; display: block; visibility: visible;" data-i18n="home.save_intake_home_button">保存记录</button>
+                    <button class="btn btn-secondary" onclick="performNutritionAssessmentFromHome()" style="flex: 1; display: block; visibility: visible;" data-i18n="home.assess_now_button">立即评估</button>
                 </div>
             </div>
             
@@ -1327,13 +2271,13 @@
 
             <!-- 今日摄入概览表格 -->
             <div class="card">
-                <div class="card-title" data-i18n="home.today_overview_title">📊 今日摄入概览</div>
-                <div class="card-subtitle" data-i18n="home.today_overview_subtitle">💡 提示:可直接在表格中修改摄入数据,支持删除单条记录</div>
+                <div class="card-title" data-i18n="home.today_overview_title">今日摄入概览</div>
+                <div class="card-subtitle" data-i18n="home.today_overview_subtitle">提示:可直接在表格中修改摄入数据,支持删除单条记录</div>
                 
                 <div id="today-intake-table" style="margin-top: 16px;"></div>
                 
                 <button class="btn btn-secondary" onclick="view7DaysHistory()" style="width: 100%; margin-top: 16px;" data-i18n="home.view_7days_button">
-                    📅 查看近 7 天记录
+                    查看近 7 天记录
                 </button>
             </div>
         </div>
@@ -1341,7 +2285,7 @@
         <!-- 智能食谱页 -->
         <div id="page-recipes" class="page">
             <div class="card">
-                <div class="card-title" data-i18n="recipe.title">🍳 智能食谱生成器</div>
+                <div class="card-title" data-i18n="recipe.title">智能食谱生成器</div>
                 <div class="card-subtitle" data-i18n="recipe.subtitle">选择就餐人数和食材,我们将为你推荐刚刚好的份量。</div>
                 
                 <!-- 就餐人数 -->
@@ -1383,7 +2327,7 @@
                 <div style="margin: 16px 0;">
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                         <input type="checkbox" id="use-fridge" style="width: 18px; height: 18px;">
-                        <span data-i18n="recipe.use_fridge_checkbox">✅ 同时使用冰箱现有食材</span>
+                        <span data-i18n="recipe.use_fridge_checkbox">同时使用冰箱现有食材</span>
                     </label>
                 </div>
 
@@ -1395,13 +2339,14 @@
                 </div>
 
                 <!-- 食谱生成计数器 -->
-                <div style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border-radius: var(--radius); padding: 16px; margin: 16px 0; border-left: 4px solid var(--success);">
+                <div class="automation-panel">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 24px;">📊</span>
                             <div>
+                                <div class="automation-kicker" data-i18n="recipe.automation_kicker">自动评估流程</div>
                                 <div style="font-weight: 600; color: var(--primary); font-size: 16px;" data-i18n="recipe.generation_progress_title">食谱生成进度</div>
                                 <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;" data-i18n="recipe.generation_progress_subtitle">每生成3次后自动进行营养评估</div>
+                                <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 6px;" data-i18n="recipe.automation_hint">第 3 次生成完成后，将自动按联合国健康标准评估，并生成明日饮食推荐。</div>
                             </div>
                         </div>
                         <div style="text-align: right;">
@@ -1418,10 +2363,10 @@
                 <!-- 操作按钮组 -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
                     <button class="btn btn-primary" onclick="generateRecipe()" id="generate-btn" style="width: 100%;" data-i18n="recipe.generate_recipe_button">
-                        ✨ 生成环保菜单
+                        生成环保菜单
                     </button>
-                    <button class="btn" onclick="resetGenerationCounter()" style="width: 100%; background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); color: #E65100; border: 2px solid #FF9800; font-weight: 600;" data-i18n="recipe.reset_counter_button">
-                        🔄 一键还原
+                    <button class="btn btn-secondary" onclick="resetGenerationCounter()" style="width: 100%; font-weight: 700;" data-i18n="recipe.reset_counter_button">
+                        一键还原
                     </button>
                 </div>
             </div>
@@ -1429,7 +2374,7 @@
             <!-- 结果展示 -->
             <div id="recipe-result" style="display: none;">
                 <div class="card">
-                    <div class="card-title" data-i18n="recipe.impact_quantification_title">📊 本次环保影响量化</div>
+                    <div class="card-title" data-i18n="recipe.impact_quantification_title">本次环保影响量化</div>
                     <div class="card-subtitle" data-i18n="recipe.impact_subtitle">以下数据基于 FAO 和 Water Footprint Network 公开研究中的平均换算系数。</div>
                     
                     <div class="stats-grid">
@@ -1449,7 +2394,7 @@
                 </div>
 
                 <div class="card">
-                    <div class="card-title" data-i18n="recipe.recommended_menu_title">🍽️ 推荐菜单与份量</div>
+                    <div class="card-title" data-i18n="recipe.recommended_menu_title">推荐菜单与份量</div>
                     <div id="recipe-content" class="result-box"></div>
                 </div>
             </div>
@@ -1458,7 +2403,7 @@
         <!-- 营养分析页 -->
         <div id="page-nutrition" class="page">
             <div class="card">
-                <div class="card-title" data-i18n="nutrition.ai_analysis_title">🔍 智能营养分析</div>
+                <div class="card-title" data-i18n="nutrition.ai_analysis_title">智能营养分析</div>
                 <div class="card-subtitle" data-i18n="nutrition.ai_analysis_subtitle">AI 驱动的营养成分检测与健康影响评估</div>
                 
                 <div class="input-group">
@@ -1472,11 +2417,11 @@
                 </div>
                 
                 <button class="btn btn-primary" onclick="analyzeNutrition()" id="analyze-nutrition-btn" style="width: 100%; margin-top: 20px;" data-i18n="nutrition.analyze_button">
-                    🔍 AI 营养分析
+                    AI 营养分析
                 </button>
                 
                 <div style="margin-top: 20px; padding: 15px; background: rgba(255,140,66,0.1); border-radius: 10px;">
-                    <div style="font-weight: 600; color: var(--primary); margin-bottom: 8px;" data-i18n="nutrition.analysis_content_title">💡 分析内容：</div>
+                    <div style="font-weight: 600; color: var(--primary); margin-bottom: 8px;" data-i18n="nutrition.analysis_content_title">分析内容：</div>
                     <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.8;">
                         <div data-i18n="nutrition.analysis_item_calories">• 热量、蛋白质、脂肪、碳水化合物</div>
                         <div data-i18n="nutrition.analysis_item_vitamins">• 维生素、矿物质含量</div>
@@ -1488,7 +2433,7 @@
 
             <div id="nutrition-result" style="display: none;">
                 <div class="card">
-                    <div class="card-title" data-i18n="nutrition.analysis_result_title">📊 营养分析结果</div>
+                    <div class="card-title" data-i18n="nutrition.analysis_result_title">营养分析结果</div>
                     <div id="nutrition-analysis-content" class="result-box"></div>
                 </div>
             </div>
@@ -1497,12 +2442,12 @@
         <!-- AI助手页 -->
         <div id="page-chat" class="page">
             <div class="card">
-                <div class="card-title" data-i18n="chat.title">🤖 AI 对话助手</div>
+                <div class="card-title" data-i18n="chat.title">AI 对话助手</div>
                 <div class="card-subtitle" data-i18n="chat.subtitle">有任何关于食谱、营养、烹饪的问题,都可以问我!</div>
                 
                 <!-- 快捷问题（原版有，Web版缺失） -->
                 <div style="margin-bottom: 16px;">
-                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 8px;" data-i18n="chat.quick_questions_title">💡 常见问题：</div>
+                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 8px;" data-i18n="chat.quick_questions_title">常见问题：</div>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                         <button class="btn btn-secondary" onclick="askQuickQuestion('chat.question_potato_sprout')" style="flex: none; padding: 8px 12px; font-size: 13px;" data-i18n="chat.question_potato_sprout">土豆发芽了能吃吗？</button>
                         <button class="btn btn-secondary" onclick="askQuickQuestion('chat.question_vegetable_storage')" style="flex: none; padding: 8px 12px; font-size: 13px;" data-i18n="chat.question_vegetable_storage">如何保存蔬菜？</button>
@@ -1511,11 +2456,11 @@
                     </div>
                 </div>
                 
-                <div id="chat-messages" style="min-height: 450px; max-height: 650px; overflow-y: auto; margin: 20px 0; padding: 20px; background: rgba(255, 255, 255, 0.7); border-radius: 16px; border: 1px solid var(--card-border);"></div>
+                <div id="chat-messages" style="min-height: 450px; max-height: 650px; overflow-y: auto; overflow-x: hidden; overflow-wrap: break-word; margin: 20px 0; padding: 20px; background: rgba(255, 255, 255, 0.7); border-radius: 16px; border: 1px solid var(--card-border);"></div>
                 
                 <div style="display: flex; gap: 12px;">
                     <input type="text" id="chat-input" class="input-field" data-i18n-placeholder="chat.input_placeholder" placeholder="输入您的问题..." style="flex: 1;" onkeypress="if(event.key==='Enter') sendChat()">
-                    <button class="btn btn-primary" onclick="sendChat()" data-i18n="chat.send_button">发送</button>
+                    <button class="btn btn-primary" id="chat-send-btn" onclick="sendChat()" data-i18n="chat.send_button">发送</button>
                 </div>
             </div>
         </div>
@@ -1523,7 +2468,7 @@
         <!-- 智能冰箱页 -->
         <div id="page-fridge" class="page">
             <div class="card">
-                <div class="card-title" data-i18n="fridge.title">🧊 智能冰箱管理</div>
+                <div class="card-title" data-i18n="fridge.title">智能冰箱管理</div>
                 <div class="card-subtitle" data-i18n="fridge.subtitle">记录冰箱食材,避免过期浪费</div>
                 
                 <div class="input-group">
@@ -1537,12 +2482,12 @@
                 </div>
                 
                 <button class="btn btn-primary" onclick="addFridgeItem()" style="width: 100%;" data-i18n="fridge.add_button">
-                    ➕ 添加食材
+                    添加食材
                 </button>
             </div>
 
             <div class="card">
-                <div class="card-title" data-i18n="fridge.inventory_title">📦 当前库存</div>
+                <div class="card-title" data-i18n="fridge.inventory_title">当前库存</div>
                 <div id="fridge-list"></div>
             </div>
         </div>
@@ -1550,34 +2495,57 @@
         <!-- 采购清单页 -->
         <div id="page-shopping" class="page">
             <div class="card">
-                <div class="card-title" data-i18n="shopping.title">🛒 智能采购清单</div>
+                <div class="card-title" data-i18n="shopping.title">智能采购清单</div>
                 <div class="card-subtitle" data-i18n="shopping.subtitle">想吃什么菜？AI 帮你生成购物清单</div>
-                
-                <div class="input-group">
-                    <label class="input-label" data-i18n="shopping.dishes_label">我想吃这些菜...</label>
-                    <input type="text" id="shopping-dishes" class="input-field" data-i18n-placeholder="shopping.dishes_placeholder" placeholder="例如：红烧肉、麻婆豆腐、西红柿蛋汤">
+
+                <div class="shopping-form-grid">
+                    <div class="input-group">
+                        <label class="input-label" for="shopping-dishes" data-i18n="shopping.dishes_label">我想吃这些菜...</label>
+                        <input type="text" id="shopping-dishes" class="input-field" data-i18n-placeholder="shopping.dishes_placeholder" placeholder="例如：红烧肉、麻婆豆腐、西红柿蛋汤">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label" for="shopping-people" data-i18n="shopping.people_label">就餐人数</label>
+                        <input type="number" id="shopping-people" class="input-field" value="3" min="1" max="20">
+                    </div>
                 </div>
-                
-                <div class="input-group">
-                    <label class="input-label" data-i18n="shopping.people_label">就餐人数</label>
-                    <input type="number" id="shopping-people" class="input-field" value="3" min="1" max="20" style="width: 100px;">
-                </div>
-                
-                <div style="margin: 16px 0;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="shopping-budget" checked style="width: 18px; height: 18px;">
-                        <span data-i18n="shopping.budget_checkbox">💰 估算预算</span>
-                    </label>
+
+                <label class="shopping-budget-row" for="shopping-budget">
+                    <input type="checkbox" id="shopping-budget" checked>
+                    <span data-i18n="shopping.budget_checkbox">估算预算</span>
+                </label>
+
+                <div id="shopping-location-panel" class="shopping-location-panel">
+                    <div class="input-group">
+                        <label class="input-label" for="shopping-province" data-i18n="shopping.province_label">省级地区</label>
+                        <select id="shopping-province" class="input-field">
+                            <option value="" data-i18n="shopping.province_placeholder">请选择省、自治区或直辖市</option>
+                            <option data-en="Beijing">北京市</option><option data-en="Tianjin">天津市</option><option data-en="Hebei">河北省</option><option data-en="Shanxi">山西省</option>
+                            <option data-en="Inner Mongolia">内蒙古自治区</option><option data-en="Liaoning">辽宁省</option><option data-en="Jilin">吉林省</option><option data-en="Heilongjiang">黑龙江省</option>
+                            <option data-en="Shanghai">上海市</option><option data-en="Jiangsu">江苏省</option><option data-en="Zhejiang">浙江省</option><option data-en="Anhui">安徽省</option>
+                            <option data-en="Fujian">福建省</option><option data-en="Jiangxi">江西省</option><option data-en="Shandong">山东省</option><option data-en="Henan">河南省</option>
+                            <option data-en="Hubei">湖北省</option><option data-en="Hunan">湖南省</option><option data-en="Guangdong">广东省</option><option data-en="Guangxi">广西壮族自治区</option>
+                            <option data-en="Hainan">海南省</option><option data-en="Chongqing">重庆市</option><option data-en="Sichuan">四川省</option><option data-en="Guizhou">贵州省</option>
+                            <option data-en="Yunnan">云南省</option><option data-en="Tibet">西藏自治区</option><option data-en="Shaanxi">陕西省</option><option data-en="Gansu">甘肃省</option>
+                            <option data-en="Qinghai">青海省</option><option data-en="Ningxia">宁夏回族自治区</option><option data-en="Xinjiang">新疆维吾尔自治区</option>
+                            <option data-en="Hong Kong SAR">香港特别行政区</option><option data-en="Macao SAR">澳门特别行政区</option><option data-en="Taiwan">台湾省</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="shopping-city" data-i18n="shopping.city_label">城市 / 区县（可选）</label>
+                        <input type="text" id="shopping-city" class="input-field" maxlength="30" data-i18n-placeholder="shopping.city_placeholder" placeholder="例如：深圳市南山区">
+                    </div>
+                    <div class="shopping-location-note" data-i18n="shopping.budget_note">AI 会参考所选地区的常见零售价格给出区间估算，实际价格会因门店、季节和品牌而变化。</div>
                 </div>
                 
                 <button class="btn btn-primary" onclick="generateShoppingList()" id="shopping-btn" style="width: 100%;" data-i18n="shopping.generate_button">
-                    📝 生成购物清单
+                    生成购物清单
                 </button>
             </div>
             
             <!-- 结果展示区 - 独立卡片 -->
             <div id="shopping-result-container" class="card" style="display: none; margin-top: 16px;">
-                <div class="card-title" data-i18n="shopping.result_title">📋 采购清单结果</div>
+                <div class="card-title" data-i18n="shopping.result_title">采购清单结果</div>
                 <div id="shopping-result" style="overflow: visible;">
                 </div>
             </div>
@@ -1586,58 +2554,169 @@
         <!-- 关于页 -->
         <div id="page-about" class="page">
             <div class="card">
-                <div class="card-title" data-i18n="about.title">ℹ️ 关于 FoodGuardian AI</div>
+                <div class="card-title" data-i18n="about.title">关于 FoodGuardian AI</div>
                 <div class="card-subtitle" data-i18n="about.subtitle">本项目专注"技术 + 教育 + 环保"的结合。</div>
                 
                 <div style="line-height: 2; color: var(--text-secondary);">
-                    <p data-i18n="about.description">🍽️ 智能食谱与环保教育平台</p>
+                    <p data-i18n="about.description">智能食谱与环保教育平台</p>
                     <p data-i18n="about.copyright">© 2026 保留所有权利 · 内容仅用于教育与科普目的。</p>
+                </div>
+                <div id="shopping-price-feedback" style="margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--card-border);">
+                    <label class="input-label" for="shopping-actual-price" data-i18n="shopping.actual_price_label">本次实际采购总价（元）</label>
+                    <div style="display: flex; gap: 10px; align-items: stretch;">
+                        <input type="number" id="shopping-actual-price" class="input-field" min="0.01" max="1000000" step="0.01" data-i18n-placeholder="shopping.actual_price_placeholder" placeholder="例如：86.50" style="flex: 1;">
+                        <button type="button" class="btn btn-secondary" onclick="saveShoppingPriceFeedback()" data-i18n="shopping.save_actual_price">保存实际价格</button>
+                    </div>
+                    <div class="shopping-location-note" data-i18n="shopping.actual_price_note">实际价格只用于校准您所在地区之后的预算估算，最多保留 20 条。</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 语音交互页 -->
+        <div id="page-voice" class="page">
+            <div class="card">
+                <div class="card-title" data-i18n="voice.interaction_title">🎤 语音交互 - 说话问 AI</div>
+                <div class="card-subtitle" data-i18n="voice.interaction_subtitle">语音转文字 · 一键问 AI</div>
+
+                <!-- 语音输入显示区 -->
+                <div style="background: rgba(255,255,255,0.5); border-radius: 15px; padding: 20px; margin-bottom: 20px; min-height: 250px;">
+                    <div style="font-weight: 600; margin-bottom: 10px; color: var(--text-primary);" data-i18n="voice.voice_input_label">📢 语音输入</div>
+                    <textarea id="voice-input-display" style="width: 100%; min-height: 200px; border: none; background: transparent; font-size: 16px; resize: vertical; outline: none;" data-i18n-placeholder="voice.voice_input_placeholder" placeholder="正在初始化，请稍候..."></textarea>
+                </div>
+
+                <!-- 录音进度条 -->
+                <div id="recording-progress" style="display: none; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <span id="recording-label" style="font-weight: 600; color: var(--primary);" data-i18n="voice.recording_label">🎙️ 正在录音...</span>
+                        <span id="recording-time" style="color: var(--text-secondary);"></span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="recording-progress-fill" class="progress-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- 按钮区 -->
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="startVoiceRecording()" id="record-btn" style="height: 80px; width: 200px; font-size: 20px;" data-i18n="voice.record_button">🎤 按住说话</button>
+                    <button class="btn btn-secondary" onclick="stopRecordingEarly()" id="early-stop-btn" style="display: none;" data-i18n="voice.early_stop_button">✅ 确定（提前结束）</button>
+                </div>
+
+                <!-- 确认按钮组（识别成功后显示） -->
+                <div id="voice-confirm-buttons" style="display: none; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="confirmAndAskAI()" data-i18n="voice.confirm_button">✅ 确定（向 AI 提问）</button>
+                    <button class="btn btn-secondary" onclick="editVoiceText()" data-i18n="voice.edit_button">✏️ 修改文字</button>
+                    <button class="btn btn-secondary" onclick="cancelVoiceRecording()" data-i18n="voice.cancel_button">❌ 取消</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- 底部TabBar -->
-    <div class="tab-bar">
-        <div class="tab-item active" onclick="switchPage('home')">
+    <nav class="tab-bar" aria-label="主要功能">
+        <button type="button" class="tab-item active" onclick="switchPage('home')" aria-current="page">
             <div class="tab-icon">🏠</div>
             <div class="tab-label" data-i18n="nav.home">首页</div>
-        </div>
-        <div class="tab-item" onclick="switchPage('recipes')">
+        </button>
+        <button type="button" class="tab-item" onclick="switchPage('recipes')">
             <div class="tab-icon">🍳</div>
             <div class="tab-label" data-i18n="nav.recipe">智能食谱</div>
-        </div>
-        <div class="tab-item" onclick="switchPage('nutrition')">
+        </button>
+        <button type="button" class="tab-item" onclick="switchPage('nutrition')">
             <div class="tab-icon">🥗</div>
             <div class="tab-label" data-i18n="nav.nutrition">营养分析</div>
-        </div>
-        <div class="tab-item" onclick="switchPage('chat')">
+        </button>
+        <button type="button" class="tab-item" onclick="switchPage('chat')">
             <div class="tab-icon">🤖</div>
             <div class="tab-label" data-i18n="nav.chat">AI助手</div>
-        </div>
-        <div class="tab-item" onclick="switchPage('voice')">
+        </button>
+        <button type="button" class="tab-item" onclick="switchPage('voice')">
             <div class="tab-icon">🎤</div>
             <div class="tab-label" data-i18n="nav.voice">语音交互</div>
-        </div>
-        <div class="tab-item" onclick="switchPage('fridge')">
+        </button>
+        <button type="button" class="tab-item" onclick="switchPage('fridge')">
             <div class="tab-icon">🧊</div>
             <div class="tab-label" data-i18n="nav.fridge">智能冰箱</div>
-        </div>
-        <div class="tab-item" onclick="switchPage('shopping')">
+        </button>
+        <button type="button" class="tab-item" onclick="switchPage('shopping')">
             <div class="tab-icon">🛒</div>
             <div class="tab-label" data-i18n="nav.shopping">采购清单</div>
-        </div>
-    </div>
+        </button>
+    </nav>
 
     <!-- Toast提示 -->
     <div id="toast" class="toast"></div>
+
+    <!-- 👤 账号登录/注册模态框 -->
+    <div id="auth-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: center;" onclick="if(event.target === this) tryCloseAuthModal()">
+        <div style="background: white; border-radius: 24px; padding: 30px; max-width: 380px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; font-size: 20px;" id="auth-modal-title" data-i18n="auth.title">账号</h2>
+                <button id="auth-close-btn" onclick="tryCloseAuthModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
+            </div>
+
+            <!-- 已登录视图 -->
+            <div id="auth-logged-view" style="display: none; text-align: center;">
+                <div style="font-size: 48px; margin: 10px 0;">😊</div>
+                <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;" id="auth-logged-username"></div>
+                <div style="color: #5A5A5A; font-size: 14px; margin-bottom: 20px; line-height: 1.5;" data-i18n="auth.cloud_sync_hint">您的数据已云端同步，换设备登录也能看到</div>
+                <button class="btn btn-primary" style="width: 100%; height: 45px;" onclick="handleLogout()" data-i18n="auth.logout_button">退出登录</button>
+            </div>
+
+            <!-- 登录/注册表单视图 -->
+            <div id="auth-form-view">
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; background: #FFF3E0; border-radius: 12px; padding: 4px;">
+                    <button id="auth-tab-login" onclick="switchAuthTab('login')" style="flex: 1; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 15px; font-weight: 600; background: white; color: #2C2C2C;" data-i18n="auth.tab_login">登录</button>
+                    <button id="auth-tab-register" onclick="switchAuthTab('register')" style="flex: 1; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 15px; font-weight: 600; background: transparent; color: #2C2C2C;" data-i18n="auth.tab_register">注册</button>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <input type="text" id="auth-username" class="input-field" style="width: 100%; box-sizing: border-box; padding: 14px 18px;" data-i18n-placeholder="auth.username_placeholder" placeholder="用户名" autocomplete="username">
+                </div>
+                <div style="margin-bottom: 8px; position: relative;">
+                    <input type="password" id="auth-password" class="input-field" style="width: 100%; box-sizing: border-box; padding: 14px 72px 14px 18px;" data-i18n-placeholder="auth.password_placeholder" placeholder="密码（至少 6 位）" autocomplete="current-password">
+                    <button type="button" onclick="togglePasswordVisibility('auth-password', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; padding: 8px;" data-i18n="auth.show_password">显示</button>
+                </div>
+
+                <div id="auth-error" style="color: #FF6B6B; font-size: 13px; min-height: 20px; margin-bottom: 8px;"></div>
+
+                <button class="btn btn-primary" id="auth-submit-btn" style="width: 100%; height: 45px; font-size: 16px;" onclick="submitAuth()" data-i18n="auth.login_button">登录</button>
+
+                <button type="button" id="auth-forgot-btn" onclick="openRecoveryView()" style="width: 100%; border: 0; background: transparent; color: var(--primary); padding: 12px 8px 2px; cursor: pointer; font-size: 14px;" data-i18n="auth.forgot_password">忘记密码</button>
+
+                <div id="auth-guest-hint" style="color: #5A5A5A; font-size: 12px; text-align: center; margin-top: 14px; line-height: 1.5;" data-i18n="auth.guest_hint">游客模式下数据仅保存在本机，登录后云端同步</div>
+            </div>
+
+            <div id="auth-recovery-view" style="display: none;">
+                <div class="card-subtitle" data-i18n="auth.recovery_hint">输入注册时获得的恢复码，然后设置新密码。</div>
+                <input type="text" id="recovery-username" class="input-field" style="width: 100%; box-sizing: border-box; margin-bottom: 12px;" data-i18n-placeholder="auth.username_placeholder" placeholder="用户名" autocomplete="username">
+                <input type="text" id="recovery-code" class="input-field" style="width: 100%; box-sizing: border-box; margin-bottom: 12px; text-transform: uppercase;" data-i18n-placeholder="auth.recovery_code_placeholder" placeholder="12 位恢复码" autocomplete="one-time-code">
+                <div style="position: relative; margin-bottom: 8px;">
+                    <input type="password" id="recovery-new-password" class="input-field" style="width: 100%; box-sizing: border-box; padding-right: 72px;" data-i18n-placeholder="auth.new_password_placeholder" placeholder="新密码（至少 6 位）" autocomplete="new-password">
+                    <button type="button" onclick="togglePasswordVisibility('recovery-new-password', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; padding: 8px;" data-i18n="auth.show_password">显示</button>
+                </div>
+                <div id="recovery-error" style="color: var(--danger); font-size: 13px; min-height: 20px; margin-bottom: 8px;"></div>
+                <button type="button" class="btn btn-primary" style="width: 100%;" onclick="submitPasswordRecovery()" data-i18n="auth.reset_password">重设密码</button>
+                <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 10px;" onclick="closeRecoveryView()" data-i18n="auth.back_to_login">返回登录</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="recovery-code-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.52); z-index: 3200; align-items: center; justify-content: center; padding: 16px;">
+        <div style="background: white; width: min(420px, 100%); padding: 28px; border-radius: 8px; box-shadow: 0 18px 50px rgba(0,0,0,0.25);">
+            <h2 style="margin: 0 0 10px; font-size: 20px;" data-i18n="auth.recovery_code_title">保存账号恢复码</h2>
+            <p style="color: var(--text-secondary); line-height: 1.6;" data-i18n="auth.recovery_code_once">该恢复码只显示一次。忘记密码时需要它，请妥善保存。</p>
+            <div id="recovery-code-value" style="font: 700 22px/1.4 ui-monospace, monospace; letter-spacing: 2px; background: var(--background); border: 1px solid var(--card-border); padding: 16px; text-align: center; overflow-wrap: anywhere;"></div>
+            <button type="button" class="btn btn-primary" style="width: 100%; margin-top: 18px;" onclick="copyRecoveryCode()" data-i18n="auth.copy_recovery_code">复制恢复码</button>
+            <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 10px;" onclick="closeRecoveryCodeModal()" data-i18n="common.confirm">我已妥善保存</button>
+        </div>
+    </div>
 
     <!-- 7天历史记录模态框 -->
     <div id="history-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: center;">
         <div style="background: white; border-radius: 20px; padding: 30px; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="margin: 0;" data-i18n="home.history_modal_title">📅 近 7 天摄入记录</h2>
-                <button onclick="closeHistoryModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">❌</button>
+                <h2 style="margin: 0;" data-i18n="home.history_modal_title">近 7 天摄入记录</h2>
+                <button onclick="closeHistoryModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
             </div>
             <div id="history-content"></div>
         </div>
@@ -1710,44 +2789,6 @@
         </div>
     </div>
 
-    <!-- 语音交互页 -->
-    <div id="page-voice" class="page">
-        <div class="card">
-            <div class="card-title" data-i18n="voice.interaction_title">🎤 语音交互 - 说话问 AI</div>
-            <div class="card-subtitle" data-i18n="voice.interaction_subtitle">语音转文字 · 一键问 AI</div>
-            
-            <!-- 语音输入显示区 -->
-            <div style="background: rgba(255,255,255,0.5); border-radius: 15px; padding: 20px; margin-bottom: 20px; min-height: 250px;">
-                <div style="font-weight: 600; margin-bottom: 10px; color: var(--text-primary);" data-i18n="voice.voice_input_label">📢 语音输入</div>
-                <textarea id="voice-input-display" style="width: 100%; min-height: 200px; border: none; background: transparent; font-size: 16px; resize: vertical; outline: none;" data-i18n-placeholder="voice.voice_input_placeholder" placeholder="正在初始化，请稍候..."></textarea>
-            </div>
-            
-            <!-- 录音进度条 -->
-            <div id="recording-progress" style="display: none; margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                    <span id="recording-label" style="font-weight: 600; color: var(--primary);" data-i18n="voice.recording_label">🎙️ 正在录音...</span>
-                    <span id="recording-time" style="color: var(--text-secondary);"></span>
-                </div>
-                <div class="progress-bar">
-                    <div id="recording-progress-fill" class="progress-fill" style="width: 0%;"></div>
-                </div>
-            </div>
-            
-            <!-- 按钮区 -->
-            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
-                <button class="btn btn-primary" onclick="startVoiceRecording()" id="record-btn" style="height: 80px; width: 200px; font-size: 20px;" data-i18n="voice.record_button">🎤 按住说话</button>
-                <button class="btn btn-secondary" onclick="stopRecordingEarly()" id="early-stop-btn" style="display: none;" data-i18n="voice.early_stop_button">✅ 确定（提前结束）</button>
-            </div>
-            
-            <!-- 确认按钮组（识别成功后显示） -->
-            <div id="voice-confirm-buttons" style="display: none; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
-                <button class="btn btn-primary" onclick="confirmAndAskAI()" data-i18n="voice.confirm_button">✅ 确定（向 AI 提问）</button>
-                <button class="btn btn-secondary" onclick="editVoiceText()" data-i18n="voice.edit_button">✏️ 修改文字</button>
-                <button class="btn btn-secondary" onclick="cancelVoiceRecording()" data-i18n="voice.cancel_button">❌ 取消</button>
-            </div>
-        </div>
-    </div>
-
     <script>
         // ==================== 全局状态 ====================
         let appData = {
@@ -1758,8 +2799,8 @@
             co2_reduced: 0,
             daily_intake_records: [],
             fridge_inventory: [],
-            generation_count: 0,  // 🔑 关键修复：添加计数器字段
-            chat_history: []  // 🔑 新增：保存聊天历史
+            generation_count: 0,
+            shopping_preferences: { province: '', city: '', price_samples: [] }
         };
 
         /**
@@ -1831,15 +2872,11 @@
                 // 监听语言切换事件
                 window.addEventListener('languageChanged', (e) => {
                     console.log(`🌐 Language changed to: ${e.detail.language}`);
-                    // 重新加载数据以应用新语言
-                    loadData().then(() => {
-                        // 🔧 关键修复：数据加载完成后，确保 UI 完全更新
-                        updateUI();
-                        // 重新加载摄入表格
-                        loadTodayIntakeTable();
-                    });
+                    // 重新加载数据以应用新语言（loadData 内部已负责 updateUI + 摄入表格刷新，避免重复刷新闪烁）
+                    loadData();
                     // 🔑 关键修复：更新人群标签（因为包含HTML标签）
                     updatePopulationLabels();
+                    updateShoppingProvinceLabels();
                     //  关键修复：无论是否有语音识别文本，都重置语音状态
                     resetVoiceInteractionUI();
                 });
@@ -1847,6 +2884,8 @@
             
             await loadData();
             setupEventListeners();
+            initializeShoppingRegion();
+            initializeMealType();
             
             // 🔑 关键修复：初始化人群标签
             updatePopulationLabels();
@@ -1857,6 +2896,16 @@
                 updateGenerationCounterDisplay(initialCount);
                 console.log(`📊 初始化计数器: ${initialCount}/3`);
             }, 100);
+
+            // 🔧 数据就绪后淡出启动遮罩（5 秒兜底，防止异常时卡在加载页）
+            const hideAppLoading = () => {
+                const el = document.getElementById('app-loading');
+                if (!el) return;
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 480);
+            };
+            setTimeout(hideAppLoading, 350);
+            setTimeout(hideAppLoading, 5000);
         });
 
         // ==================== 通用错误处理 ====================
@@ -1934,6 +2983,25 @@
             
             // 🌐 初始化语言切换按钮显示
             updateLanguageSwitcher();
+
+            // 👤 账号弹窗：回车提交
+            ['auth-username', 'auth-password'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') submitAuth();
+                });
+            });
+
+            const budgetToggle = document.getElementById('shopping-budget');
+            const province = document.getElementById('shopping-province');
+            const city = document.getElementById('shopping-city');
+            if (budgetToggle) budgetToggle.addEventListener('change', updateShoppingBudgetFields);
+            if (province) province.addEventListener('change', rememberShoppingRegion);
+            if (city) city.addEventListener('change', rememberShoppingRegion);
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden' && currentUser) saveData();
+            });
         }
         
         // 🌐 语言切换功能
@@ -1969,12 +3037,29 @@
                 const result = await response.json();
                 if (result.success) {
                     appData = result.data;
-                    
-                    // 🔑 关键修复：确保 chat_history 字段存在
-                    if (!appData.chat_history) {
-                        appData.chat_history = [];
+
+                    // 👤 同步当前登录状态与账号功能开关（/api/data 返回 user / auth_enabled 字段）
+                    if ('auth_enabled' in result) {
+                        authEnabled = !!result.auth_enabled;
                     }
-                    
+                    if ('user' in result) {
+                        currentUser = result.user;
+                        updateAuthUI();
+                    }
+
+                    // 🔐 启动登录门：账号系统已启用且未登录 → 自动弹出登录/注册弹窗，不可跳过
+                    if (authEnabled && !currentUser) {
+                        openAuthModal();
+                        if (result.session_expired) {
+                            const errorEl = document.getElementById('auth-error');
+                            if (errorEl) {
+                                errorEl.textContent = window.i18n
+                                    ? window.i18n.t('auth.session_expired')
+                                    : '登录状态已过期，请重新登录';
+                            }
+                        }
+                    }
+
                     updateUI();
                     
                     // 🆕 关键修复：每次加载数据后，自动刷新摄入表格
@@ -2019,6 +3104,16 @@
             // 🔑 关键修复：更新计数器显示
             const currentCount = appData.generation_count || 0;
             updateGenerationCounterDisplay(currentCount);
+
+            const shoppingPreferences = appData.shopping_preferences || {};
+            const provinceSelect = document.getElementById('shopping-province');
+            const cityInput = document.getElementById('shopping-city');
+            if (provinceSelect && shoppingPreferences.province) {
+                provinceSelect.value = shoppingPreferences.province;
+            }
+            if (cityInput && shoppingPreferences.city) {
+                cityInput.value = shoppingPreferences.city;
+            }
         }
 
         // ==================== 页面切换 ====================
@@ -2034,11 +3129,13 @@
             // 更新TabBar状态
             document.querySelectorAll('.tab-item').forEach((item, index) => {
                 item.classList.remove('active');
+                item.removeAttribute('aria-current');
             });
             
             const tabIndex = ['home', 'recipes', 'nutrition', 'chat', 'voice', 'fridge', 'shopping'].indexOf(pageName);
             if (tabIndex !== -1) {
                 document.querySelectorAll('.tab-item')[tabIndex].classList.add('active');
+                document.querySelectorAll('.tab-item')[tabIndex].setAttribute('aria-current', 'page');
             }
             
             // 滚动到顶部
@@ -2049,10 +3146,6 @@
                 loadFridgeItems();
             }
             
-            // 🔑 关键修复：切换到聊天页面时恢复聊天历史
-            if (pageName === 'chat') {
-                restoreChatHistory();
-            }
         }
 
         // ==================== 首页功能 ====================
@@ -2136,8 +3229,14 @@
          */
         function formatMarkdown(text) {
             if (!text) return '';
-            
-            let html = text;
+
+            // AI/用户文本先转义原始 HTML，再解析受支持的 Markdown，避免注入页面标签或事件属性。
+            let html = String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
             
             // 转换标题 (##, ###, ####)
             html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
@@ -2152,6 +3251,12 @@
             // 转换粗体 (**text** 或 __text__)
             html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
             html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+            // 仅允许已转义文本中的 HTTPS Markdown 链接。
+            html = html.replace(
+                /\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g,
+                '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+            );
             
             // 转换斜体 (*text* 或 _text_)
             html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
@@ -2344,7 +3449,15 @@
             }
         }
 
+        // 🔑 防止并发生成请求
+        let isGenerating = false;
+
         async function generateRecipe() {
+            if (isGenerating) {
+                console.log('⚠️ 食谱生成进行中，忽略重复请求');
+                return;
+            }
+
             const customIngredients = document.getElementById('custom-ingredients').value.trim();
             if (!customIngredients) {
                 showToast(window.i18n ? window.i18n.t('common.ingredient_required') : '请至少输入一种食材');
@@ -2356,6 +3469,7 @@
             const appetite = parseFloat(document.getElementById('appetite-slider').value);
             const useFridge = document.getElementById('use-fridge').checked;
 
+            isGenerating = true;
             const btn = document.getElementById('generate-btn');
             btn.disabled = true;
             const btnText = window.i18n ? window.i18n.t('recipe.generating') : '生成中...';
@@ -2364,7 +3478,11 @@
             // 提前显示结果区域，以便流式填充
             document.getElementById('recipe-result').style.display = 'block';
             const contentDiv = document.getElementById('recipe-content');
-            contentDiv.innerHTML = '<span class="loading"></span> AI 正在生成...';
+            const generatingMsg = window.i18n ? window.i18n.t('common.ai_generating') : 'AI is generating...';
+            contentDiv.innerHTML = '<span class="loading"></span> ' + generatingMsg;
+
+            let fullContent = '';
+            let recipeImpact = null;  // 🔑 暂存环保数据，延迟到按钮恢复后处理
 
             try {
                 const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
@@ -2386,53 +3504,27 @@
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
-                let fullContent = '';
-
                 for await (const data of readSSEStream(response)) {
                     if (data.error) {
                         contentDiv.innerHTML = `<span style="color: var(--danger);">${data.error}</span>`;
                         throw new Error(data.error);
                     }
                     if (data.done) {
-                        // 流式输出完成
-                        fullContent = data.full_content || fullContent;
+                        // 流式输出完成 - 先渲染内容
+                        fullContent = data.full_content || data.content || fullContent;
+                        if (fullContent && contentDiv.querySelector('.loading')) {
+                            contentDiv.innerHTML = '';
+                        }
+                        if (fullContent) {
+                            contentDiv.innerHTML = formatMarkdown(fullContent);
+                        }
 
-                        // 更新环保影响
+                        // 暂存环保影响数据，等按钮恢复后再处理
                         if (data.impact) {
+                            recipeImpact = data.impact;
                             document.getElementById('impact-waste').textContent = `${data.impact.food_waste} g`;
                             document.getElementById('impact-water').textContent = `${data.impact.water} L`;
                             document.getElementById('impact-co2').textContent = `${data.impact.carbon} g`;
-
-                            appData.waste_reduced = (appData.waste_reduced || 0) + data.impact.food_waste;
-                            appData.water_saved = (appData.water_saved || 0) + data.impact.water;
-                            appData.co2_reduced = (appData.co2_reduced || 0) + data.impact.carbon;
-                        }
-
-                        appData.generation_count = (appData.generation_count || 0) + 1;
-                        await saveData();
-                        updateUI();
-
-                        showToast(window.i18n ? window.i18n.t('common.recipe_generated') : '✅ 食谱生成成功');
-                        document.getElementById('recipe-result').scrollIntoView({ behavior: 'smooth' });
-
-                        const currentMealCount = appData.generation_count || 0;
-                        const nextMealNum = currentMealCount;
-                        updateGenerationCounterDisplay(nextMealNum);
-
-                        if (nextMealNum <= 2) {
-                            const msgTemplate = window.i18n ? window.i18n.t('common.meal_generated_auto_intake') : '📝 第{num}餐食谱生成，正在自动录入摄入数据...';
-                            showToast(msgTemplate.replace('{num}', nextMealNum));
-                            await autoIntakeOnly(customIngredients, peopleNum, nextMealNum);
-                            await loadData();
-                        } else {
-                            showToast(window.i18n ? window.i18n.t('common.auto_intake_progress') : '🎉 第3餐食谱生成，正在自动录入并执行营养评估...');
-                            await autoIntakeAndAssess(customIngredients, peopleNum);
-                            await loadData();
-                            updateUI();
-                            showToast(window.i18n ? window.i18n.t('common.generating_recommendation') : '️ 正在为您生成今日饮食推荐...');
-                            await generateDailyRecommendation();
-                            await loadData();
-                            updateUI();
                         }
                     } else if (data.content) {
                         // 流式追加内容
@@ -2462,10 +3554,56 @@
                 } catch (rollbackError) {
                     console.error('回滚计数器失败:', rollbackError);
                 }
+                // 🔑 出错时把 fullContent 和 recipeImpact 清空，跳过后续处理
+                fullContent = '';
+                recipeImpact = null;
             } finally {
+                // 🔑 关键修复：按钮和guard同时恢复，不等后续处理
+                isGenerating = false;
                 btn.disabled = false;
                 const btnText = window.i18n ? window.i18n.t('recipe.generate_recipe_button') : '✨ 生成环保菜单';
                 btn.innerHTML = btnText;
+            }
+
+            // 🔑 关键修复：按钮恢复后再执行耗时的后处理（计数、自动录入、评估等）
+            if (fullContent && recipeImpact) {
+                try {
+                    appData.waste_reduced = (appData.waste_reduced || 0) + recipeImpact.food_waste;
+                    appData.water_saved = (appData.water_saved || 0) + recipeImpact.water;
+                    appData.co2_reduced = (appData.co2_reduced || 0) + recipeImpact.carbon;
+
+                    appData.generation_count = (appData.generation_count || 0) + 1;
+                    await saveData();
+                    updateUI();
+
+                    showToast(window.i18n ? window.i18n.t('common.recipe_generated') : '✅ 食谱生成成功');
+                    document.getElementById('recipe-result').scrollIntoView({ behavior: 'smooth' });
+
+                    const currentMealCount = appData.generation_count || 0;
+                    updateGenerationCounterDisplay(currentMealCount);
+
+                    if (currentMealCount <= 2) {
+                        const msgTemplate = window.i18n ? window.i18n.t('common.meal_generated_auto_intake') : '📝 第{num}餐食谱生成，正在自动录入摄入数据...';
+                        showToast(msgTemplate.replace('{num}', currentMealCount));
+                        await autoIntakeOnly(customIngredients, peopleNum, currentMealCount);
+                        await loadData();
+                    } else {
+                        showToast(window.i18n ? window.i18n.t('common.auto_intake_progress') : '🎉 第3餐食谱生成，正在自动录入并执行营养评估...');
+                        await autoIntakeAndAssess(customIngredients, peopleNum);
+                        await loadData();
+                        updateUI();
+                        showToast(window.i18n ? window.i18n.t('common.generating_recommendation') : '🍽️ 正在为您生成明日饮食推荐...');
+                        try {
+                            await generateDailyRecommendation();
+                        } catch (recError) {
+                            console.error('⚠️ 自动生成饮食推荐失败（不影响食谱生成）:', recError);
+                        }
+                        await loadData();
+                        updateUI();
+                    }
+                } catch (postError) {
+                    console.error('⚠️ 后处理失败（不影响按钮恢复）:', postError);
+                }
             }
         }
 
@@ -2487,7 +3625,8 @@
             // 提前显示结果区域
             document.getElementById('nutrition-result').style.display = 'block';
             const contentDiv = document.getElementById('nutrition-analysis-content');
-            contentDiv.innerHTML = '<span class="loading"></span> AI 正在分析...';
+            const analyzingMsg = window.i18n ? window.i18n.t('common.ai_analyzing') : 'AI is analyzing...';
+            contentDiv.innerHTML = '<span class="loading"></span> ' + analyzingMsg;
 
             try {
                 const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
@@ -2514,7 +3653,7 @@
                         throw new Error(data.error);
                     }
                     if (data.done) {
-                        fullContent = data.full_content || fullContent;
+                        fullContent = data.full_content || data.content || fullContent;
                         contentDiv.innerHTML = formatMarkdown(fullContent);
                         document.getElementById('nutrition-result').scrollIntoView({ behavior: 'smooth' });
                         showToast(window.i18n ? window.i18n.t('common.analysis_success') : '✅ 营养分析完成');
@@ -2545,7 +3684,7 @@
 
             try {
                 const result = await safeApiCall('/api/save_intake', {
-                    body: { vegetables, fruits, meat, eggs }
+                    body: { vegetables, fruits, meat, eggs, meal_type: 'snack', source: 'manual' }
                 });
                 
                 if (result.success) {
@@ -2622,6 +3761,17 @@
             }
         }
         
+        function getPerMealIntakePortions() {
+            const group = (appData && appData.population_group) || 'adults';
+            const portionsByGroup = {
+                adults: { vegetables: 200, fruits: 110, meat: 45, eggs: 20 },
+                teens: { vegetables: 180, fruits: 110, meat: 45, eggs: 30 },
+                children: { vegetables: 150, fruits: 90, meat: 30, eggs: 20 },
+                elderly: { vegetables: 150, fruits: 90, meat: 30, eggs: 20 }
+            };
+            return portionsByGroup[group] || portionsByGroup.adults;
+        }
+
         // 第1-2次生成：只自动录入摄入数据，不评估
         // ==================== 自动录入摄入数据（简化版 - 完全照搬Python逻辑）====================
         async function autoIntakeOnly(ingredients, peopleNum, count) {
@@ -2647,13 +3797,12 @@
                 let meat = 0;
                 let eggs = 0;
                 
-                // 🔑 关键修复：根据WHO标准调整基础份量（符合实际用餐情况）
-                // WHO成人每日推荐：蔬菜400-800g, 水果200-400g, 肉类50-150g, 蛋类30-70g
-                // 实际每餐份量（三餐累加不超过推荐上限）
-                const baseVeg = 200;   // 每餐200g蔬菜（全天600g，在400-800范围内）
-                const baseFruit = 120; // 每餐120g水果（全天360g，在200-400范围内）
-                const baseMeat = 80;   // 每餐80g肉类（全天240g，略高但符合中国饮食习惯）
-                const baseEgg = 30;    // 每餐30g蛋类（全天90g，略高但可接受）
+                // 按“每人每餐”估算，营养评估标准是每人每天，不能乘用餐人数。
+                const perMealPortions = getPerMealIntakePortions();
+                const baseVeg = perMealPortions.vegetables;
+                const baseFruit = perMealPortions.fruits;
+                const baseMeat = perMealPortions.meat;
+                const baseEgg = perMealPortions.eggs;
                 
                 // 遍历每个食材，用关键词匹配分类
                 for (const food of ingredientList) {
@@ -2754,7 +3903,9 @@
                         vegetables,
                         fruits,
                         meat,
-                        eggs
+                        eggs,
+                        meal_type: ['breakfast', 'lunch', 'dinner'][count - 1] || 'snack',
+                        source: 'recipe'
                     }
                 });
                         
@@ -2785,26 +3936,27 @@
             let fruits = 0;
             let meat = 0;
             let eggs = 0;
+            const perMealPortions = getPerMealIntakePortions();
                     
             ingredientList.forEach(ingredient => {
                 if (/[菜萝卜瓜笋菇豆葱姜蒜辣椒]/.test(ingredient)) {
-                    vegetables += 200;
+                    vegetables += perMealPortions.vegetables;
                 } else if (/苹果|香蕉|梨|桃|葡萄|橙|柚/.test(ingredient)) {
-                    fruits += 150;
+                    fruits += perMealPortions.fruits;
                 } else if (ingredient.includes('蛋')) {
-                    eggs += 50;
+                    eggs += perMealPortions.eggs;
                 } else if (/[猪牛羊鸡鸭鱼虾肉]/.test(ingredient)) {
-                    meat += 150;
+                    meat += perMealPortions.meat;
                 }
             });
-                    
-            vegetables *= peopleNum;
-            fruits *= peopleNum;
-            meat *= peopleNum;
-            eggs *= peopleNum;
+            // peopleNum 只用于食谱份量和环保统计；营养摄入记录保持每人每日口径。
                     
             const saveResult = await safeApiCall('/api/save_intake', {
-                body: { vegetables, fruits, meat, eggs }
+                body: {
+                    vegetables, fruits, meat, eggs,
+                    meal_type: ['breakfast', 'lunch', 'dinner'][count - 1] || 'snack',
+                    source: 'recipe'
+                }
             });
                     
             if (saveResult.success) {
@@ -2842,11 +3994,12 @@
                 let meat = 0;
                 let eggs = 0;
                 
-                // 🔑 关键修复：根据WHO标准调整基础份量（符合实际用餐情况）
-                const baseVeg = 200;   // 每餐200g蔬菜
-                const baseFruit = 120; // 每餐120g水果
-                const baseMeat = 80;   // 每餐80g肉类
-                const baseEgg = 30;    // 每餐30g蛋类
+                // 按“每人每餐”估算，保持与前两餐自动录入口径一致。
+                const perMealPortions = getPerMealIntakePortions();
+                const baseVeg = perMealPortions.vegetables;
+                const baseFruit = perMealPortions.fruits;
+                const baseMeat = perMealPortions.meat;
+                const baseEgg = perMealPortions.eggs;
                 
                 // 遍历每个食材，用关键词匹配分类
                 for (const food of ingredientList) {
@@ -2947,7 +4100,9 @@
                         vegetables,
                         fruits,
                         meat,
-                        eggs
+                        eggs,
+                        meal_type: 'dinner',
+                        source: 'recipe'
                     }
                 });
                         
@@ -3047,6 +4202,12 @@
 
             if (!message) return;
 
+            // 禁用发送按钮，防止重复点击
+            const btn = document.getElementById('chat-send-btn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>';
+
             // 添加用户消息
             addChatMessage(message, 'user');
             input.value = '';
@@ -3081,15 +4242,10 @@
                         throw new Error(data.error);
                     }
                     if (data.done) {
-                        fullContent = data.full_content || fullContent;
+                        fullContent = data.full_content || data.content || fullContent;
                         // 更新历史记录中的文本
                         if (aiMsgEl) {
                             aiMsgEl.innerHTML = formatMarkdown(fullContent);
-                        }
-                        // 更新appData中的chat_history
-                        const historyEntry = appData.chat_history.find(h => h.id === aiMsgId);
-                        if (historyEntry) {
-                            historyEntry.text = fullContent;
                         }
                     } else if (data.content && aiMsgEl) {
                         fullContent += data.content;
@@ -3100,14 +4256,16 @@
                     }
                 }
 
-                await saveData();
-
             } catch (error) {
                 const aiMsgEl = document.getElementById(aiMsgId);
                 if (aiMsgEl && (!fullContent || fullContent === aiThinkingText)) {
-                    aiMsgEl.innerHTML = '❌ 网络错误,请重试';
+                    const errMsg = window.i18n ? window.i18n.t('common.network_error_retry') : '❌ Network error, please retry';
+                    aiMsgEl.innerHTML = errMsg;
                 }
-                await saveData();
+            } finally {
+                // 🔑 关键修复：流式输出完成后恢复按钮
+                btn.disabled = false;
+                btn.innerHTML = originalText;
             }
         }
 
@@ -3123,6 +4281,8 @@
                 border-radius: 16px;
                 max-width: 80%;
                 word-wrap: break-word;
+                overflow-wrap: break-word;
+                word-break: break-word;
                 animation: fadeInUp 0.3s ease-out;
             `;
             
@@ -3151,70 +4311,8 @@
             }
             container.appendChild(msgDiv);
             container.scrollTop = container.scrollHeight;
-            
-            // 🔑 关键修复：保存消息到历史记录
-            appData.chat_history.push({ text, sender, id: msgId });
-            
+
             return msgId;
-        }
-
-        // 🔑 关键修复：恢复聊天历史
-        function restoreChatHistory() {
-            const container = document.getElementById('chat-messages');
-            if (!container) return;
-            
-            // 清空当前显示
-            container.innerHTML = '';
-            
-            // 恢复保存的历史
-            if (appData.chat_history && appData.chat_history.length > 0) {
-                appData.chat_history.forEach(msg => {
-                    addChatMessageWithoutSave(msg.text, msg.sender);
-                });
-            }
-        }
-
-        // 不保存的添加消息版本（用于恢复历史时避免重复保存）
-        function addChatMessageWithoutSave(text, sender) {
-            const container = document.getElementById('chat-messages');
-            const msgDiv = document.createElement('div');
-            const msgId = 'msg-' + Date.now();
-            msgDiv.id = msgId;
-            
-            msgDiv.style.cssText = `
-                margin: 12px 0;
-                padding: 12px 16px;
-                border-radius: 16px;
-                max-width: 80%;
-                word-wrap: break-word;
-                animation: fadeInUp 0.3s ease-out;
-            `;
-            
-            if (sender === 'user') {
-                msgDiv.style.cssText += `
-                    background: linear-gradient(135deg, var(--primary), var(--secondary));
-                    color: white;
-                    margin-left: auto;
-                    border-bottom-right-radius: 4px;
-                `;
-            } else {
-                msgDiv.style.cssText += `
-                    background: rgba(255, 255, 255, 0.8);
-                    color: var(--text-primary);
-                    margin-right: auto;
-                    border-bottom-left-radius: 4px;
-                    line-height: 1.6;
-                `;
-            }
-                    
-            // AI 消息使用 innerHTML 以支持 Markdown 格式化
-            if (sender === 'ai') {
-                msgDiv.innerHTML = formatMarkdown(text);
-            } else {
-                msgDiv.textContent = text;
-            }
-            container.appendChild(msgDiv);
-            container.scrollTop = container.scrollHeight;
         }
 
         // ==================== 智能冰箱功能 ====================
@@ -3300,6 +4398,67 @@
         }
 
         // ==================== 采购清单功能 ====================
+        const SHOPPING_REGION_KEY = 'fgai_shopping_region';
+
+        function initializeShoppingRegion() {
+            updateShoppingProvinceLabels();
+            const accountPreference = appData.shopping_preferences || {};
+            if (accountPreference.province) document.getElementById('shopping-province').value = accountPreference.province;
+            if (accountPreference.city) document.getElementById('shopping-city').value = accountPreference.city;
+            try {
+                const saved = JSON.parse(localStorage.getItem(SHOPPING_REGION_KEY) || '{}');
+                if (!accountPreference.province && saved.province) document.getElementById('shopping-province').value = saved.province;
+                if (!accountPreference.city && saved.city) document.getElementById('shopping-city').value = saved.city;
+            } catch (error) {
+                console.warn('无法读取采购地区偏好:', error);
+            }
+            updateShoppingBudgetFields();
+        }
+
+        function updateShoppingProvinceLabels() {
+            const select = document.getElementById('shopping-province');
+            if (!select) return;
+            const isEnglish = window.i18n && window.i18n.getCurrentLanguage() === 'en-US';
+            Array.from(select.options).forEach(option => {
+                if (!option.value) return;
+                option.textContent = isEnglish && option.dataset.en ? option.dataset.en : option.value;
+            });
+        }
+
+        function updateShoppingBudgetFields() {
+            const enabled = document.getElementById('shopping-budget').checked;
+            const panel = document.getElementById('shopping-location-panel');
+            const province = document.getElementById('shopping-province');
+            const city = document.getElementById('shopping-city');
+            panel.hidden = !enabled;
+            province.disabled = !enabled;
+            city.disabled = !enabled;
+            province.required = enabled;
+        }
+
+        async function rememberShoppingRegion() {
+            const preference = {
+                province: document.getElementById('shopping-province').value,
+                city: document.getElementById('shopping-city').value.trim()
+            };
+            try {
+                localStorage.setItem(SHOPPING_REGION_KEY, JSON.stringify(preference));
+            } catch (error) {
+                console.warn('无法保存采购地区偏好:', error);
+            }
+            appData.shopping_preferences = {
+                ...(appData.shopping_preferences || {}),
+                ...preference
+            };
+            if (currentUser) {
+                try {
+                    await safeApiCall('/api/shopping/preferences', { body: preference });
+                } catch (error) {
+                    console.warn('账号采购地区同步失败:', error);
+                }
+            }
+        }
+
         async function generateShoppingList() {
             const dishes = document.getElementById('shopping-dishes').value.trim();
             if (!dishes) {
@@ -3310,6 +4469,16 @@
 
             const peopleNum = parseInt(document.getElementById('shopping-people').value) || 3;
             const includeBudget = document.getElementById('shopping-budget').checked;
+            const province = document.getElementById('shopping-province').value;
+            const city = document.getElementById('shopping-city').value.trim();
+            if (includeBudget && !province) {
+                const msg = window.i18n ? window.i18n.t('shopping.region_required') : '请选择预算估算地区';
+                showToast(msg);
+                document.getElementById('shopping-province').focus();
+                return;
+            }
+            const shoppingRegion = [province, city].filter(Boolean).join(' ');
+            if (includeBudget) await rememberShoppingRegion();
 
             const btn = document.getElementById('shopping-btn');
             btn.disabled = true;
@@ -3319,8 +4488,11 @@
             // 提前显示结果容器
             const resultContainer = document.getElementById('shopping-result-container');
             resultContainer.style.display = 'block';
+            const priceFeedback = document.getElementById('shopping-price-feedback');
+            if (priceFeedback) priceFeedback.style.display = includeBudget ? 'block' : 'none';
             const resultDiv = document.getElementById('shopping-result');
-            resultDiv.innerHTML = '<div class="result-box"><span class="loading"></span> AI 正在生成采购清单...</div>';
+            const shoppingMsg = window.i18n ? window.i18n.t('common.ai_generating_shopping') : 'AI is generating shopping list...';
+            resultDiv.innerHTML = '<div class="result-box"><span class="loading"></span> ' + shoppingMsg + '</div>';
 
             try {
                 const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
@@ -3332,6 +4504,9 @@
                         dishes,
                         people_num: peopleNum,
                         include_budget: includeBudget,
+                        shopping_region: shoppingRegion,
+                        shopping_province: province,
+                        shopping_city: city,
                         language: currentLanguage
                     })
                 });
@@ -3348,10 +4523,10 @@
                         throw new Error(data.error);
                     }
                     if (data.done) {
-                        fullContent = data.full_content || fullContent;
+                        fullContent = data.full_content || data.content || fullContent;
                         resultDiv.innerHTML = `
                             <div class="result-box" style="padding: 20px; background: rgba(255,255,255,0.9); border-radius: 12px; border: 1px solid var(--card-border); line-height: 1.8;">
-                                ${fullContent.replace(/\n/g, '<br>')}
+                                ${formatMarkdown(fullContent)}
                             </div>
                         `;
                         const msg = window.i18n ? window.i18n.t('common.shopping_list_generated') : '✅ 购物清单生成成功';
@@ -3364,7 +4539,7 @@
                         // 流式更新内容
                         resultDiv.innerHTML = `
                             <div class="result-box" style="padding: 20px; background: rgba(255,255,255,0.9); border-radius: 12px; border: 1px solid var(--card-border); line-height: 1.8;">
-                                ${fullContent.replace(/\n/g, '<br>')}
+                                ${formatMarkdown(fullContent)}
                             </div>
                         `;
                         resultDiv.scrollTop = resultDiv.scrollHeight;
@@ -3381,7 +4556,7 @@
             }
         }
 
-        // ==================== 今日饮食推荐 ====================
+        // ==================== 明日饮食推荐 ====================
         
         /**
          * 🌐 获取当前语言设置
@@ -3399,14 +4574,15 @@
 
             btn.disabled = true;
             const originalText = btn.innerHTML;
-            const btnText = window.i18n ? window.i18n.t('common.generating_recommendation') : '🍽️ 正在为您生成今日饮食推荐...';
+            const btnText = window.i18n ? window.i18n.t('common.generating_recommendation') : '🍽️ 正在为您生成明日饮食推荐...';
             btn.innerHTML = '<span class="loading"></span> ' + btnText;
 
             // 提前显示结果容器
             const resultContainer = document.getElementById('daily-rec-result-container');
             resultContainer.style.display = 'block';
             const contentDiv = document.getElementById('daily-recommendation-content');
-            contentDiv.innerHTML = '<span class="loading"></span> AI 正在生成推荐...';
+            const recMsg = window.i18n ? window.i18n.t('common.ai_generating_rec') : 'AI is generating recommendation...';
+            contentDiv.innerHTML = '<span class="loading"></span> ' + recMsg;
 
             try {
                 const currentLang = getCurrentLanguage();
@@ -3429,9 +4605,9 @@
                         throw new Error(data.error);
                     }
                     if (data.done) {
-                        fullContent = data.full_content || fullContent;
+                        fullContent = data.full_content || data.content || fullContent;
                         contentDiv.innerHTML = formatMarkdown(fullContent);
-                        const msg = window.i18n ? window.i18n.t('common.daily_rec_generated') : '✅ 今日推荐生成成功';
+                        const msg = window.i18n ? window.i18n.t('common.daily_rec_generated') : '✅ 明日推荐生成成功';
                         showToast(msg);
                         setTimeout(() => {
                             resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -3491,22 +4667,37 @@
         }
 
         // ==================== 首页保存摄入 ====================
+        function initializeMealType() {
+            const select = document.getElementById('intake-meal-type-home');
+            if (!select) return;
+            const hour = new Date().getHours();
+            select.value = hour < 10 ? 'breakfast' : hour < 15 ? 'lunch' : hour < 21 ? 'dinner' : 'snack';
+        }
+
+        function getMealLabel(mealType) {
+            const key = ['breakfast', 'lunch', 'dinner', 'snack'].includes(mealType) ? mealType : 'snack';
+            const fallback = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐', snack: '加餐' };
+            return window.i18n ? window.i18n.t(`home.meal_${key}`) : fallback[key];
+        }
+
         async function saveIntakeHome() {
             const vegetables = parseInt(document.getElementById('intake-vegetables-home').value) || 0;
             const fruits = parseInt(document.getElementById('intake-fruits-home').value) || 0;
             const meat = parseInt(document.getElementById('intake-meat-home').value) || 0;
             const eggs = parseInt(document.getElementById('intake-eggs-home').value) || 0;
+            const mealType = document.getElementById('intake-meal-type-home').value;
 
             console.log('💾 saveIntakeHome - 用户输入的值:', { vegetables, fruits, meat, eggs });
 
             try {
                 const result = await safeApiCall('/api/save_intake', {
-                    body: { vegetables, fruits, meat, eggs }
+                    body: { vegetables, fruits, meat, eggs, meal_type: mealType, source: 'manual' }
                 });
 
                 if (result.success) {
                     console.log('✅ 保存成功，后端返回的总和:', result.total_intake);
-                    const msg = window.i18n ? window.i18n.t('common.intake_saved') : '✅ 摄入数据已保存';
+                    const template = window.i18n ? window.i18n.t('common.meal_saved') : '{meal}已保存';
+                    const msg = template.replace('{meal}', getMealLabel(mealType));
                     showToast(msg);
                                     
                     //  关键修复：不再清空输入框，而是重新加载数据显示今日总和
@@ -3520,15 +4711,15 @@
                         });
                     }
                                     
-                    // 🔧 新增：检查今日记录数，如果超过3条则提示用户
+                    // 🔐 真实数据保存：反馈今日累计记录条数（不限条数，全部保留到账号数据库）
                     const today = getChinaDate();
                     const currentData = await loadData();
                     const todayRecords = (currentData.daily_intake_records || []).filter(r => r.date === today);
-                    if (todayRecords.length >= 3) {
-                        const limitMsg = window.i18n 
-                            ? '⚠️ 今日已达3条记录上限，新记录将替换最旧的记录'
-                            : '⚠️ Today has reached the 3-record limit. New records will replace the oldest one.';
-                        setTimeout(() => showToast(limitMsg), 1000);
+                    if (todayRecords.length > 0) {
+                        const countMsg = window.i18n
+                            ? `📊 今日已累计 ${todayRecords.length} 条摄入记录，全部真实保存`
+                            : `📊 ${todayRecords.length} records logged today, all saved to your account`;
+                        setTimeout(() => showToast(countMsg), 1000);
                     }
                 }
             } catch (error) {
@@ -3615,6 +4806,7 @@
                     // 🌐 获取表头的国际化文本
                     const noText = window.i18n ? window.i18n.t('home.seq_header') : '序号';
                     const timeText = window.i18n ? window.i18n.t('home.time_header') : '时间';
+                    const mealText = window.i18n ? window.i18n.t('home.meal_header') : '餐次';
                     const vegText = window.i18n ? window.i18n.t('home.vegetables_header') : '蔬菜(g)';
                     const fruText = window.i18n ? window.i18n.t('home.fruits_header') : '水果(g)';
                     const meatText = window.i18n ? window.i18n.t('home.meat_header') : '肉类(g)';
@@ -3626,6 +4818,7 @@
                     html += '<thead><tr style="background: var(--primary); color: white;">';
                     html += `<th style="padding: 10px;">${noText}</th>`;
                     html += `<th style="padding: 10px;">${timeText}</th>`;
+                    html += `<th style="padding: 10px;">${mealText}</th>`;
                     html += `<th style="padding: 10px;">${vegText}</th>`;
                     html += `<th style="padding: 10px;">${fruText}</th>`;
                     html += `<th style="padding: 10px;">${meatText}</th>`;
@@ -3640,6 +4833,12 @@
                         html += '<tr style="border-bottom: 1px solid #eee;">';
                         html += `<td style="padding: 8px; text-align: center;">${index + 1}</td>`;
                         html += `<td style="padding: 8px; text-align: center;">${record.time}</td>`;
+                        html += `<td style="padding: 8px; text-align: center;">`;
+                        html += `<select id="edit-meal-${originalIndex}" style="min-width: 76px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">`;
+                        ['breakfast', 'lunch', 'dinner', 'snack'].forEach(type => {
+                            html += `<option value="${type}" ${record.meal_type === type ? 'selected' : ''}>${getMealLabel(type)}</option>`;
+                        });
+                        html += `</select></td>`;
                         
                         // 🆕 关键改进：使用可编辑的输入框，让用户可以手动修改
                         html += `<td style="padding: 8px; text-align: center;">`;
@@ -3718,6 +4917,7 @@
                 const fruits = parseInt(document.getElementById(`edit-fru-${index}`).value) || 0;
                 const meat = parseInt(document.getElementById(`edit-meat-${index}`).value) || 0;
                 const eggs = parseInt(document.getElementById(`edit-egg-${index}`).value) || 0;
+                const mealType = document.getElementById(`edit-meal-${index}`).value;
                 
                 console.log(`💾 保存编辑记录 ${index}:`, { vegetables, fruits, meat, eggs });
                 
@@ -3725,7 +4925,7 @@
                 const response = await fetch(`/api/intake/update/${index}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ vegetables, fruits, meat, eggs })
+                    body: JSON.stringify({ vegetables, fruits, meat, eggs, meal_type: mealType })
                 });
                 
                 const result = await response.json();
@@ -4022,67 +5222,67 @@
             const btn = document.getElementById('recognize-btn');
             btn.disabled = true;
             const recognizingText = window.i18n ? window.i18n.t('common.ai_recognizing') : 'AI 识别中...';
-            btn.innerHTML = '<span class="loading"></span> ' + recognizingText;
+            btn.innerHTML = '<span class=”loading”></span> ' + recognizingText;
 
-            try {
-                // 将图片转换为 base64
-                const reader = new FileReader();
-                reader.onload = async function(e) {
+            // 将图片转换为 base64
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
                     const base64Data = e.target.result.split(',')[1];
-                    
+
                     const response = await fetch('/api/image_recognize', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
+                        body: JSON.stringify({
                             image_base64: base64Data,
                             language: getCurrentLanguage()  // 🌐 传递当前语言设置
                         })
                     });
 
                     const result = await response.json();
-                    
+
                     if (result.success) {
                         recognizedIngredients = result.ingredients;
-                        
+
                         console.log('\n📸 [拍照识别] AI返回结果:');
                         console.log('   原始文本:', recognizedIngredients);
                         console.log('   长度:', recognizedIngredients.length, '字符');
-                        
+
                         document.getElementById('recognition-result').style.display = 'block';
-                        
+
                         // 🆕 填充可编辑的食材输入框
                         const ingredientsInput = document.getElementById('recognized-ingredients-input');
                         if (ingredientsInput) {
                             ingredientsInput.value = recognizedIngredients;
                         }
-                        
-                        const recognitionMsg = window.i18n ? window.i18n.t('common.ai_recognition_complete') : '✅ AI识别完成！请检查上方食材列表，如有不准确可以手动修改，然后点击“确认并录入摄入数据”按钮。';
+
+                        const recognitionMsg = window.i18n ? window.i18n.t('common.ai_recognition_complete') : '✅ AI识别完成！请检查上方食材列表，如有不准确可以手动修改，然后点击”确认并录入摄入数据”按钮。';
                         document.getElementById('recognition-content').textContent = recognitionMsg;
-                        
+
                         // 自动填入智能食谱页面
                         const customIngredientsInput = document.getElementById('custom-ingredients');
                         if (customIngredientsInput) {
                             customIngredientsInput.value = recognizedIngredients;
                         }
-                        
+
                         const confirmMsg = window.i18n ? window.i18n.t('common.recognition_completed_confirm') : '✅ 识别成功，请确认或修改食材';
                         showToast(confirmMsg);
                     } else {
                         console.error('❌ AI识别失败:', result.error);
                         showToast(handleApiError(result.error));
                     }
-                };
-                reader.readAsDataURL(selectedImageFile);
-            } catch (error) {
-                const msg = window.i18n ? window.i18n.t('common.recognition_failed_retry') : '❌ 识别失败，请重试';
-                showToast(msg);
-                console.error(error);
-            } finally {
-                btn.disabled = false;
-                // 🌐 修复：根据当前语言设置按钮文本
-                const btnText = window.i18n ? window.i18n.t('camera.recognize_button') : '🔍 开始识别';
-                btn.innerHTML = btnText;
-            }
+                } catch (error) {
+                    const msg = window.i18n ? window.i18n.t('common.recognition_failed_retry') : '❌ 识别失败，请重试';
+                    showToast(msg);
+                    console.error(error);
+                } finally {
+                    // 🔑 修复：按钮在 fetch 完成后再恢复
+                    btn.disabled = false;
+                    const btnText = window.i18n ? window.i18n.t('camera.recognize_button') : '🔍 开始识别';
+                    btn.innerHTML = btnText;
+                }
+            };
+            reader.readAsDataURL(selectedImageFile);
         }
 
         // ==================== 语音交互功能 ====================
@@ -4412,7 +5612,7 @@
                         throw new Error(data.error);
                     }
                     if (data.done) {
-                        fullContent = data.full_content || fullContent;
+                        fullContent = data.full_content || data.content || fullContent;
                         displayEl.value = '✅ AI 回答：\n\n问题：' + voiceRecognizedText + '\n\n' + fullContent;
                         const msg = window.i18n ? window.i18n.t('common.operation_success') : '✅ AI 已回答';
                         showToast(msg);
@@ -4424,8 +5624,9 @@
                     }
                 }
             } catch (error) {
-                displayEl.value = '❌ 网络错误：' + error.message;
-                const msg = window.i18n ? window.i18n.t('common.network_error_retry') : '❌ 网络错误';
+                const isZh = window.i18n ? window.i18n.getCurrentLanguage() === 'zh-CN' : true;
+                displayEl.value = (isZh ? '❌ 网络错误：' : '❌ Network error: ') + error.message;
+                const msg = window.i18n ? window.i18n.t('common.network_error_retry') : '❌ Network error';
                 showToast(msg);
             } finally {
                 buttons.forEach(btn => btn.disabled = false);
@@ -4438,6 +5639,309 @@
 
                 voiceRecognizedText = '';
             }
+        }
+
+        // ==================== 账号系统 ====================
+        let currentUser = null;      // 当前登录用户 {id, username} | null（游客）
+        let authMode = 'login';      // 'login' | 'register'
+        let authEnabled = false;     // 服务器是否启用账号系统（配置了数据库即启用）
+        const AUTH_LAST_USERNAME_KEY = 'fgai_last_username';
+
+        // 后端错误消息 → i18n key 映射（与 handleApiError 模式一致）
+        const AUTH_ERROR_MAP = {
+            '服务器未配置数据库': 'auth.error_db_not_configured',
+            '数据库连接失败': 'auth.error_db_down',
+            '该用户名已被注册': 'auth.error_user_exists',
+            '没有该账号': 'auth.error_account_not_found',
+            '密码错误': 'auth.error_password_wrong',
+            '登录失败次数过多': 'auth.error_too_many_attempts',
+            '账号或恢复码不正确': 'auth.error_recovery_invalid',
+            '用户名或密码错误': 'auth.error_wrong_credentials',
+            '密码长度至少': 'auth.error_short_password',
+            '用户名需为': 'auth.error_invalid_username'
+        };
+
+        function translateAuthError(msg) {
+            if (window.i18n && msg) {
+                for (const [cn, key] of Object.entries(AUTH_ERROR_MAP)) {
+                    if (msg.includes(cn)) return window.i18n.t(key);
+                }
+            }
+            return msg || '操作失败，请稍后重试';
+        }
+
+        function rememberAuthUsername(username) {
+            try {
+                if (username) localStorage.setItem(AUTH_LAST_USERNAME_KEY, username);
+            } catch (e) {
+                console.warn('无法记住账号:', e);
+            }
+        }
+
+        async function saveShoppingPriceFeedback() {
+            const actualPrice = parseFloat(document.getElementById('shopping-actual-price').value);
+            const province = document.getElementById('shopping-province').value;
+            const city = document.getElementById('shopping-city').value.trim();
+            const region = [province, city].filter(Boolean).join(' ');
+            if (!Number.isFinite(actualPrice) || actualPrice <= 0) {
+                showToast(window.i18n ? window.i18n.t('shopping.actual_price_invalid') : '请输入有效的实际总价');
+                return;
+            }
+            try {
+                const result = await safeApiCall('/api/shopping/price-feedback', {
+                    body: {
+                        actual_total: actualPrice,
+                        region,
+                        dishes: document.getElementById('shopping-dishes').value.trim(),
+                        people_num: parseInt(document.getElementById('shopping-people').value) || 1
+                    }
+                });
+                if (result.success) {
+                    document.getElementById('shopping-actual-price').value = '';
+                    showToast(window.i18n ? window.i18n.t('shopping.actual_price_saved') : '实际价格已保存，将用于下次校准');
+                    await loadData();
+                }
+            } catch (error) {
+                showToast(window.i18n ? window.i18n.t('common.save_failed') : '保存失败');
+            }
+        }
+
+        function getRememberedAuthUsername() {
+            try {
+                return localStorage.getItem(AUTH_LAST_USERNAME_KEY) || '';
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function updateAuthUI() {
+            const icon = document.getElementById('auth-icon');
+            const btn = document.getElementById('auth-btn');
+            if (!icon || !btn) return;
+            if (currentUser) {
+                icon.textContent = '😊';
+                btn.title = currentUser.username;
+            } else {
+                icon.textContent = '👤';
+                btn.title = window.i18n ? window.i18n.t('auth.login_title') : '账号登录';
+            }
+        }
+
+        function handleAuthButtonClick() {
+            openAuthModal();
+        }
+
+        function openAuthModal() {
+            document.getElementById('auth-modal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            document.getElementById('auth-error').textContent = '';
+            const loggedView = document.getElementById('auth-logged-view');
+            const formView = document.getElementById('auth-form-view');
+            document.getElementById('auth-recovery-view').style.display = 'none';
+
+            // 🔐 强制登录模式（账号系统已启用且未登录）：隐藏关闭按钮 + 切换提示文案
+            const forced = authEnabled && !currentUser;
+            const closeBtn = document.getElementById('auth-close-btn');
+            if (closeBtn) closeBtn.style.display = forced ? 'none' : 'block';
+            const hint = document.getElementById('auth-guest-hint');
+            if (hint) {
+                hint.textContent = window.i18n
+                    ? window.i18n.t(forced ? 'auth.required_hint' : 'auth.guest_hint')
+                    : (forced ? '🔐 请登录或注册后开始使用' : '💡 游客模式下数据仅保存在本机，登录后云端同步');
+            }
+
+            if (currentUser) {
+                loggedView.style.display = 'block';
+                formView.style.display = 'none';
+                document.getElementById('auth-logged-username').textContent = currentUser.username || '';
+            } else {
+                loggedView.style.display = 'none';
+                formView.style.display = 'block';
+                switchAuthTab(authMode);
+                const usernameInput = document.getElementById('auth-username');
+                if (usernameInput && !usernameInput.value.trim()) {
+                    usernameInput.value = getRememberedAuthUsername();
+                }
+                requestAnimationFrame(() => {
+                    if (usernameInput) usernameInput.focus();
+                });
+            }
+        }
+
+        function tryCloseAuthModal() {
+            // 🔐 强制登录模式：未登录不可关闭（点击遮罩/❌ 均无效，必须登录或注册）
+            if (authEnabled && !currentUser) return;
+            closeAuthModal();
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function switchAuthTab(mode) {
+            authMode = mode;
+            const loginTab = document.getElementById('auth-tab-login');
+            const registerTab = document.getElementById('auth-tab-register');
+            const submitBtn = document.getElementById('auth-submit-btn');
+            const passwordInput = document.getElementById('auth-password');
+            const forgotButton = document.getElementById('auth-forgot-btn');
+            if (mode === 'login') {
+                loginTab.style.background = 'white';
+                registerTab.style.background = 'transparent';
+                submitBtn.textContent = window.i18n ? window.i18n.t('auth.login_button') : '🔑 登录';
+                if (passwordInput) passwordInput.autocomplete = 'current-password';
+                if (forgotButton) forgotButton.style.display = 'block';
+            } else {
+                registerTab.style.background = 'white';
+                loginTab.style.background = 'transparent';
+                submitBtn.textContent = window.i18n ? window.i18n.t('auth.register_button') : '✨ 创建账号';
+                if (passwordInput) passwordInput.autocomplete = 'new-password';
+                if (forgotButton) forgotButton.style.display = 'none';
+            }
+            document.getElementById('auth-error').textContent = '';
+        }
+
+        async function submitAuth() {
+            const username = document.getElementById('auth-username').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const errorEl = document.getElementById('auth-error');
+            const submitBtn = document.getElementById('auth-submit-btn');
+
+            if (!username || !password) {
+                errorEl.textContent = window.i18n ? window.i18n.t('auth.error_empty') : '请输入用户名和密码';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = window.i18n ? window.i18n.t('auth.processing') : '⏳ 处理中...';
+
+            try {
+                const response = await fetch(`/api/auth/${authMode}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    currentUser = result.user;
+                    rememberAuthUsername(currentUser && currentUser.username ? currentUser.username : username);
+                    updateAuthUI();
+                    const msg = authMode === 'login'
+                        ? (window.i18n ? window.i18n.t('auth.login_success') : '✅ 登录成功，已加载您的云端数据')
+                        : (window.i18n ? window.i18n.t('auth.register_success') : '🎉 注册成功，数据已开始云端同步！');
+                    // 🔧 时序修复：先等该账号云端数据完全加载并刷新 UI，再关闭弹窗（避免弹窗关闭后闪现旧账号数据）
+                    await loadData();
+                    tryCloseAuthModal();
+                    // 弹窗关闭后再在页面顶部提示，避免成功消息被登录遮罩挡住。
+                    showToast(msg);
+                    if (result.recovery_code) showRecoveryCode(result.recovery_code);
+                } else {
+                    errorEl.textContent = translateAuthError(result.error);
+                }
+            } catch (err) {
+                console.error('❌ 认证请求失败:', err);
+                errorEl.textContent = window.i18n ? window.i18n.t('auth.error_network') : '网络错误，请稍后重试';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = authMode === 'login'
+                    ? (window.i18n ? window.i18n.t('auth.login_button') : '登录')
+                    : (window.i18n ? window.i18n.t('auth.register_button') : '创建账号');
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                // 退出前先同步当前概览；每餐记录本身在保存时已立即入库。
+                await saveData();
+                await fetch('/api/auth/logout', { method: 'POST' });
+            } catch (e) {
+                console.warn('退出登录请求失败:', e);
+            }
+            currentUser = null;
+            updateAuthUI();
+            showToast(window.i18n ? window.i18n.t('auth.logout_success') : '👋 已退出登录');
+            // 🔧 时序修复：先等数据切换完成再处理弹窗（强制登录模式下 loadData 会自动重开登录门，游客模式才关闭）
+            await loadData();
+            tryCloseAuthModal();
+        }
+
+        function togglePasswordVisibility(inputId, button) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const shouldShow = input.type === 'password';
+            input.type = shouldShow ? 'text' : 'password';
+            button.textContent = window.i18n
+                ? window.i18n.t(shouldShow ? 'auth.hide_password' : 'auth.show_password')
+                : (shouldShow ? '隐藏' : '显示');
+        }
+
+        function openRecoveryView() {
+            document.getElementById('auth-form-view').style.display = 'none';
+            document.getElementById('auth-recovery-view').style.display = 'block';
+            document.getElementById('recovery-username').value =
+                document.getElementById('auth-username').value.trim() || getRememberedAuthUsername();
+            document.getElementById('recovery-error').textContent = '';
+        }
+
+        function closeRecoveryView() {
+            document.getElementById('auth-recovery-view').style.display = 'none';
+            document.getElementById('auth-form-view').style.display = 'block';
+            switchAuthTab('login');
+        }
+
+        async function submitPasswordRecovery() {
+            const username = document.getElementById('recovery-username').value.trim();
+            const recoveryCode = document.getElementById('recovery-code').value.trim();
+            const newPassword = document.getElementById('recovery-new-password').value;
+            const errorEl = document.getElementById('recovery-error');
+            if (!username || !recoveryCode || newPassword.length < 6) {
+                errorEl.textContent = window.i18n ? window.i18n.t('auth.recovery_fields_required') : '请填写完整，新密码至少 6 位';
+                return;
+            }
+            try {
+                const response = await fetch('/api/auth/recover', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username,
+                        recovery_code: recoveryCode,
+                        new_password: newPassword
+                    })
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    errorEl.textContent = translateAuthError(result.error);
+                    return;
+                }
+                rememberAuthUsername(username);
+                closeRecoveryView();
+                showToast(window.i18n ? window.i18n.t('auth.password_reset_success') : '密码重设成功，请使用新密码登录');
+                showRecoveryCode(result.recovery_code);
+            } catch (error) {
+                errorEl.textContent = window.i18n ? window.i18n.t('auth.error_network') : '网络错误，请稍后重试';
+            }
+        }
+
+        function showRecoveryCode(code) {
+            const modal = document.getElementById('recovery-code-modal');
+            document.getElementById('recovery-code-value').textContent = code || '';
+            modal.style.display = 'flex';
+        }
+
+        async function copyRecoveryCode() {
+            const code = document.getElementById('recovery-code-value').textContent;
+            try {
+                await navigator.clipboard.writeText(code);
+                showToast(window.i18n ? window.i18n.t('auth.recovery_code_copied') : '恢复码已复制');
+            } catch (error) {
+                showToast(code);
+            }
+        }
+
+        function closeRecoveryCodeModal() {
+            document.getElementById('recovery-code-modal').style.display = 'none';
         }
 
         // ==================== Toast提示 ====================
@@ -4462,12 +5966,11 @@
             }, 3000);
         }
 
-        // 页面加载时刷新冰箱列表和摄入表格
+        // 🔧 时序修复：摄入表格统一由初始化流程中的 loadData() 负责（内部已刷新），此处不再重复加载，避免双重刷新竞态闪烁
         window.addEventListener('load', () => {
             if (document.getElementById('page-fridge').classList.contains('active')) {
                 loadFridgeItems();
             }
-            loadTodayIntakeTable(); // 加载今日摄入表格
         });
     </script>
 </body>

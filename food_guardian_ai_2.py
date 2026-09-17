@@ -9,18 +9,27 @@ python food_guardian_ai_2.py
 访问地址: http://localhost:5000
 """
 
-from flask import Flask, render_template, request, jsonify, send_from_directory, Response, stream_with_context
+from flask import Flask, render_template, request, jsonify, send_from_directory, Response, stream_with_context, session, g
 import json
 import os
+import re
+import secrets
+import sqlite3
 import requests
 import sys
 import time
 import threading
+import uuid
 from datetime import datetime, timezone, timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 
-# 读取本地 .env 文件，确保本地运行时也能读取 API Key
-load_dotenv()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# 读取本地环境变量文件，确保本地运行时也能读取 API Key 和数据库配置
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+load_dotenv(os.path.join(BASE_DIR, '数据库.env'))
+load_dotenv(os.path.join(BASE_DIR, 'database.env'))
 
 # Windows 控制台默认 GBK 编码会导致 emoji 打印失败，统一设置为 UTF-8
 try:
@@ -38,20 +47,87 @@ def get_china_time():
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
+# 🔐 账号会话配置（生产环境请在 Vercel 环境变量中设置 SESSION_SECRET）
+app.secret_key = os.getenv('SESSION_SECRET', 'fgai-dev-secret-change-me')
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = bool(os.getenv('VERCEL'))  # Vercel 强制 HTTPS
+AUTH_INACTIVITY_TIMEOUT = timedelta(days=3)
+AUTH_FAILURE_WINDOW = timedelta(minutes=15)
+AUTH_LOCK_DURATION = timedelta(minutes=15)
+AUTH_MAX_FAILURES = 5
+app.config['PERMANENT_SESSION_LIFETIME'] = AUTH_INACTIVITY_TIMEOUT
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+
+_auth_failures = {}
+_auth_failures_lock = threading.Lock()
+
+
+@app.before_request
+def expire_inactive_session():
+    """账号连续 3 天无活动时自动退出，并在本次响应中标记过期原因。"""
+    if not session.get('user_id'):
+        return
+
+    now = get_china_time()
+    last_activity = session.get('last_activity_at')
+    try:
+        last_activity_time = datetime.fromisoformat(last_activity) if last_activity else None
+        if last_activity_time and last_activity_time.tzinfo is None:
+            last_activity_time = last_activity_time.replace(tzinfo=CHINA_TZ)
+    except (TypeError, ValueError):
+        last_activity_time = None
+
+    if not last_activity_time or now - last_activity_time >= AUTH_INACTIVITY_TIMEOUT:
+        try:
+            compact_user_storage(
+                session.get('user_id'),
+                session.get('auth_backend') or ('supabase' if is_db_configured() else 'local')
+            )
+        except Exception as exc:
+            print(f'⚠️ [Auth] 会话过期前数据整理失败: {exc}')
+        session.clear()
+        g.auth_session_expired = True
+        return
+
+    session['last_activity_at'] = now.isoformat()
+
+# ====================== Supabase 数据库配置 ======================
+SUPABASE_URL = (os.getenv('SUPABASE_URL') or '').rstrip('/')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY') or ''  # secret/service_role key，仅服务器端使用
+LOCAL_ACCOUNT_DB = os.getenv('LOCAL_ACCOUNT_DB') or os.path.join(BASE_DIR, 'fgai_accounts.db')
+
+def is_db_configured():
+    """是否已配置 Supabase 数据库"""
+    return bool(SUPABASE_URL and SUPABASE_KEY)
+
+def is_local_auth_enabled():
+    """本地桌面运行时的账号兜底库；Vercel 等只读环境禁用。"""
+    return (not os.getenv('VERCEL')) and os.getenv('ENABLE_LOCAL_ACCOUNTS', '1') != '0'
+
+def is_auth_enabled():
+    """前端是否应启用账号系统。"""
+    return is_db_configured() or is_local_auth_enabled()
+
 # ====================== AI API 全局配置 ======================
 ZHIPU_API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
 # 🔒 安全修复：必须使用环境变量，禁止硬编码 API Key
 ZHIPU_API_KEY = os.getenv("ZHIPU_API_KEY")
 ZHIPU_API_KEY_TEXT = os.getenv("ZHIPU_API_KEY_TEXT")
+TEXT_GENERATION_API_KEY = ZHIPU_API_KEY_TEXT or ZHIPU_API_KEY
 
 # 检查API密钥是否配置
-if not ZHIPU_API_KEY or not ZHIPU_API_KEY_TEXT:
+if not ZHIPU_API_KEY or not TEXT_GENERATION_API_KEY:
     print("\n⚠️  警告: 未检测到API密钥！")
     print("请在Vercel环境变量中配置 ZHIPU_API_KEY 和 ZHIPU_API_KEY_TEXT")
     print("或创建 .env 文件（仅本地开发使用）\n")
 
 API_TIMEOUT = 120
 API_MAX_RETRIES = 3
+AI_CONNECTION_ERROR_MESSAGE = (
+    "无法连接 AI 服务，请检查网络、防火墙或代理是否允许访问 "
+    "open.bigmodel.cn:443"
+)
 
 # 启用详细日志
 ENABLE_DETAILED_LOGS = True
@@ -94,52 +170,639 @@ INGREDIENT_MAP = INGREDIENT_DB.get('ingredient_map', {})
 
 MEAL_MULTIPLIERS = {'home': 1.0, 'healthy': 0.9, 'vegetarian': 0.85, 'banquet': 1.15}
 
-ENV_FACTORS = {'water_per_g': 0.5, 'co2_per_g': 0.003}
+ENV_FACTORS = {'water_per_g': 0.5, 'co2_per_g': 3.0}
 WASTE_RATIO = 0.25
 
-# ====================== 数据持久化 ======================
-def load_data():
-    """加载本地数据"""
-    # Vercel 环境使用内存存储（只读文件系统）
-    if os.getenv('VERCEL'):
-        return getattr(load_data, '_memory_data', {
-            'nickname': '', 
-            'waste_reduced': 0, 
-            'water_saved': 0, 
-            'co2_reduced': 0,
-            'population_group': 'adults',
-            'daily_intake_records': [],
-            'fridge_inventory': [],
-            'generation_count': 0,
-            'chat_history': []  # 🔑 新增：聊天历史
-        })
-    
-    # 本地环境使用文件存储
-    if os.path.exists('fgai_local_data.json'):
+# ====================== 账号系统 (Supabase REST API) ======================
+def build_supabase_headers(extra_headers=None):
+    """按 Supabase Key 类型构造请求头，兼容新版 secret key 和旧 JWT。"""
+    headers = {
+        'apikey': SUPABASE_KEY,
+        'Content-Type': 'application/json'
+    }
+    # sb_secret_/sb_publishable_ 是 API Key，不是 JWT，不能作为 Bearer token。
+    if not SUPABASE_KEY.startswith(('sb_secret_', 'sb_publishable_')):
+        headers['Authorization'] = f'Bearer {SUPABASE_KEY}'
+    if extra_headers:
+        headers.update(extra_headers)
+    return headers
+
+
+def db_request(method, path, params=None, json_body=None, extra_headers=None):
+    """调用 Supabase PostgREST API
+    返回: 解析后的 JSON (list/dict)，请求失败时返回 None（调用方据此降级）
+    """
+    url = f"{SUPABASE_URL}/rest/v1/{path}"
+    headers = build_supabase_headers(extra_headers)
+    try:
+        resp = requests.request(method, url, headers=headers, params=params,
+                                json=json_body, timeout=15)
+        if resp.status_code == 204:
+            return []
+        if resp.status_code not in (200, 201):
+            print(f"⚠️ [DB] {method} {path} → [{resp.status_code}] {resp.text[:200]}")
+            return None
+        return resp.json() if resp.text else []
+    except Exception as e:
+        print(f"⚠️ [DB] 请求异常: {e}")
+        return None
+
+
+def local_db_connect():
+    """连接本地账号数据库，并确保表结构存在。"""
+    conn = sqlite3.connect(LOCAL_ACCOUNT_DB)
+    conn.row_factory = sqlite3.Row
+    conn.execute('PRAGMA foreign_keys = ON')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    ''')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS user_data (
+            user_id TEXT PRIMARY KEY,
+            data TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    ''')
+    user_columns = {
+        row['name'] for row in conn.execute('PRAGMA table_info(users)').fetchall()
+    }
+    if 'recovery_hash' not in user_columns:
+        conn.execute('ALTER TABLE users ADD COLUMN recovery_hash TEXT')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS intake_records (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            record_date TEXT NOT NULL,
+            record_time TEXT NOT NULL,
+            meal_type TEXT NOT NULL DEFAULT 'snack',
+            vegetables REAL NOT NULL DEFAULT 0,
+            fruits REAL NOT NULL DEFAULT 0,
+            meat REAL NOT NULL DEFAULT 0,
+            eggs REAL NOT NULL DEFAULT 0,
+            source TEXT NOT NULL DEFAULT 'manual',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    ''')
+    conn.execute('''
+        CREATE INDEX IF NOT EXISTS idx_intake_records_user_date
+        ON intake_records(user_id, record_date)
+    ''')
+    conn.commit()
+    return conn
+
+
+def local_get_user_by_username(username):
+    """从本地 SQLite 账号库读取用户。"""
+    if not is_local_auth_enabled():
+        return None
+    conn = None
+    try:
+        conn = local_db_connect()
+        row = conn.execute(
+            'SELECT id, username, password_hash, recovery_hash FROM users WHERE username = ?',
+            (username,)
+        ).fetchone()
+        return dict(row) if row else None
+    except Exception as e:
+        print(f"⚠️ [LocalDB] 查询用户失败: {e}")
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+def local_create_user(username, password_hash, recovery_hash=None):
+    """在本地 SQLite 账号库创建用户。"""
+    if not is_local_auth_enabled():
+        return None
+    user = {
+        'id': str(uuid.uuid4()),
+        'username': username,
+        'password_hash': password_hash,
+        'recovery_hash': recovery_hash
+    }
+    conn = None
+    try:
+        conn = local_db_connect()
+        conn.execute(
+            '''INSERT INTO users
+               (id, username, password_hash, recovery_hash, created_at)
+               VALUES (?, ?, ?, ?, ?)''',
+            (user['id'], user['username'], user['password_hash'],
+             user['recovery_hash'], get_china_time().isoformat())
+        )
+        conn.commit()
+        return user
+    except sqlite3.IntegrityError:
+        return {'error': 'exists'}
+    except Exception as e:
+        print(f"⚠️ [LocalDB] 创建用户失败: {e}")
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+def local_load_user_data(user_id):
+    """读取本地账号专属数据。"""
+    if not is_local_auth_enabled():
+        return None
+    conn = None
+    try:
+        conn = local_db_connect()
+        row = conn.execute('SELECT data FROM user_data WHERE user_id = ?', (user_id,)).fetchone()
+        if not row:
+            return None
+        stored = json.loads(row['data'])
+        data = default_user_data()
+        if isinstance(stored, dict):
+            data.update(stored)
+        return data
+    except Exception as e:
+        print(f"⚠️ [LocalDB] 读取用户数据失败: {e}")
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+def local_save_user_data(user_id, data):
+    """写入本地账号专属数据。"""
+    if not is_local_auth_enabled():
+        return False
+    conn = None
+    try:
+        profile = dict(data) if isinstance(data, dict) else {}
+        # 每餐记录已拆分到 intake_records，用户概览 JSON 不再重复存放。
+        profile.pop('daily_intake_records', None)
+        conn = local_db_connect()
+        conn.execute(
+            '''
+            INSERT INTO user_data (user_id, data, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                data = excluded.data,
+                updated_at = excluded.updated_at
+            ''',
+            (user_id, json.dumps(profile, ensure_ascii=False), get_china_time().isoformat())
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"⚠️ [LocalDB] 保存用户数据失败: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+VALID_MEAL_TYPES = {'breakfast', 'lunch', 'dinner', 'snack'}
+
+
+def intake_date_bounds():
+    """返回滚动 7 天的最早日期和今日。"""
+    today = get_china_time().date()
+    return today - timedelta(days=6), today
+
+
+def infer_meal_type(record_time):
+    """为升级前的旧记录按时间补全餐次标签。"""
+    try:
+        hour = int(str(record_time or '12:00').split(':', 1)[0])
+    except (TypeError, ValueError):
+        hour = 12
+    if hour < 10:
+        return 'breakfast'
+    if hour < 15:
+        return 'lunch'
+    if hour < 21:
+        return 'dinner'
+    return 'snack'
+
+
+def normalize_intake_record(record, user_id='', position=0):
+    """清洗并补全单条摄入记录，保证旧数据可自动迁移。"""
+    if not isinstance(record, dict):
+        return None
+    record_date = str(record.get('date') or record.get('record_date') or '')[:10]
+    record_time = str(record.get('time') or record.get('record_time') or '00:00')[:5]
+    meal_type = str(record.get('meal_type') or infer_meal_type(record_time))
+    if meal_type not in VALID_MEAL_TYPES:
+        meal_type = infer_meal_type(record_time)
+    seed = '|'.join([
+        user_id, record_date, record_time, str(position),
+        str(record.get('vegetables', 0)), str(record.get('fruits', 0)),
+        str(record.get('meat', 0)), str(record.get('eggs', 0))
+    ])
+    record_id = str(record.get('id') or uuid.uuid5(uuid.NAMESPACE_URL, seed))
+
+    clean = {
+        'id': record_id,
+        'date': record_date,
+        'time': record_time,
+        'meal_type': meal_type,
+        'source': str(record.get('source') or 'manual')[:24]
+    }
+    for field in ('vegetables', 'fruits', 'meat', 'eggs'):
         try:
-            with open('fgai_local_data.json', 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except:
-            pass
+            amount = round(max(0, min(float(record.get(field, 0)), 100000)), 1)
+            clean[field] = int(amount) if amount.is_integer() else amount
+        except (TypeError, ValueError):
+            clean[field] = 0
+    return clean
+
+
+def local_load_intake_records(user_id):
+    """从独立摄入表读取当前账号近 7 天记录。"""
+    conn = None
+    try:
+        start, today = intake_date_bounds()
+        conn = local_db_connect()
+        conn.execute(
+            'DELETE FROM intake_records WHERE user_id = ? AND (record_date < ? OR record_date > ?)',
+            (user_id, start.isoformat(), today.isoformat())
+        )
+        rows = conn.execute(
+            '''SELECT id, record_date, record_time, meal_type, vegetables,
+                      fruits, meat, eggs, source
+               FROM intake_records
+               WHERE user_id = ?
+               ORDER BY record_date, record_time, created_at''',
+            (user_id,)
+        ).fetchall()
+        conn.commit()
+        return [{
+            'id': row['id'], 'date': row['record_date'], 'time': row['record_time'],
+            'meal_type': row['meal_type'], 'vegetables': row['vegetables'],
+            'fruits': row['fruits'], 'meat': row['meat'], 'eggs': row['eggs'],
+            'source': row['source']
+        } for row in rows]
+    except Exception as exc:
+        print(f'⚠️ [LocalDB] 读取摄入记录失败: {exc}')
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+def local_replace_intake_records(user_id, records):
+    """将近 7 天记录同步到独立数据表。"""
+    conn = None
+    try:
+        now = get_china_time().isoformat()
+        conn = local_db_connect()
+        conn.execute('DELETE FROM intake_records WHERE user_id = ?', (user_id,))
+        for position, raw in enumerate(records or []):
+            record = normalize_intake_record(raw, user_id, position)
+            if not record:
+                continue
+            conn.execute(
+                '''INSERT INTO intake_records
+                   (id, user_id, record_date, record_time, meal_type, vegetables,
+                    fruits, meat, eggs, source, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                (record['id'], user_id, record['date'], record['time'],
+                 record['meal_type'], record['vegetables'], record['fruits'],
+                 record['meat'], record['eggs'], record['source'], now, now)
+            )
+        conn.commit()
+        return True
+    except Exception as exc:
+        if conn:
+            conn.rollback()
+        print(f'⚠️ [LocalDB] 同步摄入记录失败: {exc}')
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def local_update_credentials(user_id, password_hash=None, recovery_hash=None):
+    """更新本地账号密码或恢复码哈希。"""
+    updates, values = [], []
+    if password_hash is not None:
+        updates.append('password_hash = ?')
+        values.append(password_hash)
+    if recovery_hash is not None:
+        updates.append('recovery_hash = ?')
+        values.append(recovery_hash)
+    if not updates:
+        return True
+    conn = None
+    try:
+        conn = local_db_connect()
+        values.append(user_id)
+        conn.execute(f"UPDATE users SET {', '.join(updates)} WHERE id = ?", values)
+        conn.commit()
+        return True
+    except Exception as exc:
+        print(f'⚠️ [LocalDB] 更新账号凭证失败: {exc}')
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def local_ensure_user_data_row(user_id, username):
+    """确保本地账号有一行数据。"""
+    if local_load_user_data(user_id) is not None:
+        return True
+    return local_save_user_data(user_id, build_initial_user_data(username))
+
+
+def get_current_user():
+    """获取当前登录用户（来自签名会话 Cookie）"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return None
+    return {'id': user_id, 'username': session.get('username', '')}
+
+
+def get_current_auth_backend():
+    """当前会话使用的账号后端：supabase 或 local。"""
+    return session.get('auth_backend') or ('supabase' if is_db_configured() else 'local')
+
+
+def default_user_data():
+    """新账号的默认数据结构"""
     return {
-        'nickname': '', 
-        'waste_reduced': 0, 
-        'water_saved': 0, 
+        'nickname': '',
+        'waste_reduced': 0,
+        'water_saved': 0,
         'co2_reduced': 0,
         'population_group': 'adults',
         'daily_intake_records': [],
         'fridge_inventory': [],
-        'generation_count': 0,  # 关键修复：添加计数器
-        'chat_history': []  # 🔑 新增：聊天历史
+        'generation_count': 0,
+        'shopping_preferences': {
+            'province': '',
+            'city': '',
+            'price_samples': []
+        }
     }
 
+
+def sanitize_persisted_user_data(data):
+    """只持久化应用需要跨设备保留的数据，聊天记录不入库。"""
+    clean = default_user_data()
+    if isinstance(data, dict):
+        for key in clean:
+            if key in data:
+                clean[key] = data[key]
+
+    # 摄入记录使用滚动 7 天窗口：今天及之前 6 天保留，第 8 天起自动删除。
+    today = get_china_time().date()
+    allowed_dates = {
+        (today - timedelta(days=i)).isoformat()
+        for i in range(7)
+    }
+    records = clean.get('daily_intake_records') or []
+    if isinstance(records, list):
+        normalized_records = []
+        for position, record in enumerate(records):
+            normalized = normalize_intake_record(record, position=position)
+            if normalized and normalized.get('date') in allowed_dates:
+                normalized_records.append(normalized)
+        clean['daily_intake_records'] = normalized_records
+    else:
+        clean['daily_intake_records'] = []
+
+    preferences = clean.get('shopping_preferences')
+    if not isinstance(preferences, dict):
+        preferences = {}
+    samples = preferences.get('price_samples')
+    if not isinstance(samples, list):
+        samples = []
+    clean['shopping_preferences'] = {
+        'province': str(preferences.get('province') or '')[:30],
+        'city': str(preferences.get('city') or '')[:30],
+        'price_samples': [s for s in samples[-20:] if isinstance(s, dict)]
+    }
+
+    return clean
+
+
+def build_initial_user_data(username):
+    """为新账号生成干净的初始数据，避免继承游客或其他账号的记录。"""
+    initial_data = default_user_data()
+    initial_data['nickname'] = username
+    return sanitize_persisted_user_data(initial_data)
+
+
+def ensure_user_data_row(user_id, username):
+    """确保登录用户有一行云端数据，避免旧账号登录后没有可加载的数据。"""
+    if get_current_auth_backend() == 'local':
+        return local_ensure_user_data_row(user_id, username)
+
+    rows = db_request('GET', 'user_data',
+                      params={'user_id': f'eq.{user_id}', 'select': 'user_id'})
+    if rows is None:
+        return False
+    if rows:
+        return True
+
+    created = db_request('POST', 'user_data',
+                         json_body=[{'user_id': user_id,
+                                     'data': build_initial_user_data(username),
+                                     'updated_at': get_china_time().isoformat()}],
+                         extra_headers={'Prefer': 'resolution=merge-duplicates'})
+    return created is not None
+
+
+def cloud_load_intake_records(user_id):
+    """读取 Supabase 独立摄入表；表未部署时返回 None 以便兼容旧 JSON。"""
+    start, today = intake_date_bounds()
+    rows = db_request('GET', 'intake_records', params={
+        'user_id': f'eq.{user_id}',
+        'record_date': f'gte.{start.isoformat()}',
+        'select': ('id,record_date,record_time,meal_type,vegetables,fruits,'
+                   'meat,eggs,source'),
+        'order': 'record_date.asc,record_time.asc,created_at.asc'
+    })
+    if rows is None:
+        return None
+    records = []
+    for position, row in enumerate(rows):
+        record = normalize_intake_record(row, user_id, position)
+        if record and start.isoformat() <= record['date'] <= today.isoformat():
+            records.append(record)
+    return records
+
+
+def cloud_replace_intake_records(user_id, records):
+    """把当前用户的滚动 7 天记录写入 Supabase 独立表。"""
+    now = get_china_time().isoformat()
+    payload = []
+    for position, raw in enumerate(records or []):
+        record = normalize_intake_record(raw, user_id, position)
+        if not record:
+            continue
+        payload.append({
+            'id': record['id'], 'user_id': user_id,
+            'record_date': record['date'], 'record_time': record['time'],
+            'meal_type': record['meal_type'], 'vegetables': record['vegetables'],
+            'fruits': record['fruits'], 'meat': record['meat'],
+            'eggs': record['eggs'], 'source': record['source'],
+            'created_at': now, 'updated_at': now
+        })
+    if payload:
+        written = db_request(
+            'POST', 'intake_records', json_body=payload,
+            extra_headers={'Prefer': 'resolution=merge-duplicates'}
+        )
+        if written is None:
+            return False
+        ids = ','.join(row['id'] for row in payload)
+        deleted = db_request('DELETE', 'intake_records', params={
+            'user_id': f'eq.{user_id}', 'id': f'not.in.({ids})'
+        })
+    else:
+        deleted = db_request('DELETE', 'intake_records', params={
+            'user_id': f'eq.{user_id}'
+        })
+    return deleted is not None
+
+
+def compact_user_storage(user_id, backend):
+    """在退出前清理第 8 天及更早的记录，已保存数据不会随会话丢失。"""
+    if not user_id:
+        return
+    start, today = intake_date_bounds()
+    if backend == 'local':
+        conn = local_db_connect()
+        try:
+            conn.execute(
+                'DELETE FROM intake_records WHERE user_id = ? AND (record_date < ? OR record_date > ?)',
+                (user_id, start.isoformat(), today.isoformat())
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        return
+    if backend == 'supabase' and is_db_configured():
+        db_request('DELETE', 'intake_records', params={
+            'user_id': f'eq.{user_id}', 'record_date': f'lt.{start.isoformat()}'
+        })
+        db_request('DELETE', 'intake_records', params={
+            'user_id': f'eq.{user_id}', 'record_date': f'gt.{today.isoformat()}'
+        })
+
+# ====================== 数据持久化（已登录 → 云端按账号隔离；游客 → 本地/内存） ======================
+def load_data():
+    """加载数据"""
+    # ① 已登录 → 从该账号对应后端加载专属数据
+    user = get_current_user()
+    if user and get_current_auth_backend() == 'local':
+        data = local_load_user_data(user['id'])
+        if data is not None:
+            legacy_records = data.get('daily_intake_records') or []
+            table_records = local_load_intake_records(user['id'])
+            if table_records is not None:
+                if not table_records and legacy_records:
+                    local_replace_intake_records(user['id'], legacy_records)
+                    table_records = local_load_intake_records(user['id']) or []
+                data['daily_intake_records'] = table_records
+            clean = sanitize_persisted_user_data(data)
+            if clean != data or legacy_records:
+                local_save_user_data(user['id'], clean)
+            return clean
+        print('⚠️ [LocalDB] 读取账号数据失败，降级为本地游客数据')
+
+    if user and is_db_configured():
+        rows = db_request('GET', 'user_data',
+                          params={'user_id': f"eq.{user['id']}", 'select': 'data'})
+        if rows is not None:
+            stored = rows[0].get('data') if rows and isinstance(rows[0], dict) else {}
+            data = default_user_data()
+            if isinstance(stored, dict):
+                data.update(stored)
+            legacy_records = data.get('daily_intake_records') or []
+            table_records = cloud_load_intake_records(user['id'])
+            if table_records is not None:
+                if not table_records and legacy_records:
+                    if cloud_replace_intake_records(user['id'], legacy_records):
+                        table_records = cloud_load_intake_records(user['id']) or []
+                data['daily_intake_records'] = table_records
+            clean = sanitize_persisted_user_data(data)
+            if clean != data or (table_records is not None and legacy_records):
+                profile = dict(clean)
+                if table_records is not None:
+                    profile.pop('daily_intake_records', None)
+                db_request('POST', 'user_data', json_body=[{
+                    'user_id': user['id'],
+                    'data': profile,
+                    'updated_at': get_china_time().isoformat()
+                }], extra_headers={'Prefer': 'resolution=merge-duplicates'})
+            return clean
+        # 数据库请求失败 → 降级为游客模式，保证应用可用
+        print('⚠️ [DB] 读取账号数据失败，降级为本地数据')
+
+    # ② 游客模式（原有逻辑）
+    # Vercel 环境使用内存存储（只读文件系统）
+    if os.getenv('VERCEL'):
+        clean = sanitize_persisted_user_data(
+            getattr(load_data, '_memory_data', default_user_data())
+        )
+        load_data._memory_data = clean
+        return clean
+
+    # 本地环境使用文件存储
+    if os.path.exists('fgai_local_data.json'):
+        try:
+            with open('fgai_local_data.json', 'r', encoding='utf-8') as f:
+                raw = json.load(f)
+            clean = sanitize_persisted_user_data(raw)
+            if clean != raw:
+                with open('fgai_local_data.json', 'w', encoding='utf-8') as f:
+                    json.dump(clean, f, ensure_ascii=False, indent=2)
+            return clean
+        except:
+            pass
+    return default_user_data()
+
 def save_data(data):
-    """保存本地数据"""
+    """保存数据"""
+    data = sanitize_persisted_user_data(data)
+
+    # ① 已登录 → 写入该账号对应后端
+    user = get_current_user()
+    if user and get_current_auth_backend() == 'local':
+        records_ok = local_replace_intake_records(
+            user['id'], data.get('daily_intake_records', [])
+        )
+        if records_ok and local_save_user_data(user['id'], data):
+            return
+        print('⚠️ [LocalDB] 保存账号数据失败，降级为本地游客保存')
+
+    if user and is_db_configured():
+        profile = dict(data)
+        if cloud_replace_intake_records(user['id'], data.get('daily_intake_records', [])):
+            profile.pop('daily_intake_records', None)
+        payload = {
+            'user_id': user['id'],
+            'data': profile,
+            'updated_at': get_china_time().isoformat()
+        }
+        result = db_request('POST', 'user_data', json_body=[payload],
+                            extra_headers={'Prefer': 'resolution=merge-duplicates'})
+        if result is not None:
+            return
+        print('⚠️ [DB] 保存账号数据失败，降级为本地保存')
+
+    # ② 游客模式（原有逻辑）
     # Vercel 环境使用内存存储（只读文件系统）
     if os.getenv('VERCEL'):
         load_data._memory_data = data
         return
-    
+
     # 本地环境使用文件存储
     try:
         with open('fgai_local_data.json', 'w', encoding='utf-8') as f:
@@ -148,6 +811,15 @@ def save_data(data):
         print(f"⚠️ 保存数据失败: {e}")
 
 # ====================== AI API 调用 ======================
+def get_user_facing_ai_error(exc):
+    """将底层网络异常转换为不泄露系统细节的用户提示。"""
+    if isinstance(exc, requests.exceptions.Timeout):
+        return "AI 服务响应超时，请稍后重试"
+    if isinstance(exc, requests.exceptions.ConnectionError):
+        return AI_CONNECTION_ERROR_MESSAGE
+    return "AI 服务暂时不可用，请稍后重试"
+
+
 def _call_zhipu_api(url, api_key, prompt, max_retries):
     """智谱 AI GLM-4 API 调用(智能降级策略)"""
     if ENABLE_DETAILED_LOGS:
@@ -217,6 +889,12 @@ def _call_zhipu_api(url, api_key, prompt, max_retries):
                 if ENABLE_DETAILED_LOGS:
                     print(f"      ❌ 超时: {last_error}")
                 break
+
+            except requests.exceptions.ConnectionError as e:
+                last_error = get_user_facing_ai_error(e)
+                if ENABLE_DETAILED_LOGS:
+                    print(f"      ❌ 网络连接失败: {e!r}")
+                break
                 
             except requests.exceptions.HTTPError as e:
                 status_code = e.response.status_code if hasattr(e, 'response') else 'Unknown'
@@ -232,9 +910,9 @@ def _call_zhipu_api(url, api_key, prompt, max_retries):
                 continue
                 
             except Exception as e:
-                last_error = str(e)
+                last_error = get_user_facing_ai_error(e)
                 if ENABLE_DETAILED_LOGS:
-                    print(f"      ❌ 异常: {last_error}")
+                    print(f"      ❌ 异常: {e!r}")
                 if attempt < max_retries:
                     time.sleep(1)
                 continue
@@ -264,6 +942,8 @@ def _call_zhipu_api_stream(url, api_key, prompt):
         {"name": "glm-4-air", "desc": "GLM-4-Air"},
         {"name": "glm-4-flash", "desc": "GLM-4-Flash"}
     ]
+
+    last_error = None
 
     for model_info in model_priority:
         model_name = model_info["name"]
@@ -319,43 +999,61 @@ def _call_zhipu_api_stream(url, api_key, prompt):
             return
 
         except requests.exceptions.Timeout:
+            last_error = f"{model_name} 请求超时"
             if ENABLE_DETAILED_LOGS:
                 print(f"      ❌ 超时: {model_name}")
-            yield f"\n[错误: {model_name} 请求超时]"
-            return
+            continue
+
+        except requests.exceptions.ConnectionError as e:
+            last_error = get_user_facing_ai_error(e)
+            if ENABLE_DETAILED_LOGS:
+                print(f"      ❌ 网络连接失败: {e!r}")
+            break
 
         except requests.exceptions.HTTPError as e:
             status_code = e.response.status_code if hasattr(e, 'response') else 'Unknown'
+            if status_code in (401, 403):
+                last_error = "AI API Key 无效或权限不足，请检查 ZHIPU_API_KEY_TEXT"
+            elif status_code == 429:
+                last_error = "AI 调用额度不足或请求过于频繁，请稍后再试"
+            else:
+                last_error = f"AI 服务返回 HTTP {status_code}"
             if ENABLE_DETAILED_LOGS:
-                print(f"      ❌ HTTP错误: {status_code}")
+                print(f"      ❌ HTTP错误: {status_code} ({last_error})")
 
-            # 对于401/403/429等认证错误，尝试下一个模型
-            if status_code in [401, 403, 429]:
-                continue
-
-            yield f"\n[错误: HTTP {status_code}]"
-            return
+            continue
 
         except Exception as e:
+            last_error = get_user_facing_ai_error(e)
             if ENABLE_DETAILED_LOGS:
-                print(f"      ❌ 异常: {str(e)}")
+                print(f"      ❌ 异常: {e!r}")
             continue
 
     # 所有模型都失败
     if ENABLE_DETAILED_LOGS:
-        print(f"   ❌ 所有模型流式调用失败\n")
-    yield "\n[错误: AI 服务暂时不可用，请稍后重试]"
+        print(f"   ❌ 所有模型流式调用失败: {last_error}\n")
+    yield f"\n[错误: {last_error or 'AI 服务暂时不可用，请稍后重试'}]"
 
 
 def call_ai_api_stream(prompt):
     """智能 AI API 流式调用 - 返回SSE生成器"""
-    if ZHIPU_API_KEY:
-        return _call_zhipu_api_stream(ZHIPU_API_URL, ZHIPU_API_KEY, prompt)
+    if TEXT_GENERATION_API_KEY:
+        return _call_zhipu_api_stream(ZHIPU_API_URL, TEXT_GENERATION_API_KEY, prompt)
     else:
         # 返回一个单次生成器
         def error_gen():
-            yield "\n[错误: 未配置 API Key]"
+            yield "\n[错误: 未配置 ZHIPU_API_KEY_TEXT]"
         return error_gen()
+
+
+def extract_ai_stream_error(chunk):
+    """识别 AI 流式生成器返回的错误标记，避免把错误文本当成正文展示。"""
+    if not isinstance(chunk, str):
+        return None
+    text = chunk.strip()
+    if text.startswith('[错误:') and text.endswith(']'):
+        return text[len('[错误:'):-1].strip()
+    return None
 
 
 def call_ai_api(prompt, api_type="auto"):
@@ -363,8 +1061,8 @@ def call_ai_api(prompt, api_type="auto"):
     max_retries = API_MAX_RETRIES
     api_list = []
 
-    if api_type == "auto" and ZHIPU_API_KEY:
-        api_list.append({"type": "zhipu", "url": ZHIPU_API_URL, "key": ZHIPU_API_KEY})
+    if api_type == "auto" and TEXT_GENERATION_API_KEY:
+        api_list.append({"type": "zhipu", "url": ZHIPU_API_URL, "key": TEXT_GENERATION_API_KEY})
 
     if not api_list:
         return {
@@ -399,7 +1097,7 @@ def call_ai_api(prompt, api_type="auto"):
 
 # ====================== 营养评估引擎 ======================
 def load_nutrition_standards():
-    """加载联合国营养标准"""
+    """加载 WHO 健康饮食原则与食物膳食指南参考框架。"""
     try:
         script_dir = os.path.dirname(os.path.abspath(__file__))
         json_path = os.path.join(script_dir, 'un_nutrition_standards.json')
@@ -416,6 +1114,40 @@ def get_nutrition_standard(population_group):
     """获取指定人群的营养标准"""
     standards = load_nutrition_standards()
     return standards.get(population_group, standards.get('adults', None))
+
+
+WHO_HEALTHY_DIET_URL = 'https://www.who.int/news-room/fact-sheets/detail/healthy-diet'
+FAO_CHINA_GUIDELINES_URL = 'https://www.fao.org/nutrition/education/dietary-guidelines/regions/china/en/'
+
+
+def nutrition_reference_block(population_group='all', language='zh-CN'):
+    """向每份评估附上可追溯的来源、口径和适用范围。"""
+    standard = get_nutrition_standard(population_group) if population_group != 'all' else None
+    age_range = standard.get('age_range', '') if standard else '多人群对比'
+    if language == 'en-US':
+        return (
+            "\n---\n\n## Reference framework and calculation\n\n"
+            f"- **Population / age**: {age_range or population_group}\n"
+            "- **Assessment unit**: total recorded intake for one person on the current day; "
+            "recipe-generated records use a per-person estimate.\n"
+            "- **Calculation**: each category is the sum of all saved meals, compared with the "
+            "configured age-group range. WHO independently recommends at least 400 g/day of "
+            "fruit and vegetables combined for people over 10.\n"
+            f"- **WHO source**: [Healthy diet]({WHO_HEALTHY_DIET_URL})\n"
+            f"- **Food-group reference**: [FAO country profile for the Chinese Dietary Guidelines (2022)]({FAO_CHINA_GUIDELINES_URL})\n"
+            "- **Scope**: educational dietary reference only. It is not a diagnosis or an "
+            "individual medical prescription; medical conditions require professional advice.\n"
+        )
+    return (
+        "\n---\n\n## 参考依据与计算口径\n\n"
+        f"- **适用人群 / 年龄**：{age_range or population_group}\n"
+        "- **评估口径**：按 1 人当日已保存的全部餐次汇总；食谱自动记录按每人份估算。\n"
+        "- **计算方法**：各类别摄入量 = 当日每餐记录之和，再与应用内的年龄组参考区间比较。"
+        "WHO 另行建议 10 岁以上人群每日水果和蔬菜合计至少 400 克。\n"
+        f"- **WHO 来源**：[健康饮食事实清单]({WHO_HEALTHY_DIET_URL})\n"
+        f"- **分类食物参考**：[FAO 收录的《中国居民膳食指南（2022）》国别页]({FAO_CHINA_GUIDELINES_URL})\n"
+        "- **适用范围**：仅用于饮食教育和趋势参考，不构成诊断或个体医疗处方；有疾病或特殊需求时应咨询专业人员。\n"
+    )
 
 def generate_multi_group_nutrition_report(user_intake, language='zh-CN'):
     """生成多人群营养对比报告（Markdown格式）"""
@@ -435,7 +1167,7 @@ def generate_multi_group_nutrition_report(user_intake, language='zh-CN'):
         status_icons = {'达标': '✅', '不足': '⬇️', '超标': '⬆️'}
         
         report = "# 👥 Multi-Population Nutrition Assessment Report\n\n"
-        report += "*Based on UN WHO nutrition standards, providing personalized recommendations for the whole family*\n\n"
+        report += "*Reference assessment using WHO healthy-diet principles and food-based dietary guidelines*\n\n"
         
         report += "## 【Your Current Intake】\n\n"
         report += f"- **Vegetables**: {user_intake.get('vegetables', 0)}g\n"
@@ -520,7 +1252,7 @@ def generate_multi_group_nutrition_report(user_intake, language='zh-CN'):
         report += "3. **Flexible Adjustment**: Adjust food portions according to actual dining situations\n"
         report += "4. **Diverse Diet**: Ensure food variety and balanced nutrition\n\n"
         
-        report += "---\n*This report is generated based on UN WHO nutrition standards, for reference only*"
+        report += nutrition_reference_block('all', language)
     else:
         group_names = {
             'adults': '成年人 (18-60 岁)',
@@ -530,7 +1262,7 @@ def generate_multi_group_nutrition_report(user_intake, language='zh-CN'):
         }
         
         report = "# 👥 多人群营养评估报告\n\n"
-        report += "*基于联合国 WHO 营养标准，为全家提供个性化建议*\n\n"
+        report += "*参考 WHO 健康饮食原则与食物膳食指南的多人群评估*\n\n"
         
         report += "## 【您当前摄入】\n\n"
         report += f"- **蔬菜**: {user_intake.get('vegetables', 0)}g\n"
@@ -616,7 +1348,7 @@ def generate_multi_group_nutrition_report(user_intake, language='zh-CN'):
         report += "3. **灵活调整**: 根据实际用餐情况，适当增减各类食物的份量\n"
         report += "4. **多样化饮食**: 确保食物种类丰富，营养均衡\n\n"
         
-        report += "---\n*本报告基于联合国WHO营养标准生成，仅供参考*"
+        report += nutrition_reference_block('all', language)
     
     return report
 
@@ -676,7 +1408,7 @@ def generate_nutrition_report_en(user_intake, population_group, assessment):
     
     standard = get_nutrition_standard(population_group)
     
-    report = "# 📊 Nutrition Assessment Report (Based on UN WHO Standards)\n\n"
+    report = "# 📊 Nutrition Assessment Report\n\n"
     
     # Basic Information
     report += "## [Basic Information]\n\n"
@@ -770,7 +1502,7 @@ def generate_nutrition_report_en(user_intake, population_group, assessment):
     for tip in tips:
         report += f"- {tip}\n"
     
-    report += "\n---\n*This report is generated based on UN WHO nutrition standards for reference only.*"
+    report += nutrition_reference_block(population_group, 'en-US')
     
     return report
 
@@ -789,7 +1521,7 @@ def generate_nutrition_report_zh(user_intake, population_group, assessment):
     standard = get_nutrition_standard(population_group)
     
     # 生成报告
-    report = "# 📊 营养评估报告（基于联合国 WHO 标准）\n\n"
+    report = "# 📊 营养评估报告\n\n"
     
     # 基本信息
     report += "## 【基本信息】\n\n"
@@ -886,7 +1618,7 @@ def generate_nutrition_report_zh(user_intake, population_group, assessment):
     for tip in tips:
         report += f"- {tip}\n"
     
-    report += "\n---\n*本报告基于联合国WHO营养标准生成，仅供参考*"
+    report += nutrition_reference_block(population_group, 'zh-CN')
     
     return report
 
@@ -1026,11 +1758,11 @@ def generate_personalized_plan(user_intake, population_group, fridge_items=None,
     excessive = [k for k, v in assessment.items() if v['status'] == '超标']
     
     if language == 'en-US':
-        prompt = f"""You are a professional nutritionist. Please generate a personalized diet plan based on the following information:
+        prompt = f"""You are a professional nutritionist. Please generate a personalized diet plan for TOMORROW based on today's intake.
 
 【User Information】
 - Population Group: {population_group} ({population_info_en.get(population_group, '')})
-- Today's Intake: Vegetables {user_intake.get('vegetables', 0)}g, Fruits {user_intake.get('fruits', 0)}g, Meat {user_intake.get('meat', 0)}g, Eggs {user_intake.get('eggs', 0)}g
+- Today's intake (compared with the configured WHO/food-based dietary reference framework): Vegetables {user_intake.get('vegetables', 0)}g, Fruits {user_intake.get('fruits', 0)}g, Meat {user_intake.get('meat', 0)}g, Eggs {user_intake.get('eggs', 0)}g
 
 【Nutrition Assessment Results】
 - Insufficient Intake: {', '.join(insufficient) if insufficient else 'None'}
@@ -1040,7 +1772,7 @@ def generate_personalized_plan(user_intake, population_group, fridge_items=None,
 1. Analyze the special nutritional needs of this population group
 2. Provide supplementation suggestions for insufficient intake items
 3. Provide control suggestions for excessive intake items
-4. Generate tomorrow's diet recommendations (specific dishes + ingredient amounts)
+4. Generate TOMORROW's diet recommendations (specific dishes + ingredient amounts) to fill today's gaps
 5. Consider the digestive characteristics of this group (elderly: soft food, children: fun food, adults: balanced food)
 
 【Output Format】
@@ -1056,11 +1788,11 @@ def generate_personalized_plan(user_intake, population_group, fridge_items=None,
 
 Please respond entirely in English."""
     else:
-        prompt = f"""你是一位专业营养师,请根据以下信息生成个性化饮食方案:
+        prompt = f"""你是一位专业营养师,请根据今日摄入情况生成**明日**个性化饮食方案:
 
 【用户信息】
 - 人群标签:{population_group}({population_info.get(population_group, '')})
-- 今日摄入:蔬菜{user_intake.get('vegetables', 0)}g、水果{user_intake.get('fruits', 0)}g、肉类{user_intake.get('meat', 0)}g、蛋类{user_intake.get('eggs', 0)}g
+- 今日摄入（对比 WHO 健康饮食原则与食物膳食指南参考框架）:蔬菜{user_intake.get('vegetables', 0)}g、水果{user_intake.get('fruits', 0)}g、肉类{user_intake.get('meat', 0)}g、蛋类{user_intake.get('eggs', 0)}g
 
 【营养评估结果】
 - 摄入不足:{', '.join(insufficient) if insufficient else '无'}
@@ -1070,7 +1802,7 @@ Please respond entirely in English."""
 1. 分析该人群的特殊营养需求
 2. 针对摄入不足项给出补充建议
 3. 针对摄入超标项给出控制建议
-4. 生成明日饮食建议(具体菜品 + 食材用量)
+4. 生成**明日**饮食建议(具体菜品 + 食材用量)，以弥补今日缺口
 5. 考虑该人群的消化特点(老年人软烂、儿童趣味、成年人均衡)
 
 【输出格式】
@@ -1094,71 +1826,130 @@ Please respond entirely in English."""
         return f"生成方案时出错:{str(e)}"
 
 def generate_daily_recommendation(user_intake, population_group, fridge_items, language='zh-CN'):
-    """基于现有食材 + 营养数据的每日饮食推荐"""
+    """基于今日营养摄入缺口 + 现有食材，生成明日饮食推荐（优先补充不足）"""
     assessment = nutrition_assessment(user_intake, population_group, language)
-    
-    recommended_ingredients = []
+    standard = get_nutrition_standard(population_group)
+
+    # 收集摄入不足的食材类别
+    deficient_foods = []
     for food_type, data in assessment.items():
-        if data['status'] == '不足':
-            recommended_ingredients.extend(fridge_items[:3])
-    
-    if not recommended_ingredients and fridge_items:
-        recommended_ingredients = fridge_items[:3]
-    
-    ingredients_str = ", ".join([f"{item['name']}{item.get('quantity', '')}g" for item in recommended_ingredients])
-    
+        if data['status'] in ('不足', 'Insufficient'):
+            deficient_foods.append({
+                'name': data['chinese_name'],
+                'intake': data['intake'],
+                'gap': data['gap']
+            })
+
+    # 冰箱食材列表
+    if fridge_items:
+        ingredients_str = ", ".join([f"{item['name']}{item.get('quantity', '')}g" for item in fridge_items[:5]])
+    else:
+        ingredients_str = ''
+
+    # 构建营养标准参考
+    if standard:
+        recs = standard.get('daily_recommendations', {})
+        if language == 'en-US':
+            food_names = {'vegetables': 'Vegetables', 'fruits': 'Fruits', 'meat': 'Meat', 'eggs': 'Eggs'}
+            standard_lines = '\n'.join([
+                f"  - {food_names.get(ft, ft)}: {recs.get(ft, {}).get('min', '?')}-{recs.get(ft, {}).get('max', '?')}g/day"
+                for ft in ['vegetables', 'fruits', 'meat', 'eggs']
+            ])
+        else:
+            food_names = {'vegetables': '蔬菜', 'fruits': '水果', 'meat': '肉类', 'eggs': '蛋类'}
+            standard_lines = '\n'.join([
+                f"  - {food_names.get(ft, ft)}: {recs.get(ft, {}).get('min', '?')}-{recs.get(ft, {}).get('max', '?')}g/天"
+                for ft in ['vegetables', 'fruits', 'meat', 'eggs']
+            ])
+    else:
+        standard_lines = ''
+
     if language == 'en-US':
-        prompt = f"""Please generate tonight's dinner recipes based on the following ingredients:
+        deficient_desc = '\n'.join([f"  - ⬇️ {d['name']}: current {d['intake']}g, need {d['gap']}g more to reach minimum" for d in deficient_foods]) if deficient_foods else '  - ✅ All food categories meet standards'
 
-【Available Ingredients】{ingredients_str if ingredients_str else 'Common household ingredients'}
+        prompt = f"""You are a professional nutritionist. Based on the user's TODAY intake, generate dietary recommendations for TOMORROW to fill nutrition gaps.
+
+【Today's Intake vs UN/WHO Recommended Standards】
+Daily reference ranges for {population_group} (WHO healthy-diet principles plus food-based dietary guidelines):
+{standard_lines}
+
+Actual TODAY intake:
+  - Vegetables: {user_intake.get('vegetables', 0)}g
+  - Fruits: {user_intake.get('fruits', 0)}g
+  - Meat: {user_intake.get('meat', 0)}g
+  - Eggs: {user_intake.get('eggs', 0)}g
+
+【Nutrition Gaps — PRIORITIZE supplementing these TOMORROW】
+{deficient_desc}
+
+【Available Ingredients (Fridge)】
+{ingredients_str if ingredients_str else 'Common household ingredients'}
+
 【User Group】{population_group}
-【Nutrition Gaps】Key nutrients to supplement: {', '.join([assessment[k]['chinese_name'] for k, v in assessment.items() if v['status'] == '不足']) if any(v['status']=='不足' for v in assessment.values()) else 'Balanced nutrition'}
 
-【Requirements】
-1. Must fully use the above ingredients
-2. Consider digestion characteristics for {population_group}
-3. Output 2-3 dishes
-4. Label nutritional supplement direction for each dish
+【⚠️ CORE TASK — Recommend TOMORROW's meals】
+1. **Primary Goal**: Recommend TOMORROW's recipes that best supplement the DEFICIENT food categories above
+2. **Secondary Goal**: Try to use available fridge ingredients when possible
+3. If no fridge ingredients match the deficient category, suggest common ingredients from that category
+4. Consider the digestion characteristics of {population_group}
 
 【Output Format】
-## Recommended Dishes (2-3)
-## Required Ingredients
+## Today's Nutrition Status Summary (one sentence)
+## Tomorrow's Recommended Dishes (2-3, prioritize dishes that supplement deficiencies)
+## Required Ingredients (with amounts)
 ## Brief Steps
-## Nutritional Benefits
+## Nutritional Benefits (explain how each dish addresses the deficiency)
 
 【Reply Requirements】
-- Concise and clear, focus on key points
+- Concise and focused on addressing nutrition gaps
 - Use structured headings and lists
-- ⚠️ IMPORTANT: For the "Recommended Dishes" section, MUST use numbered list format (1. 2. 3.) NOT bullet points (- or *)
+- ⚠️ IMPORTANT: For "Tomorrow's Recommended Dishes", MUST use numbered list format (1. 2. 3.)
 - Avoid lengthy explanations
-- Keep each suggestion under 50 words
+- Keep each dish suggestion under 60 words
 
 Please respond entirely in English."""
     else:
-        prompt = f"""请根据以下食材生成今晚食谱:
+        deficient_desc = '\n'.join([f"  - ⬇️ {d['name']}: 当前{d['intake']}g, 还差{d['gap']}g 达到最低推荐量" for d in deficient_foods]) if deficient_foods else '  - ✅ 所有食物类别均达标'
 
-【可用食材】{ingredients_str if ingredients_str else '家常食材'}
+        prompt = f"""你是一位专业营养师。请根据用户**今日**的营养摄入情况，生成**明日**的饮食推荐，以弥补营养缺口。
+
+【今日摄入 vs 饮食参考框架】
+{population_group}的每日参考范围（WHO 健康饮食原则 + 食物膳食指南）:
+{standard_lines}
+
+今日实际摄入:
+  - 蔬菜: {user_intake.get('vegetables', 0)}g
+  - 水果: {user_intake.get('fruits', 0)}g
+  - 肉类: {user_intake.get('meat', 0)}g
+  - 蛋类: {user_intake.get('eggs', 0)}g
+
+【营养缺口 — 明日优先补充以下类别】
+{deficient_desc}
+
+【冰箱可用食材】
+{ingredients_str if ingredients_str else '家常常见食材'}
+
 【用户人群】{population_group}
-【营养缺口】需要重点补充:{', '.join([assessment[k]['chinese_name'] for k, v in assessment.items() if v['status'] == '不足']) if any(v['status']=='不足' for v in assessment.values()) else '营养均衡'}
 
-【要求】
-1. 必须完全使用上述食材
-2. 考虑{population_group}的消化特点
-3. 输出 2-3 道菜品
-4. 标注每道菜的营养补充方向
+【⚠️ 核心任务 — 推荐明日食谱】
+1. **首要目标**: 推荐最能补充上述"不足"类别的**明日**食谱
+2. **次要目标**: 尽量使用冰箱已有的食材
+3. 如果冰箱食材无法覆盖不足类别，请推荐该类别中的常见食材
+4. 考虑{population_group}的消化特点
 
 【输出格式】
-## 推荐菜品(2-3 道)
-## 所需食材
+## 今日营养状况总结（一句话）
+## 明日推荐菜品（2-3个，优先补充不足类别）
+## 所需食材及用量
 ## 简要步骤
-## 营养功效
+## 营养功效（说明每个菜品如何弥补今日营养缺口）
 
 【回复要求】
-- 简洁明了，重点突出
+- 简洁明了，围绕补充营养缺口
 - 使用结构化标题和列表
-- ⚠️ 重要：在"推荐菜品"部分，必须使用有序数字列表格式（1. 2. 3.），禁止使用无序列表（- 或 *）
+- ⚠️ 重要：在"明日推荐菜品"部分，必须使用有序数字列表格式（1. 2. 3.）
 - 避免冗长解释
-- 每条建议控制在50字以内"""
+- 每条建议控制在60字以内"""
     
     try:
         api_result = call_ai_api(prompt, api_type="auto")
@@ -1348,7 +2139,7 @@ Step 5: xxx
 4. **Important: Calculate environmental value data for each dish**
    - Food waste reduced (grams): Based on traditional practices would prepare 25% more food
    - Water saved (liters): Each gram of food consumes about 0.5 liters of water (China dietary weighted average)
-   - Carbon emissions reduced (grams CO2e): Each gram of food emits about 0.003 grams CO2e (China dietary mixed average)
+   - Carbon emissions reduced (grams CO2e): Each gram of food emits about 3 grams CO2e (China dietary mixed average)
 
 【Return Format Example】
 If generating multiple dishes, list them sequentially in the following format:
@@ -1487,7 +2278,7 @@ Please respond entirely in English."""
 4. **重点：为每个菜品计算环保价值数据**
    - 减少食物浪费（克）：基于传统做法会多准备 25% 的食物
    - 节约水资源（升）：每克食物约消耗 0.5 升水（中国膳食加权平均）
-   - 减少碳排放（克 CO2e）：每克食物约排放 0.003 克 CO2e（中国膳食混合平均）
+   - 减少碳排放（克 CO2e）：每克食物约排放 3 克 CO2e（中国膳食混合平均）
 
 【返回格式示例】
 如果生成多个菜品，请按以下格式依次列出：
@@ -1603,7 +2394,7 @@ Please respond entirely in English."""
 4. **重点：为每个菜品计算环保价值数据**
    - 减少食物浪费（克）：基于传统做法会多准备 25% 的食物
    - 节约水资源（升）：每克食物约消耗 0.5 升水（中国膳食加权平均）
-   - 减少碳排放（克 CO2e）：每克食物约排放 0.003 克 CO2e（中国膳食混合平均）
+   - 减少碳排放（克 CO2e）：每克食物约排放 3 克 CO2e（中国膳食混合平均）
 
 【返回格式示例】
 如果生成多个菜品，请按以下格式依次列出：
@@ -1649,27 +2440,296 @@ def get_locale_file(lang):
         # 降级到中文
         return send_from_directory('locales', 'zh-CN.json')
 
+# ====================== 账号认证接口 ======================
+USERNAME_RE = re.compile(r'^[\w\u4e00-\u9fff]{2,24}$')
+
+
+def auth_attempt_key(username):
+    return f"{request.remote_addr or 'local'}:{username.strip().lower()}"
+
+
+def get_auth_lock_remaining(username):
+    """返回账号当前剩余锁定秒数。"""
+    key = auth_attempt_key(username)
+    now = get_china_time()
+    with _auth_failures_lock:
+        state = _auth_failures.get(key)
+        if not state:
+            return 0
+        locked_until = state.get('locked_until')
+        if locked_until and locked_until > now:
+            return max(1, int((locked_until - now).total_seconds()))
+        if locked_until or now - state.get('first_at', now) > AUTH_FAILURE_WINDOW:
+            _auth_failures.pop(key, None)
+        return 0
+
+
+def record_auth_failure(username):
+    """记录失败尝试，15 分钟内 5 次失败后锁定 15 分钟。"""
+    key = auth_attempt_key(username)
+    now = get_china_time()
+    with _auth_failures_lock:
+        state = _auth_failures.get(key)
+        if not state or now - state.get('first_at', now) > AUTH_FAILURE_WINDOW:
+            state = {'count': 0, 'first_at': now, 'locked_until': None}
+        state['count'] += 1
+        if state['count'] >= AUTH_MAX_FAILURES:
+            state['locked_until'] = now + AUTH_LOCK_DURATION
+        _auth_failures[key] = state
+        return state['count'], state.get('locked_until')
+
+
+def clear_auth_failures(username):
+    with _auth_failures_lock:
+        _auth_failures.pop(auth_attempt_key(username), None)
+
+
+def generate_recovery_code():
+    """生成仅向用户展示一次的账号恢复码。"""
+    return secrets.token_hex(6).upper()
+
+
+def update_user_credentials(user, backend, password_hash=None, recovery_hash=None):
+    if backend == 'local':
+        return local_update_credentials(user['id'], password_hash, recovery_hash)
+    update = {}
+    if password_hash is not None:
+        update['password_hash'] = password_hash
+    if recovery_hash is not None:
+        update['recovery_hash'] = recovery_hash
+    if not update:
+        return True
+    return db_request('PATCH', 'users', params={'id': f"eq.{user['id']}"},
+                      json_body=update) is not None
+
+@app.route('/api/auth/register', methods=['POST'])
+def auth_register():
+    """注册新账号（成功后自动登录）"""
+    body = request.get_json(silent=True) or {}
+    username = (body.get('username') or '').strip()
+    password = body.get('password') or ''
+
+    if not is_auth_enabled():
+        return jsonify({'success': False, 'error': '服务器未配置数据库，暂不支持账号功能'})
+    if not USERNAME_RE.match(username):
+        return jsonify({'success': False, 'error': '用户名需为 2-24 位字母、数字、下划线或中文'})
+    if len(password) < 6:
+        return jsonify({'success': False, 'error': '密码长度至少 6 位'})
+
+    recovery_code = generate_recovery_code()
+    recovery_hash = generate_password_hash(recovery_code)
+    user = None
+    backend = None
+
+    if is_db_configured():
+        # 优先使用 Supabase；本地网络/权限导致失败时自动兜底到 SQLite。
+        exists = db_request('GET', 'users', params={'username': f'eq.{username}', 'select': 'id'})
+        if exists is not None:
+            if len(exists) > 0:
+                return jsonify({'success': False, 'error': '该用户名已被注册'})
+            created = db_request('POST', 'users',
+                                 json_body=[{'username': username,
+                                             'password_hash': generate_password_hash(password),
+                                             'recovery_hash': recovery_hash}],
+                                 extra_headers={'Prefer': 'return=representation'})
+            if not created:
+                return jsonify({'success': False, 'error': '注册失败，请稍后重试'})
+            user = created[0]
+            backend = 'supabase'
+        else:
+            print('⚠️ [Auth] Supabase 不可用，注册自动切换到本地账号数据库')
+
+    if user is None:
+        existing_local = local_get_user_by_username(username)
+        if existing_local:
+            return jsonify({'success': False, 'error': '该用户名已被注册'})
+        created_local = local_create_user(
+            username, generate_password_hash(password), recovery_hash
+        )
+        if created_local and created_local.get('error') == 'exists':
+            return jsonify({'success': False, 'error': '该用户名已被注册'})
+        if not created_local:
+            return jsonify({'success': False, 'error': '数据库连接失败，请稍后重试'})
+        user = created_local
+        backend = 'local'
+
+    session.permanent = True
+    session['user_id'] = user['id']
+    session['username'] = username
+    session['auth_backend'] = backend
+    session['last_activity_at'] = get_china_time().isoformat()
+
+    if backend == 'local':
+        saved_ok = local_ensure_user_data_row(user['id'], username)
+    else:
+        # 初始化该账号的独立数据，不继承游客或其他账号记录。
+        initial_data = build_initial_user_data(username)
+        saved_ok = db_request('POST', 'user_data',
+                              json_body=[{'user_id': user['id'], 'data': initial_data,
+                                          'updated_at': get_china_time().isoformat()}],
+                              extra_headers={'Prefer': 'resolution=merge-duplicates'}) is not None
+    if not saved_ok:
+        session.clear()
+        return jsonify({'success': False, 'error': '数据库连接失败，请稍后重试'})
+
+    clear_auth_failures(username)
+    return jsonify({'success': True,
+                    'user': {'id': user['id'], 'username': username},
+                    'recovery_code': recovery_code})
+
+@app.route('/api/auth/login', methods=['POST'])
+def auth_login():
+    """登录"""
+    body = request.get_json(silent=True) or {}
+    username = (body.get('username') or '').strip()
+    password = body.get('password') or ''
+
+    if not is_auth_enabled():
+        return jsonify({'success': False, 'error': '服务器未配置数据库，暂不支持账号功能'})
+    if not username or not password:
+        return jsonify({'success': False, 'error': '请输入用户名和密码'})
+
+    lock_remaining = get_auth_lock_remaining(username)
+    if lock_remaining:
+        return jsonify({
+            'success': False,
+            'error': '登录失败次数过多，请稍后重试',
+            'retry_after': lock_remaining
+        }), 429
+
+    user = None
+    backend = None
+    if is_db_configured():
+        rows = db_request('GET', 'users',
+                          params={'username': f'eq.{username}',
+                                  'select': 'id,username,password_hash,recovery_hash'})
+        if rows is not None:
+            if rows:
+                user = rows[0]
+                backend = 'supabase'
+        else:
+            print('⚠️ [Auth] Supabase 不可用，登录自动切换到本地账号数据库')
+
+    if user is None:
+        user = local_get_user_by_username(username)
+        backend = 'local' if user else None
+
+    if not user:
+        record_auth_failure(username)
+        return jsonify({'success': False, 'error': '没有该账号，请先注册'})
+
+    if not check_password_hash(user['password_hash'], password):
+        _, locked_until = record_auth_failure(username)
+        if locked_until:
+            return jsonify({
+                'success': False,
+                'error': '登录失败次数过多，账号已锁定 15 分钟',
+                'retry_after': int(AUTH_LOCK_DURATION.total_seconds())
+            }), 429
+        return jsonify({'success': False, 'error': '密码错误，请重新输入'})
+
+    clear_auth_failures(username)
+    recovery_code = None
+    if not user.get('recovery_hash'):
+        recovery_code = generate_recovery_code()
+        update_user_credentials(
+            user, backend, recovery_hash=generate_password_hash(recovery_code)
+        )
+
+    session.permanent = True
+    session['user_id'] = user['id']
+    session['username'] = user['username']
+    session['auth_backend'] = backend
+    session['last_activity_at'] = get_china_time().isoformat()
+    if not ensure_user_data_row(user['id'], user['username']):
+        session.clear()
+        return jsonify({'success': False, 'error': '数据库连接失败，请稍后重试'})
+    result = {'success': True,
+              'user': {'id': user['id'], 'username': user['username']}}
+    if recovery_code:
+        result['recovery_code'] = recovery_code
+    return jsonify(result)
+
+
+@app.route('/api/auth/recover', methods=['POST'])
+def auth_recover():
+    """使用注册时发放的恢复码重设密码。"""
+    body = request.get_json(silent=True) or {}
+    username = (body.get('username') or '').strip()
+    recovery_code = (body.get('recovery_code') or '').strip().upper()
+    new_password = body.get('new_password') or ''
+    if not username or not recovery_code:
+        return jsonify({'success': False, 'error': '请输入用户名和恢复码'}), 400
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'error': '密码长度至少 6 位'}), 400
+    lock_remaining = get_auth_lock_remaining(username)
+    if lock_remaining:
+        return jsonify({
+            'success': False,
+            'error': '尝试次数过多，请稍后重试',
+            'retry_after': lock_remaining
+        }), 429
+
+    user, backend = None, None
+    if is_db_configured():
+        rows = db_request('GET', 'users', params={
+            'username': f'eq.{username}',
+            'select': 'id,username,password_hash,recovery_hash'
+        })
+        if rows:
+            user, backend = rows[0], 'supabase'
+    if user is None:
+        user = local_get_user_by_username(username)
+        backend = 'local' if user else None
+    if not user or not user.get('recovery_hash') or not check_password_hash(
+            user['recovery_hash'], recovery_code):
+        record_auth_failure(username)
+        return jsonify({'success': False, 'error': '账号或恢复码不正确'}), 400
+
+    new_recovery_code = generate_recovery_code()
+    if not update_user_credentials(
+        user, backend,
+        password_hash=generate_password_hash(new_password),
+        recovery_hash=generate_password_hash(new_recovery_code)
+    ):
+        return jsonify({'success': False, 'error': '数据库连接失败，请稍后重试'}), 503
+    clear_auth_failures(username)
+    return jsonify({'success': True, 'recovery_code': new_recovery_code})
+
+@app.route('/api/auth/logout', methods=['POST'])
+def auth_logout():
+    """退出登录"""
+    compact_user_storage(session.get('user_id'), get_current_auth_backend())
+    session.clear()
+    return jsonify({'success': True})
+
+@app.route('/api/auth/me', methods=['GET'])
+def auth_me():
+    """查询当前登录状态"""
+    return jsonify({'success': True, 'user': get_current_user(),
+                    'auth_enabled': is_auth_enabled(),
+                    'session_expired': bool(getattr(g, 'auth_session_expired', False))})
+
 @app.route('/api/data', methods=['GET'])
 def get_data():
     """获取用户数据"""
-    data = load_data()
-    
+    raw_data = load_data()
+    data = sanitize_persisted_user_data(raw_data)
+
     # 🔑 关键修复：确保旧数据文件也包含新字段
-    need_save = False
+    need_save = data != raw_data
     if 'generation_count' not in data:
         data['generation_count'] = 0
         need_save = True
         print('🔧 [数据迁移] 已为旧数据添加 generation_count 字段')
-    
-    if 'chat_history' not in data:
-        data['chat_history'] = []
-        need_save = True
-        print('🔧 [数据迁移] 已为旧数据添加 chat_history 字段')
-    
+
     if need_save:
-        save_data(data)  # 立即保存，避免下次再检查
-    
-    return jsonify({'success': True, 'data': data})
+        save_data(data)  # 立即清理旧聊天记录/过期摄入记录，避免下次再出现
+
+    # auth_enabled: 服务器是否启用了账号系统（前端据此决定是否强制登录）
+    return jsonify({'success': True, 'data': data, 'user': get_current_user(),
+                    'auth_enabled': is_auth_enabled(),
+                    'session_expired': bool(getattr(g, 'auth_session_expired', False))})
 
 @app.route('/api/data', methods=['POST'])
 def update_data():
@@ -1677,6 +2737,7 @@ def update_data():
     new_data = request.json
     current_data = load_data()
     current_data.update(new_data)
+    current_data = sanitize_persisted_user_data(current_data)
     save_data(current_data)
     return jsonify({'success': True, 'data': current_data})
 
@@ -1772,7 +2833,7 @@ def nutrition_assess():
 
 @app.route('/api/daily_recommendation', methods=['POST'])
 def daily_recommendation():
-    """每日饮食推荐"""
+    """明日饮食推荐（基于今日摄入缺口）"""
     data = request.json
     user_intake = data.get('user_intake', {})
     population_group = data.get('population_group', 'adults')
@@ -1803,14 +2864,40 @@ def personalized_plan():
 @app.route('/api/save_intake', methods=['POST'])
 def save_intake():
     """保存摄入数据"""
-    data = request.json
+    data = request.get_json(silent=True) or {}
+
+    def parse_intake_value(field):
+        value = data.get(field, 0)
+        if isinstance(value, bool):
+            raise ValueError
+        number = float(value)
+        if not 0 <= number <= 100000:
+            raise ValueError
+        return round(number, 1)
+
+    try:
+        validated = {
+            field: parse_intake_value(field)
+            for field in ('vegetables', 'fruits', 'meat', 'eggs')
+        }
+    except (TypeError, ValueError):
+        return jsonify({
+            'success': False,
+            'error': '摄入量必须是 0 到 100000 克之间的数字'
+        }), 400
+
+    meal_type = str(data.get('meal_type') or '').strip().lower()
+    current_time = get_china_time().strftime('%H:%M')
+    if meal_type not in VALID_MEAL_TYPES:
+        meal_type = infer_meal_type(current_time)
+    source = str(data.get('source') or 'manual').strip().lower()[:24]
     intake_record = {
+        'id': str(uuid.uuid4()),
         'date': get_china_time().strftime('%Y-%m-%d'),
-        'time': get_china_time().strftime('%H:%M'),
-        'vegetables': data.get('vegetables', 0),
-        'fruits': data.get('fruits', 0),
-        'meat': data.get('meat', 0),
-        'eggs': data.get('eggs', 0)
+        'time': current_time,
+        'meal_type': meal_type,
+        'source': source,
+        **validated
     }
     
     current_data = load_data()
@@ -1818,21 +2905,8 @@ def save_intake():
         current_data['daily_intake_records'] = []
     
     current_data['daily_intake_records'].append(intake_record)
-    
-    # 关键修改：今日只保留最新3条记录，多余的移到历史
-    today = get_china_time().strftime('%Y-%m-%d')
-    all_records = current_data['daily_intake_records']
-    today_records = [r for r in all_records if r.get('date') == today]
-    
-    if len(today_records) > 3:
-        # 保留最新3条，删除最旧的
-        records_to_remove = today_records[:-3]  # 除了最新3条外的所有记录
-        for old_record in records_to_remove:
-            all_records.remove(old_record)
-            print(f"⚠️ 今日记录超过3条，已移除旧记录: {old_record}")
-        current_data['daily_intake_records'] = all_records
-        print(f"✅ 保留最新3条记录，共移除 {len(records_to_remove)} 条旧记录")
-    
+
+    # 🔐 真实数据保存：今日记录不限条数（三餐 + 加餐/零食），全部真实保留到该账号的数据库
     save_data(current_data)
     
     # 检查是否需要预警
@@ -1843,7 +2917,7 @@ def save_intake():
     for i, r in enumerate(today_records):
         print(f"   记录{i+1}: 蔬菜{r.get('vegetables', 0)}g, 水果{r.get('fruits', 0)}g, 肉类{r.get('meat', 0)}g, 蛋类{r.get('eggs', 0)}g")
     
-    # 汇总今日所有记录（最多3条）进行营养评估
+    # 汇总今日全部真实记录进行营养评估
     total_intake = {
         'vegetables': sum(r.get('vegetables', 0) for r in today_records),
         'fruits': sum(r.get('fruits', 0) for r in today_records),
@@ -1852,7 +2926,7 @@ def save_intake():
     }
     
     print(f"📊 [save_intake] 今日总摄入: 蔬菜{total_intake['vegetables']}g, 水果{total_intake['fruits']}g, 肉类{total_intake['meat']}g, 蛋类{total_intake['eggs']}g")
-    print(f"   📝 记录数: {len(today_records)}条 (早中晚三餐)\n")
+    print(f"   📝 记录数: {len(today_records)}条 (全部真实保留)\n")
     
     # 🆕 关键改进：基于联合国标准的智能预警（针对三餐总和）
     warnings = []
@@ -1916,6 +2990,7 @@ def save_intake():
     
     return jsonify({
         'success': True,
+        'record': intake_record,
         'warnings': warnings,
         'total_intake': total_intake
     })
@@ -2018,6 +3093,10 @@ def generate_recipe_stream():
     def generate():
         full_content = ""
         for chunk in call_ai_api_stream(prompt):
+            stream_error = extract_ai_stream_error(chunk)
+            if stream_error:
+                yield f"data: {json.dumps({'error': stream_error}, ensure_ascii=False)}\n\n"
+                return
             full_content += chunk
             yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
         yield f"data: {json.dumps({'done': True, 'impact': impact, 'full_content': full_content}, ensure_ascii=False)}\n\n"
@@ -2071,6 +3150,10 @@ Please respond in a friendly and professional tone in English."""
     def generate():
         full_content = ""
         for chunk in call_ai_api_stream(prompt):
+            stream_error = extract_ai_stream_error(chunk)
+            if stream_error:
+                yield f"data: {json.dumps({'error': stream_error}, ensure_ascii=False)}\n\n"
+                return
             full_content += chunk
             yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
         yield f"data: {json.dumps({'done': True, 'full_content': full_content}, ensure_ascii=False)}\n\n"
@@ -2087,6 +3170,65 @@ Please respond in a friendly and professional tone in English."""
     )
 
 
+def shopping_price_context(preferences, region, language='zh-CN'):
+    """汇总同地区历史实际价格，作为 AI 预算校准信号。"""
+    samples = (preferences or {}).get('price_samples') or []
+    matched = [s for s in samples if s.get('region') == region][-5:]
+    if not matched:
+        return ''
+    average = round(sum(float(s.get('actual_total', 0)) for s in matched) / len(matched), 2)
+    if language == 'en-US':
+        return (f"\n- User price feedback for this region: {len(matched)} recent purchase(s), "
+                f"average actual total RMB {average}. Use it only as a calibration reference "
+                "and still account for dish contents and serving count.")
+    return (f"\n- 用户在该地区有 {len(matched)} 条近期实付样本，平均总价约 {average} 元。"
+            "仅作为校准参考，仍需按本次菜品和人数调整。")
+
+
+@app.route('/api/shopping/preferences', methods=['GET', 'POST'])
+def shopping_preferences():
+    """读写常用采购地区，不保存 AI 对话内容。"""
+    current_data = load_data()
+    preferences = current_data.get('shopping_preferences') or {}
+    if request.method == 'GET':
+        return jsonify({'success': True, 'preferences': preferences})
+    body = request.get_json(silent=True) or {}
+    preferences['province'] = str(body.get('province') or '')[:30]
+    preferences['city'] = str(body.get('city') or '')[:30]
+    preferences.setdefault('price_samples', [])
+    current_data['shopping_preferences'] = preferences
+    save_data(current_data)
+    return jsonify({'success': True, 'preferences': preferences})
+
+
+@app.route('/api/shopping/price-feedback', methods=['POST'])
+def shopping_price_feedback():
+    """保存用户输入的实际采购总价，最多保留 20 条样本。"""
+    body = request.get_json(silent=True) or {}
+    try:
+        actual_total = round(float(body.get('actual_total')), 2)
+        people_num = max(1, min(int(body.get('people_num', 1)), 20))
+        if not 0 < actual_total <= 1000000:
+            raise ValueError
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': '请输入有效的实际总价'}), 400
+    region = re.sub(r'[\r\n\t]+', ' ', str(body.get('region') or '')).strip()[:60]
+    dishes = re.sub(r'[\r\n\t]+', ' ', str(body.get('dishes') or '')).strip()[:120]
+    if not region:
+        return jsonify({'success': False, 'error': '请先选择采购地区'}), 400
+    current_data = load_data()
+    preferences = current_data.get('shopping_preferences') or {}
+    samples = preferences.get('price_samples') or []
+    samples.append({
+        'region': region, 'dishes': dishes, 'people_num': people_num,
+        'actual_total': actual_total, 'date': get_china_time().date().isoformat()
+    })
+    preferences['price_samples'] = samples[-20:]
+    current_data['shopping_preferences'] = preferences
+    save_data(current_data)
+    return jsonify({'success': True, 'sample_count': len(preferences['price_samples'])})
+
+
 @app.route('/api/generate_shopping_list_stream', methods=['POST'])
 def generate_shopping_list_stream():
     """生成智能采购清单 - SSE流式输出"""
@@ -2095,6 +3237,19 @@ def generate_shopping_list_stream():
     people_num = data.get('people_num', 3)
     include_budget = data.get('include_budget', True)
     language = data.get('language', 'zh-CN')
+    shopping_region = re.sub(r'[\r\n\t]+', ' ', str(data.get('shopping_region', ''))).strip()[:60]
+    if not shopping_region:
+        shopping_region = '中国大陆平均市场'
+    current_data = load_data()
+    preferences = current_data.get('shopping_preferences') or {}
+    province = str(data.get('shopping_province') or '')[:30]
+    city = str(data.get('shopping_city') or '')[:30]
+    if province or city:
+        preferences['province'] = province
+        preferences['city'] = city
+        current_data['shopping_preferences'] = preferences
+        save_data(current_data)
+    price_context = shopping_price_context(preferences, shopping_region, language)
 
     if not dishes:
         def error_gen():
@@ -2103,7 +3258,11 @@ def generate_shopping_list_stream():
         return Response(error_gen(), mimetype='text/event-stream')
 
     if language == 'en-US':
-        budget_instruction = "\n6. 💰 **Budget Estimation**: Estimate the price for each ingredient (RMB) and calculate the total amount" if include_budget else ""
+        budget_instruction = f"""
+6. **Budget Estimate for {shopping_region}**
+- Estimate using typical recent retail prices at local supermarkets and wet markets in {shopping_region}
+- Show the reference unit price, item subtotal, and total in RMB
+- Give a reasonable price range and clearly state that actual prices vary by store, season, and brand{price_context}""" if include_budget else ""
         prompt = f"""Please generate a detailed shopping list for the following dishes for [{people_num} servings]:
 
 [Dishes to Cook] {dishes}
@@ -2138,7 +3297,11 @@ Please present in a clear table or list format for easy use while shopping.
 
 Please respond entirely in English."""
     else:
-        budget_instruction = "\n6. 💰 **预算估算**：为每种食材估算价格（人民币），并计算总金额" if include_budget else ""
+        budget_instruction = f"""
+6. **{shopping_region}预算估算**
+- 参考{shopping_region}近期普通超市及菜市场的常见零售价格
+- 标出每种食材的参考单价、小计和人民币总价
+- 给出合理价格区间，并明确提示实际价格会因门店、季节和品牌而变化{price_context}""" if include_budget else ""
         prompt = f"""请为以下【{people_num}人份】的菜品生成详细的采购清单：
 
 【想吃的菜品】{dishes}
@@ -2174,6 +3337,10 @@ Please respond entirely in English."""
     def generate():
         full_content = ""
         for chunk in call_ai_api_stream(prompt):
+            stream_error = extract_ai_stream_error(chunk)
+            if stream_error:
+                yield f"data: {json.dumps({'error': stream_error}, ensure_ascii=False)}\n\n"
+                return
             full_content += chunk
             yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
         yield f"data: {json.dumps({'done': True, 'full_content': full_content}, ensure_ascii=False)}\n\n"
@@ -2192,7 +3359,7 @@ Please respond entirely in English."""
 
 @app.route('/api/generate_daily_recommendation_stream', methods=['POST'])
 def generate_daily_recommendation_stream():
-    """生成今日饮食推荐 - SSE流式输出"""
+    """生成明日饮食推荐 - SSE流式输出（基于今日摄入缺口）"""
     current_data = load_data()
     population_group = current_data.get('population_group', 'adults')
     fridge_items = current_data.get('fridge_inventory', [])
@@ -2204,12 +3371,12 @@ def generate_daily_recommendation_stream():
     today_records = [r for r in all_records if r.get('date') == today]
 
     if today_records:
-        latest_3_records = today_records[-3:] if len(today_records) > 3 else today_records
+        # 🔐 真实数据：汇总今日全部摄入记录（不限条数）
         user_intake = {
-            'vegetables': sum(r.get('vegetables', 0) for r in latest_3_records),
-            'fruits': sum(r.get('fruits', 0) for r in latest_3_records),
-            'meat': sum(r.get('meat', 0) for r in latest_3_records),
-            'eggs': sum(r.get('eggs', 0) for r in latest_3_records)
+            'vegetables': sum(r.get('vegetables', 0) for r in today_records),
+            'fruits': sum(r.get('fruits', 0) for r in today_records),
+            'meat': sum(r.get('meat', 0) for r in today_records),
+            'eggs': sum(r.get('eggs', 0) for r in today_records)
         }
     else:
         user_intake = {'vegetables': 0, 'fruits': 0, 'meat': 0, 'eggs': 0}
@@ -2218,49 +3385,119 @@ def generate_daily_recommendation_stream():
         if population_group == 'all':
             groups = ['adults', 'teens', 'children', 'elderly']
             if language == 'en-US':
-                group_names = {'adults': 'Adults', 'teens': 'Teens', 'children': 'Children', 'elderly': 'Elderly'}
+                group_names = {'adults': 'Adults (18-60)', 'teens': 'Teens (13-17)', 'children': 'Children (6-12)', 'elderly': 'Elderly (60+)'}
             else:
-                group_names = {'adults': '成年人', 'teens': '青少年', 'children': '儿童', 'elderly': '老年人'}
+                group_names = {'adults': '成年人 (18-60岁)', 'teens': '青少年 (13-17岁)', 'children': '儿童 (6-12岁)', 'elderly': '老年人 (60岁以上)'}
 
+            # 为每个人群做营养评估，找出各自的缺口
+            group_assessments = {}
+            for group in groups:
+                assessment = nutrition_assessment(user_intake, group, language)
+                group_assessments[group] = assessment
+
+            # 构建包含营养标准对比的详细 prompt
             if language == 'en-US':
-                prompt = f"""You are a professional nutritionist. Please generate dietary recommendations for the following population groups:
+                intake_summary = f"""Today's total intake:
+  - Vegetables: {user_intake.get('vegetables', 0)}g
+  - Fruits: {user_intake.get('fruits', 0)}g
+  - Meat: {user_intake.get('meat', 0)}g
+  - Eggs: {user_intake.get('eggs', 0)}g"""
 
-Today's intake data: Vegetables {user_intake.get('vegetables', 0)}g, Fruits {user_intake.get('fruits', 0)}g, Meat {user_intake.get('meat', 0)}g, Eggs {user_intake.get('eggs', 0)}g
+                group_details = []
+                for group in groups:
+                    assessment = group_assessments[group]
+                    standard = get_nutrition_standard(group)
+                    recs = standard.get('daily_recommendations', {}) if standard else {}
+                    group_detail = f"""
+### {group_names[group]}
+- Daily standard: Vegetables {recs.get('vegetables',{}).get('min','?')}-{recs.get('vegetables',{}).get('max','?')}g, Fruits {recs.get('fruits',{}).get('min','?')}-{recs.get('fruits',{}).get('max','?')}g, Meat {recs.get('meat',{}).get('min','?')}-{recs.get('meat',{}).get('max','?')}g, Eggs {recs.get('eggs',{}).get('min','?')}-{recs.get('eggs',{}).get('max','?')}g
+- Deficiencies: {', '.join([assessment[k]['chinese_name'] + f" (gap: {assessment[k]['gap']}g)" for k, v in assessment.items() if v['status'] in ('不足', 'Insufficient')]) if any(v['status'] in ('不足', 'Insufficient') for v in assessment.values()) else '✅ All categories meet standards'}"""
+                    group_details.append(group_detail)
 
-Please generate a dietary recommendation for each of the following groups:
-- Adults (18-60 years)
-- Teens (13-17 years)
-- Children (6-12 years)
-- Elderly (60+ years)
+                prompt = f"""You are a professional nutritionist. Based on TODAY's intake, generate TOMORROW's dietary recommendations for ALL population groups in one household.
 
-For each group, include:
-1. Nutrition summary
-2. 2-3 recommended dishes
-3. Improvement suggestions
+{intake_summary}
 
-Keep each group's recommendation concise (under 150 words each).
+【Nutrition assessment by group (WHO/food-based dietary reference framework)】
+The SAME intake data may be sufficient for one group but deficient for another:
+{"".join(group_details)}
+
+【⚠️ CORE TASK — Recommend TOMORROW's meals for each group】
+1. For EACH group, recommend 1-2 TOMORROW dishes that specifically address THEIR deficiencies
+2. Prioritize foods from the deficient categories for each group
+3. Consider each group's digestion characteristics (elderly: soft food, children: fun/bite-sized, etc.)
+4. If you can recommend dishes that work for multiple groups, note that
+
+【Output Format】
+## Today's Overall Assessment (one sentence)
+## Tomorrow's Recommendations by Group
+### Adults
+### Teens
+### Children
+### Elderly
+## Shopping List (combined)
+
+【Requirements】
+- Focus on addressing each group's specific nutrition gaps
+- Use numbered lists for dishes
+- Keep each group's section under 120 words
+- Be specific about ingredient amounts
+
 Please respond entirely in English."""
             else:
-                prompt = f"""你是一位专业营养师。请为以下人群生成饮食推荐：
+                intake_summary = f"""今日总摄入:
+  - 蔬菜: {user_intake.get('vegetables', 0)}g
+  - 水果: {user_intake.get('fruits', 0)}g
+  - 肉类: {user_intake.get('meat', 0)}g
+  - 蛋类: {user_intake.get('eggs', 0)}g"""
 
-今日摄入数据：蔬菜{user_intake.get('vegetables', 0)}g、水果{user_intake.get('fruits', 0)}g、肉类{user_intake.get('meat', 0)}g、蛋类{user_intake.get('eggs', 0)}g
+                group_details = []
+                for group in groups:
+                    assessment = group_assessments[group]
+                    standard = get_nutrition_standard(group)
+                    recs = standard.get('daily_recommendations', {}) if standard else {}
+                    group_detail = f"""
+### {group_names[group]}
+- 每日标准: 蔬菜{recs.get('vegetables',{}).get('min','?')}-{recs.get('vegetables',{}).get('max','?')}g, 水果{recs.get('fruits',{}).get('min','?')}-{recs.get('fruits',{}).get('max','?')}g, 肉类{recs.get('meat',{}).get('min','?')}-{recs.get('meat',{}).get('max','?')}g, 蛋类{recs.get('eggs',{}).get('min','?')}-{recs.get('eggs',{}).get('max','?')}g
+- 摄入缺口: {', '.join([assessment[k]['chinese_name'] + f" (差{assessment[k]['gap']}g)" for k, v in assessment.items() if v['status'] in ('不足', 'Insufficient')]) if any(v['status'] in ('不足', 'Insufficient') for v in assessment.values()) else '✅ 所有类别均达标'}"""
+                    group_details.append(group_detail)
 
-请为以下每个年龄段生成饮食推荐：
-- 成年人 (18-60 岁)
-- 青少年 (13-17 岁)
-- 儿童 (6-12 岁)
-- 老年人 (60 岁以上)
+                prompt = f"""你是一位专业营养师。请根据**今日**的摄入数据，为一个家庭中的所有人群生成**明日**饮食推荐。
 
-每个年龄段包括：
-1. 营养状况总结
-2. 2-3个推荐菜品
-3. 改善建议
+{intake_summary}
 
-保持每个年龄段的推荐简洁（各150字以内）。"""
+【各人群营养评估（WHO 健康饮食原则 + 食物膳食指南参考框架）】
+同样的摄入量，对不同人群意味着不同的缺口：
+{"".join(group_details)}
+
+【⚠️ 核心任务 — 推荐明日食谱】
+1. 针对每个人群的具体营养缺口，各推荐 1-2 道**明日**补充菜品
+2. 优先推荐缺口类别中的食材
+3. 考虑各人群的消化特点（老年人：软烂易消化，儿童：趣味小份，青少年：营养丰富）
+4. 如果有适合多个人群的菜品，可以标注出来
+
+【输出格式】
+## 今日总体评估（一句话）
+## 明日各人群推荐
+### 成年人
+### 青少年
+### 儿童
+### 老年人
+## 综合采购清单
+
+【要求】
+- 围绕补充各人群的营养缺口
+- 菜品用有序数字列表
+- 每个人群控制在 120 字以内
+- 标注食材具体用量"""
 
             def generate():
                 full_content = ""
                 for chunk in call_ai_api_stream(prompt):
+                    stream_error = extract_ai_stream_error(chunk)
+                    if stream_error:
+                        yield f"data: {json.dumps({'error': stream_error}, ensure_ascii=False)}\n\n"
+                        return
                     full_content += chunk
                     yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
                 yield f"data: {json.dumps({'done': True, 'full_content': full_content, 'is_multi_group': True}, ensure_ascii=False)}\n\n"
@@ -2280,7 +3517,7 @@ Please respond entirely in English."""
             recommendation = generate_daily_recommendation(user_intake, population_group, fridge_items, language)
 
             def generate():
-                yield f"data: {json.dumps({'content': recommendation, 'done': True}, ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps({'content': recommendation, 'full_content': recommendation, 'done': True}, ensure_ascii=False)}\n\n"
                 yield "data: [DONE]\n\n"
 
             return Response(
@@ -2361,6 +3598,9 @@ def edit_intake_record(index):
         records[original_index]['fruits'] = data.get('fruits', records[original_index].get('fruits', 0))
         records[original_index]['meat'] = data.get('meat', records[original_index].get('meat', 0))
         records[original_index]['eggs'] = data.get('eggs', records[original_index].get('eggs', 0))
+        meal_type = str(data.get('meal_type') or records[original_index].get('meal_type') or '')
+        if meal_type in VALID_MEAL_TYPES:
+            records[original_index]['meal_type'] = meal_type
         
         current_data['daily_intake_records'] = records
         save_data(current_data)
@@ -2411,6 +3651,9 @@ def update_intake_record(index):
         records[original_index]['fruits'] = data.get('fruits', 0)
         records[original_index]['meat'] = data.get('meat', 0)
         records[original_index]['eggs'] = data.get('eggs', 0)
+        meal_type = str(data.get('meal_type') or records[original_index].get('meal_type') or '')
+        if meal_type in VALID_MEAL_TYPES:
+            records[original_index]['meal_type'] = meal_type
         
         print(f"\n✏️ [update_intake] 更新记录 {index}:")
         print(f"   蔬菜: {records[original_index]['vegetables']}g")
@@ -2427,14 +3670,16 @@ def update_intake_record(index):
 
 @app.route('/api/intake/history/7days', methods=['GET'])
 def get_7days_history():
-    """获取近7天摄入历史"""
+    """获取滚动近 7 天摄入历史"""
     current_data = load_data()
     records = current_data.get('daily_intake_records', [])
     
-    # 获取近7天的日期
-    from datetime import timedelta
-    today = get_china_time()
-    dates = [(today - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
+    # 从今天倒序获取 7 天；第 8 天及更早记录已由持久化清理逻辑删除。
+    today = get_china_time().date()
+    dates = [
+        (today - timedelta(days=i)).isoformat()
+        for i in range(7)
+    ]
     
     # 按日期分组统计
     history = []
@@ -2826,6 +4071,19 @@ def generate_shopping_list():
     people_num = data.get('people_num', 3)
     include_budget = data.get('include_budget', True)
     language = data.get('language', 'zh-CN')  # 🌐 获取语言设置
+    shopping_region = re.sub(r'[\r\n\t]+', ' ', str(data.get('shopping_region', ''))).strip()[:60]
+    if not shopping_region:
+        shopping_region = '中国大陆平均市场'
+    current_data = load_data()
+    preferences = current_data.get('shopping_preferences') or {}
+    province = str(data.get('shopping_province') or '')[:30]
+    city = str(data.get('shopping_city') or '')[:30]
+    if province or city:
+        preferences['province'] = province
+        preferences['city'] = city
+        current_data['shopping_preferences'] = preferences
+        save_data(current_data)
+    price_context = shopping_price_context(preferences, shopping_region, language)
     
     if not dishes:
         error_msg = '请输入想吃的菜品' if language == 'zh-CN' else 'Please enter dish names'
@@ -2833,7 +4091,11 @@ def generate_shopping_list():
     
     # 🌐 根据语言构建Prompt
     if language == 'en-US':
-        budget_instruction = "\n6. 💰 **Budget Estimation**: Estimate the price for each ingredient (RMB) and calculate the total amount" if include_budget else ""
+        budget_instruction = f"""
+6. **Budget Estimate for {shopping_region}**
+- Estimate using typical recent retail prices at local supermarkets and wet markets in {shopping_region}
+- Show the reference unit price, item subtotal, and total in RMB
+- Give a reasonable price range and clearly state that actual prices vary by store, season, and brand{price_context}""" if include_budget else ""
         
         prompt = f"""Please generate a detailed shopping list for the following dishes for [{people_num} servings]:
 
@@ -2869,7 +4131,11 @@ Please present in a clear table or list format for easy use while shopping.
 
 Please respond entirely in English."""
     else:
-        budget_instruction = "\n6. 💰 **预算估算**：为每种食材估算价格（人民币），并计算总金额" if include_budget else ""
+        budget_instruction = f"""
+6. **{shopping_region}预算估算**
+- 参考{shopping_region}近期普通超市及菜市场的常见零售价格
+- 标出每种食材的参考单价、小计和人民币总价
+- 给出合理价格区间，并明确提示实际价格会因门店、季节和品牌而变化{price_context}""" if include_budget else ""
         
         prompt = f"""请为以下【{people_num}人份】的菜品生成详细的采购清单：
 
@@ -2915,7 +4181,7 @@ Please respond entirely in English."""
 
 @app.route('/api/generate_daily_recommendation', methods=['POST'])
 def generate_daily_recommendation_route():
-    """生成今日饮食推荐"""
+    """生成明日饮食推荐（基于今日摄入缺口）"""
     current_data = load_data()
     population_group = current_data.get('population_group', 'adults')
     fridge_items = current_data.get('fridge_inventory', [])
@@ -2929,13 +4195,12 @@ def generate_daily_recommendation_route():
     today_records = [r for r in all_records if r.get('date') == today]
     
     if today_records:
-        # 关键修复：只汇总最新的3条记录（三餐），而不是全部5条
-        latest_3_records = today_records[-3:] if len(today_records) > 3 else today_records
+        # 🔐 真实数据：汇总今日全部摄入记录（不限条数）
         user_intake = {
-            'vegetables': sum(r.get('vegetables', 0) for r in latest_3_records),
-            'fruits': sum(r.get('fruits', 0) for r in latest_3_records),
-            'meat': sum(r.get('meat', 0) for r in latest_3_records),
-            'eggs': sum(r.get('eggs', 0) for r in latest_3_records)
+            'vegetables': sum(r.get('vegetables', 0) for r in today_records),
+            'fruits': sum(r.get('fruits', 0) for r in today_records),
+            'meat': sum(r.get('meat', 0) for r in today_records),
+            'eggs': sum(r.get('eggs', 0) for r in today_records)
         }
     else:
         user_intake = {'vegetables': 0, 'fruits': 0, 'meat': 0, 'eggs': 0}
@@ -3108,7 +4373,9 @@ tomato,egg,bell pepper"""
             return jsonify({'success': False, 'error': error_msg})
             
     except Exception as e:
-        return jsonify({'success': False, 'error': f'识别失败：{str(e)}'})
+        if isinstance(e, (requests.exceptions.ConnectionError, requests.exceptions.Timeout)):
+            return jsonify({'success': False, 'error': get_user_facing_ai_error(e)})
+        return jsonify({'success': False, 'error': '图像识别暂时不可用，请稍后重试'})
 
 @app.route('/api/analyze_nutrition', methods=['POST'])
 def analyze_nutrition():
@@ -3365,6 +4632,10 @@ Please respond entirely in English."""
     def generate():
         full_content = ""
         for chunk in call_ai_api_stream(prompt):
+            stream_error = extract_ai_stream_error(chunk)
+            if stream_error:
+                yield f"data: {json.dumps({'error': stream_error}, ensure_ascii=False)}\n\n"
+                return
             full_content += chunk
             yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
         yield f"data: {json.dumps({'done': True, 'full_content': full_content}, ensure_ascii=False)}\n\n"
@@ -3455,11 +4726,9 @@ def voice_recognize():
             return jsonify({'success': False, 'error': error_msg})
             
     except Exception as e:
-        error_msg = str(e)
-        if "RequestError" in error_msg or "connection" in error_msg.lower():
-            return jsonify({'success': False, 'error': '网络连接失败，请检查网络后重试'})
-        else:
-            return jsonify({'success': False, 'error': f'识别失败：{error_msg}'})
+        if isinstance(e, (requests.exceptions.ConnectionError, requests.exceptions.Timeout)):
+            return jsonify({'success': False, 'error': get_user_facing_ai_error(e)})
+        return jsonify({'success': False, 'error': '语音识别暂时不可用，请稍后重试'})
 
 if __name__ == '__main__':
     print("\n" + "="*70)
@@ -3467,7 +4736,7 @@ if __name__ == '__main__':
     print("="*70)
     print("\n✨ 功能特性:")
     print("   • 智能食谱生成 - 基于AI的个性化菜谱推荐")
-    print("   • 营养分析评估 - 联合国营养标准对照")
+    print("   • 营养分析评估 - WHO/FAO 膳食参考框架")
     print("   • 冰箱库存管理 - 智能食材搭配建议")
     print("   • 环保价值计算 - 量化食物浪费减少")
     print("   • 拍照识菜功能 - 图像识别食材")

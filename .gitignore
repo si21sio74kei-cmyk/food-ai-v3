@@ -32,9 +32,24 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+数据库.env
+database.env
+
+# 运行时本地数据（游客模式数据文件，不应部署到 Vercel）
+fgai_local_data.json
+fgai_accounts.db
 
 # Lingma AI
 .lingma/
+.codebuddy/
+
+# Browser/visual QA output (may contain local sessions or cookies)
+.chrome-qa-profile-*/
+.edge-qa-profile-*/
+_qa_*.png
+_shot_*.png
+_frontend_cdp_qa_report.json
+_test_out.txt
 
 # 临时文件
 *.tmp

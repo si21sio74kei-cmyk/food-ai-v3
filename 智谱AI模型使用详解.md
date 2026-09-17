@@ -192,10 +192,10 @@ if language in ['zh', 'en']:
 
 ```python
 # 文本对话API密钥
-ZHIPU_API_KEY = os.getenv("ZHIPU_API_KEY", "96c2f3dc023441738ea4ab27dc288dba.74edfBTCaWL5bhhj")
+ZHIPU_API_KEY = os.getenv("ZHIPU_API_KEY")
 
 # 图像识别API密钥（可选，默认使用同一个）
-ZHIPU_API_KEY_TEXT = os.getenv("ZHIPU_API_KEY_TEXT", "022ac847f3384c28be276fcdf04c9892.lVw8PyzurjGIXhm2")
+ZHIPU_API_KEY_TEXT = os.getenv("ZHIPU_API_KEY_TEXT")
 ```
 
 ### 🔒 安全建议
