@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-i18n="app.title">FoodGuardian AI - 智能食谱助手</title>
     <style>
         /* ==================== 全局样式 ==================== */
@@ -1170,7 +1170,7 @@
             background: rgba(250, 249, 247, 0.86);
             box-shadow: 0 1px 0 rgba(45, 58, 43, 0.08);
         }
-        .logo { font-size: 20px; letter-spacing: -0.2px; }
+        .logo { font-size: 20px; letter-spacing: 0; }
         .logo::after { display: none; }
 
         .page-container { margin-top: 68px; }
@@ -1601,6 +1601,22 @@
         }
         .result-box::after { display: none; }
         .result-box h2 { border-bottom: 1px solid rgba(37, 48, 38, 0.12); }
+        .result-box { min-width: 0; overflow-wrap: anywhere; }
+        .result-box pre {
+            max-width: 100%;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+        .result-box img,
+        .result-box video {
+            max-width: 100%;
+            height: auto;
+        }
+        .result-box table {
+            display: block;
+            max-width: 100%;
+            overflow-x: auto;
+        }
 
         .tab-bar {
             max-width: 680px;
@@ -1657,15 +1673,19 @@
         }
 
         #auth-modal,
+        #recovery-code-modal,
         #history-modal,
         #image-recognition-modal {
             background: rgba(30, 33, 29, 0.42) !important;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             padding: 16px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
         }
 
         #auth-modal > div,
+        #recovery-code-modal > div,
         #history-modal > div,
         #image-recognition-modal > div {
             box-sizing: border-box;
@@ -1989,6 +2009,7 @@
         }
 
         @media (max-width: 768px) {
+            body { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
             .top-bar { padding: 0 16px; }
             .logo { font-size: 16px; }
             .page-container {
@@ -1997,8 +2018,6 @@
             }
             .welcome-banner { padding: 26px 24px; }
             .welcome-title { font-size: 27px; }
-            .tab-label { display: none; }
-            .tab-bar { width: calc(100% - 24px); }
             .guided-panel,
             .home-utility-grid {
                 grid-template-columns: 1fr;
@@ -2013,19 +2032,25 @@
             }
             .tab-label {
                 display: block;
-                font-size: 10.5px;
+                width: 100%;
+                overflow: hidden;
+                font-size: 10px;
+                line-height: 1.15;
+                text-align: center;
+                white-space: nowrap;
             }
             .tab-item {
-                padding: 6px 3px;
-                flex: 1 0 50px;
-                min-width: 50px;
+                min-width: 0;
+                padding: 6px 1px;
+                flex: 1 1 0;
             }
             .tab-bar {
-                justify-content: flex-start;
-                overflow-x: auto;
-                scrollbar-width: none;
+                width: calc(100% - 20px);
+                bottom: max(8px, env(safe-area-inset-bottom));
+                justify-content: stretch;
+                overflow: hidden;
+                padding-inline: 4px;
             }
-            .tab-bar::-webkit-scrollbar { display: none; }
             .shopping-form-grid,
             .shopping-location-panel {
                 grid-template-columns: 1fr;
@@ -2033,14 +2058,80 @@
             .shopping-location-note {
                 grid-column: 1;
             }
-            #auth-modal {
-                justify-content: flex-start !important;
+            #auth-modal,
+            #recovery-code-modal,
+            #history-modal,
+            #image-recognition-modal {
+                justify-content: center !important;
+                align-items: flex-start !important;
                 padding: 16px !important;
             }
             #auth-modal > div {
                 width: min(340px, calc(100vw - 32px)) !important;
                 max-width: min(340px, calc(100vw - 32px)) !important;
                 margin: 0 !important;
+                max-height: calc(100dvh - 32px);
+                overflow-y: auto;
+            }
+            #recovery-code-modal > div,
+            #history-modal > div,
+            #image-recognition-modal > div {
+                margin: 0 !important;
+                max-height: calc(100dvh - 32px) !important;
+            }
+            .image-modal-body {
+                padding: 18px !important;
+                max-height: calc(100dvh - 112px) !important;
+            }
+            #image-preview-area {
+                min-height: 220px !important;
+                margin-bottom: 16px !important;
+            }
+            .image-action-row {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 10px !important;
+            }
+            .image-action-row .btn {
+                width: 100% !important;
+                flex: none !important;
+                white-space: normal !important;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .top-bar { padding: 0 10px; }
+            .logo { font-size: 15px; flex-shrink: 0; }
+            .top-actions { gap: 5px; }
+            .action-btn { width: 34px; height: 34px; }
+            .page-container { padding-inline: 10px; }
+            .card { padding: 18px 16px; }
+            .welcome-banner { padding: 22px 18px; }
+            .welcome-title { font-size: 24px; }
+            .tab-label { font-size: 9px; }
+            .inline-action-row {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+            .inline-action-row > .btn,
+            .inline-action-row > button,
+            .inline-action-row > .input-field,
+            .inline-action-row > input {
+                width: 100% !important;
+                flex: none !important;
+            }
+            .recipe-action-grid {
+                grid-template-columns: 1fr !important;
+            }
+            #image-preview-area { min-height: 190px !important; }
+        }
+
+        @media (max-height: 460px) and (orientation: landscape) {
+            #image-preview-area { min-height: 140px !important; }
+            .image-modal-body { max-height: calc(90vh - 96px) !important; }
+            #auth-modal > div,
+            #recovery-code-modal > div {
+                max-height: calc(100dvh - 24px);
             }
         }
     </style>
@@ -2211,7 +2302,7 @@
                 <div class="card-title" data-i18n="home.food_weight_query_title">食材重量查询</div>
                 <div class="card-subtitle" data-i18n="home.food_weight_query_subtitle">输入食材名称，查询常见食物的近似重量（帮助您估算摄入量）</div>
                 
-                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                <div class="inline-action-row" style="display: flex; gap: 12px; margin-bottom: 16px;">
                     <input type="text" id="food-query-input" class="input-field" data-i18n-placeholder="home.food_weight_placeholder" placeholder="例如：苹果、米饭、鸡蛋..." style="flex: 1;">
                     <button class="btn btn-primary" onclick="queryFoodWeight()" style="white-space: nowrap;" data-i18n="home.query_button">查询</button>
                 </div>
@@ -2257,7 +2348,7 @@
                     </div>
                 </div>
                 
-                <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <div class="inline-action-row" style="display: flex; gap: 12px; margin-top: 16px;">
                     <button class="btn btn-primary" onclick="saveIntakeHome()" style="flex: 1; display: block; visibility: visible;" data-i18n="home.save_intake_home_button">保存记录</button>
                     <button class="btn btn-secondary" onclick="performNutritionAssessmentFromHome()" style="flex: 1; display: block; visibility: visible;" data-i18n="home.assess_now_button">立即评估</button>
                 </div>
@@ -2361,7 +2452,7 @@
                 </div>
 
                 <!-- 操作按钮组 -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
+                <div class="recipe-action-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
                     <button class="btn btn-primary" onclick="generateRecipe()" id="generate-btn" style="width: 100%;" data-i18n="recipe.generate_recipe_button">
                         生成环保菜单
                     </button>
@@ -2458,7 +2549,7 @@
                 
                 <div id="chat-messages" style="min-height: 450px; max-height: 650px; overflow-y: auto; overflow-x: hidden; overflow-wrap: break-word; margin: 20px 0; padding: 20px; background: rgba(255, 255, 255, 0.7); border-radius: 16px; border: 1px solid var(--card-border);"></div>
                 
-                <div style="display: flex; gap: 12px;">
+                <div class="inline-action-row chat-input-row" style="display: flex; gap: 12px;">
                     <input type="text" id="chat-input" class="input-field" data-i18n-placeholder="chat.input_placeholder" placeholder="输入您的问题..." style="flex: 1;" onkeypress="if(event.key==='Enter') sendChat()">
                     <button class="btn btn-primary" id="chat-send-btn" onclick="sendChat()" data-i18n="chat.send_button">发送</button>
                 </div>
@@ -2563,7 +2654,7 @@
                 </div>
                 <div id="shopping-price-feedback" style="margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--card-border);">
                     <label class="input-label" for="shopping-actual-price" data-i18n="shopping.actual_price_label">本次实际采购总价（元）</label>
-                    <div style="display: flex; gap: 10px; align-items: stretch;">
+                    <div class="inline-action-row" style="display: flex; gap: 10px; align-items: stretch;">
                         <input type="number" id="shopping-actual-price" class="input-field" min="0.01" max="1000000" step="0.01" data-i18n-placeholder="shopping.actual_price_placeholder" placeholder="例如：86.50" style="flex: 1;">
                         <button type="button" class="btn btn-secondary" onclick="saveShoppingPriceFeedback()" data-i18n="shopping.save_actual_price">保存实际价格</button>
                     </div>
@@ -2735,7 +2826,7 @@
             </div>
             
             <!-- 内容区 -->
-            <div style="padding: 30px; overflow-y: auto; max-height: calc(90vh - 100px); display: flex; flex-direction: column;">
+            <div class="image-modal-body" style="padding: 30px; overflow-y: auto; max-height: calc(90vh - 100px); display: flex; flex-direction: column;">
                 <!-- 图片预览区 -->
                 <div id="image-preview-area" style="width: 100%; min-height: 350px; max-height: 450px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px; display: flex; justify-content: center; align-items: center; margin-bottom: 24px; border: 3px dashed var(--primary); transition: all 0.3s; overflow: hidden; position: relative; flex-shrink: 0;">
                     <div style="text-align: center; color: var(--text-secondary); padding: 20px;">
@@ -2746,7 +2837,7 @@
                 </div>
                 
                 <!-- 按钮区 -->
-                <div style="display: flex; gap: 16px; justify-content: center; align-items: center; margin-bottom: 24px; flex-wrap: nowrap;">
+                <div class="image-action-row" style="display: flex; gap: 16px; justify-content: center; align-items: center; margin-bottom: 24px; flex-wrap: nowrap;">
                     <input type="file" id="image-upload-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
                     <button class="btn btn-primary" onclick="document.getElementById('image-upload-input').click()" style="flex: 1; min-width: 0; padding: 14px 20px; font-size: 15px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;">
                         <span>📤</span>

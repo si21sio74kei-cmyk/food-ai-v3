@@ -406,52 +406,163 @@ def main():
         runtime_eval(ws, "switchPage('voice'); new Promise(r => setTimeout(r, 500))")
         voice_shot = capture(ws, "_qa_frontend_voice_desktop.png")
 
-        ws.call(
-            "Emulation.setDeviceMetricsOverride",
-            {"width": 390, "height": 844, "deviceScaleFactor": 2, "mobile": True},
-        )
-        runtime_eval(ws, "switchPage('home'); new Promise(r => setTimeout(r, 800))")
-        mobile_home = runtime_eval(
-            ws,
-            """
-            (() => {
-              const pages = {};
-              for (const page of ['home', 'recipes', 'nutrition', 'chat', 'voice', 'fridge', 'shopping']) {
-                switchPage(page);
-                pages[page] = {
-                  bodyOverflow: document.documentElement.scrollWidth - window.innerWidth,
-                  pageOverflow: document.querySelector(`#page-${page}`).scrollWidth - document.querySelector(`#page-${page}`).clientWidth
-                };
-              }
-              switchPage('shopping');
-              return ({
-                viewport: { width: innerWidth, height: innerHeight },
-                bodyOverflow: document.documentElement.scrollWidth - window.innerWidth,
-                pages,
-                auth: (() => {
-                    const el = document.querySelector('#auth-modal > div');
+        mobile_matrix = {}
+        mobile_screenshots = []
+        for width, height, label in [
+            (320, 568, "320x568"),
+            (360, 640, "360x640"),
+            (390, 844, "390x844"),
+            (430, 932, "430x932"),
+            (844, 390, "844x390-landscape"),
+        ]:
+            ws.call(
+                "Emulation.setDeviceMetricsOverride",
+                {"width": width, "height": height, "deviceScaleFactor": 2, "mobile": True},
+            )
+            runtime_eval(ws, "switchPage('home'); new Promise(r => setTimeout(r, 220))")
+            mobile_matrix[label] = runtime_eval(
+                ws,
+                """
+                (() => {
+                  const rect = (el) => {
                     if (!el) return null;
                     const r = el.getBoundingClientRect();
-                    return { display: getComputedStyle(document.getElementById('auth-modal')).display, width: Math.round(r.width), left: Math.round(r.left), right: Math.round(r.right) };
-                })(),
-                nav: (() => {
-                    const el = document.querySelector('.tab-bar');
-                    if (!el) return null;
-                    const r = el.getBoundingClientRect();
-                    return { width: Math.round(r.width), left: Math.round(r.left), right: Math.round(r.right), bottom: Math.round(r.bottom) };
+                    return {
+                      left: Math.round(r.left), right: Math.round(r.right),
+                      top: Math.round(r.top), bottom: Math.round(r.bottom),
+                      width: Math.round(r.width), height: Math.round(r.height)
+                    };
+                  };
+                  const pages = {};
+                  for (const page of ['home', 'recipes', 'nutrition', 'chat', 'voice', 'fridge', 'shopping']) {
+                    switchPage(page);
+                    const pageEl = document.querySelector(`#page-${page}`);
+                    const pageRect = pageEl.getBoundingClientRect();
+                    const firstCard = pageEl.querySelector('.card, .welcome-banner');
+                    const cardRect = firstCard?.getBoundingClientRect();
+                    pages[page] = {
+                      bodyOverflow: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
+                      pageOverflow: Math.max(0, pageEl.scrollWidth - pageEl.clientWidth),
+                      pageGaps: {
+                        left: Math.round(pageRect.left),
+                        right: Math.round(innerWidth - pageRect.right),
+                        difference: Math.round(Math.abs(pageRect.left - (innerWidth - pageRect.right)))
+                      },
+                      firstCardGaps: cardRect ? {
+                        left: Math.round(cardRect.left),
+                        right: Math.round(innerWidth - cardRect.right),
+                        difference: Math.round(Math.abs(cardRect.left - (innerWidth - cardRect.right)))
+                      } : null
+                    };
+                  }
+
+                  const authModal = document.getElementById('auth-modal');
+                  const previousAuthDisplay = authModal.style.display;
+                  authModal.style.display = 'flex';
+                  const authPanelElement = authModal.querySelector(':scope > div');
+                  const authPanel = rect(authPanelElement);
+                  const authLastAction = authPanelElement.querySelector('#auth-submit-btn');
+                  authPanelElement.scrollTop = authPanelElement.scrollHeight;
+                  const authLastActionAfterScroll = rect(authLastAction);
+                  const authScroll = {
+                    clientHeight: authPanelElement.clientHeight,
+                    scrollHeight: authPanelElement.scrollHeight,
+                    maxScroll: Math.max(0, authPanelElement.scrollHeight - authPanelElement.clientHeight),
+                    lastActionAfterScroll: authLastActionAfterScroll,
+                    actionReachable: Boolean(
+                      authLastActionAfterScroll && authPanel &&
+                      authLastActionAfterScroll.top >= authPanel.top - 1 &&
+                      authLastActionAfterScroll.bottom <= authPanel.bottom + 1
+                    )
+                  };
+                  authPanelElement.scrollTop = 0;
+                  authModal.style.display = previousAuthDisplay;
+
+                  const imageModal = document.getElementById('image-recognition-modal');
+                  const previousImageDisplay = imageModal.style.display;
+                  imageModal.style.display = 'flex';
+                  const imagePanel = rect(imageModal.querySelector(':scope > div'));
+                  const imageModalBody = imageModal.querySelector('.image-modal-body');
+                  const imageActions = rect(imageModal.querySelector('.image-action-row'));
+                  const imageActionButtons = [...imageModal.querySelectorAll('.image-action-row .btn')]
+                    .map(rect);
+                  imageModalBody.scrollTop = imageModalBody.scrollHeight;
+                  const imageActionsAfterScroll = rect(imageModal.querySelector('.image-action-row'));
+                  const imageScroll = {
+                    clientHeight: imageModalBody.clientHeight,
+                    scrollHeight: imageModalBody.scrollHeight,
+                    maxScroll: Math.max(0, imageModalBody.scrollHeight - imageModalBody.clientHeight),
+                    actionsAfterScroll: imageActionsAfterScroll,
+                    actionsReachable: Boolean(
+                      imageActionsAfterScroll && imagePanel &&
+                      imageActionsAfterScroll.top >= imagePanel.top - 1 &&
+                      imageActionsAfterScroll.bottom <= imagePanel.bottom + 1
+                    )
+                  };
+                  imageModalBody.scrollTop = 0;
+                  imageModal.style.display = previousImageDisplay;
+
+                  const nav = document.querySelector('.tab-bar');
+                  const navRect = nav.getBoundingClientRect();
+                  const navItems = [...nav.querySelectorAll('.tab-item')];
+                  const firstNavItem = navItems[0]?.getBoundingClientRect();
+                  const lastNavItem = navItems.at(-1)?.getBoundingClientRect();
+                  const logoRect = document.querySelector('.logo').getBoundingClientRect();
+                  const actionRect = document.querySelector('.top-actions').getBoundingClientRect();
+                  switchPage('home');
+
+                  return {
+                    viewport: { width: innerWidth, height: innerHeight },
+                    bodyOverflow: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
+                    pages,
+                    topBar: {
+                      logo: rect(document.querySelector('.logo')),
+                      actions: rect(document.querySelector('.top-actions')),
+                      overlap: Math.max(0, Math.round(logoRect.right - actionRect.left))
+                    },
+                    nav: {
+                      box: rect(nav),
+                      scrollOverflow: Math.max(0, nav.scrollWidth - nav.clientWidth),
+                      allItemsVisible: Boolean(
+                        firstNavItem && lastNavItem &&
+                        firstNavItem.left >= navRect.left - 1 &&
+                        lastNavItem.right <= navRect.right + 1
+                      )
+                    },
+                    auth: {
+                      panel: authPanel,
+                      horizontalDifference: authPanel
+                        ? Math.abs(authPanel.left - (innerWidth - authPanel.right))
+                        : null,
+                      scroll: authScroll,
+                      fitsViewport: authPanel
+                        ? authPanel.left >= 0 && authPanel.right <= innerWidth &&
+                          authPanel.top >= 0 && authPanel.bottom <= innerHeight
+                        : false
+                    },
+                    imageModal: {
+                      panel: imagePanel,
+                      actions: imageActions,
+                      actionButtons: imageActionButtons,
+                      scroll: imageScroll,
+                      fitsViewport: imagePanel
+                        ? imagePanel.left >= 0 && imagePanel.right <= innerWidth &&
+                          imagePanel.top >= 0 && imagePanel.bottom <= innerHeight
+                        : false
+                    }
+                  };
                 })()
-              });
-            })()
-            """,
-        )
-        runtime_eval(ws, "new Promise(r => setTimeout(r, 500))")
-        mobile_shot = capture(ws, "_qa_frontend_mobile_home.png")
+                """,
+            )
+            if label in ("320x568", "390x844", "844x390-landscape"):
+                runtime_eval(ws, "switchPage('home'); new Promise(r => setTimeout(r, 180))")
+                mobile_screenshots.append(capture(ws, f"_qa_frontend_mobile_{label}.png"))
 
         report = {
             "register": register_result,
             "desktop": desktop_result,
-            "mobile": mobile_home,
-            "screenshots": [desktop_shot, voice_shot, mobile_shot],
+            "mobile": mobile_matrix,
+            "screenshots": [desktop_shot, voice_shot, *mobile_screenshots],
         }
         report_path = os.path.join(ROOT, "_frontend_cdp_qa_report.json")
         with open(report_path, "w", encoding="utf-8") as f:

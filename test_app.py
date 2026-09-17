@@ -735,6 +735,8 @@ class TestFrontendMarkup(unittest.TestCase):
         self.assertIn('overflow-x: hidden; overflow-wrap: break-word;', html)
         self.assertIn('overflow-wrap: break-word;', html)
         self.assertIn('word-break: break-word;', html)
+        self.assertIn('.result-box table {', html)
+        self.assertIn('overflow-x: auto;', html)
 
     def test_markdown_renderer_escapes_raw_html(self):
         """AI 文本渲染 → 先转义 HTML，再处理 Markdown，避免注入页面"""
@@ -834,13 +836,28 @@ class TestFrontendMarkup(unittest.TestCase):
         self.assertIn("window.i18n.t('auth.session_expired')", html)
 
     def test_auth_modal_is_mobile_safe(self):
-        """登录弹窗 → 移动端不因 padding 溢出屏幕"""
+        """登录弹窗 → 移动端居中且横屏可滚动，不因 padding 溢出屏幕"""
         html = self._read_index()
         self.assertIn('#auth-modal > div {', html)
         self.assertIn('width: min(100%, 380px) !important;', html)
         self.assertIn('width: min(340px, calc(100vw - 32px)) !important;', html)
-        self.assertIn('justify-content: flex-start !important;', html)
+        self.assertIn('justify-content: center !important;', html)
+        self.assertIn('align-items: flex-start !important;', html)
+        self.assertIn('max-height: calc(100dvh - 32px);', html)
+        self.assertNotIn('justify-content: flex-start !important;', html)
         self.assertIn('box-sizing: border-box;', html)
+
+    def test_mobile_navigation_and_narrow_actions_fit_without_horizontal_scroll(self):
+        """窄屏布局 → 7 个菜单完整等宽显示，主要操作可纵向排列"""
+        html = self._read_index()
+        self.assertIn('<meta name="viewport" content="width=device-width, initial-scale=1.0">', html)
+        self.assertIn('flex: 1 1 0;', html)
+        self.assertIn('min-width: 0;', html)
+        self.assertIn('width: calc(100% - 20px);', html)
+        self.assertIn('class="inline-action-row chat-input-row"', html)
+        self.assertIn('class="recipe-action-grid"', html)
+        self.assertIn('class="image-action-row"', html)
+        self.assertIn('flex-direction: column !important;', html)
 
 
 class FakeSupabaseDB:
