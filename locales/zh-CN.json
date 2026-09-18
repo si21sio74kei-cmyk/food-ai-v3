@@ -104,6 +104,8 @@
     "reset_stats_button": "清零统计",
     "daily_recommendation_title": "明日饮食推荐",
     "daily_recommendation_subtitle": "基于今日营养状况和冰箱食材，AI 为您生成明日专属饮食建议",
+    "daily_rec_people_label": "明日就餐人数（最多 20 人）",
+    "daily_rec_appetite_label": "个人饭量系数（最高 2.0）",
     "daily_rec_result_title": "推荐结果",
     "generate_daily_rec_button": "AI 生成明日推荐",
     "food_weight_query_title": "食材重量查询",
@@ -112,6 +114,7 @@
     "query_button": "查询",
     "intake_record_title": "今日饮食摄入记录",
     "intake_record_subtitle": "请录入您今日已摄入的各类食材重量(克)",
+    "intake_scope_note": "营养评估按账号本人计算，请填写本人实际吃下的克数，不要填写整桌总量。",
     "vegetables_label": "蔬菜 (g)",
     "fruits_label": "水果 (g)",
     "meat_label": "肉类 (g)",
@@ -348,7 +351,9 @@
     "ai_recognition_complete": "AI识别完成！请检查上方食材列表，如有不准确可以手动修改，然后点击“确认并录入摄入数据”按钮。",
     "network_error_details": "网络错误: {error}\n\n请检查:\n1. 服务器是否运行\n2. 网络连接是否正常\n3. API密钥是否有效",
     "meal_generated_auto_intake": "第{num}餐食谱生成，正在自动录入摄入数据...",
+    "daily_meals_complete": "今日三餐已完成，请明天继续或先重置进度",
     "meal_intake_recorded": "第{num}餐已录入：蔬菜{veg}g, 水果{fru}g, 肉类{meat}g, 蛋类{egg}g",
+    "intake_records_saved": "今日已累计 {count} 条摄入记录，全部已保存到您的账号",
     "meal_auto_intake_rule": "第{num}次：饮食记录已自动录入（基于规则估算）",
     "error_server": "服务器错误",
     "error_ai_reply": "AI 回复失败",
@@ -433,7 +438,10 @@
     "recognition_failed": "语音识别失败",
     "recognition_error": "识别错误：",
     "re_record": "重新录音",
-    "ai_thinking": " AI 正在思考您的问题,请稍候...\n\n"
+    "ai_thinking": "AI 正在思考您的问题,请稍候...\n\n",
+    "question_label": "问题：",
+    "answer_title": "AI 回答：",
+    "answering_title": "AI 回答中..."
   },
   "shopping": {
     "title": "智能采购清单",

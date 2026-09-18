@@ -172,6 +172,29 @@ MEAL_MULTIPLIERS = {'home': 1.0, 'healthy': 0.9, 'vegetarian': 0.85, 'banquet': 
 
 ENV_FACTORS = {'water_per_g': 0.5, 'co2_per_g': 3.0}
 WASTE_RATIO = 0.25
+MIN_DINERS = 1
+MAX_DINERS = 20
+MIN_APPETITE_FACTOR = 0.7
+MAX_APPETITE_FACTOR = 2.0
+
+
+def parse_dining_preferences(data, default_people=1, default_appetite=1.0):
+    """Validate serving controls shared by recipes and recommendations."""
+    data = data or {}
+    people_value = data.get('people_num', default_people)
+    appetite_value = data.get('appetite', default_appetite)
+    if isinstance(people_value, bool) or isinstance(appetite_value, bool):
+        raise ValueError('人数或饭量系数格式不正确')
+
+    people_number = float(people_value)
+    appetite = float(appetite_value)
+    if not people_number.is_integer() or not MIN_DINERS <= people_number <= MAX_DINERS:
+        raise ValueError(f'就餐人数必须是 {MIN_DINERS} 到 {MAX_DINERS} 的整数')
+    if not MIN_APPETITE_FACTOR <= appetite <= MAX_APPETITE_FACTOR:
+        raise ValueError(
+            f'个人饭量系数必须在 {MIN_APPETITE_FACTOR} 到 {MAX_APPETITE_FACTOR} 之间'
+        )
+    return int(people_number), round(appetite, 1)
 
 # ====================== 账号系统 (Supabase REST API) ======================
 def build_supabase_headers(extra_headers=None):
@@ -367,6 +390,22 @@ def local_save_user_data(user_id, data):
 VALID_MEAL_TYPES = {'breakfast', 'lunch', 'dinner', 'snack'}
 
 
+def validate_intake_values(data, defaults=None):
+    """Return finite, non-negative gram values for all tracked food groups."""
+    defaults = defaults or {}
+    validated = {}
+    for field in ('vegetables', 'fruits', 'meat', 'eggs'):
+        value = data.get(field, defaults.get(field, 0))
+        if isinstance(value, bool):
+            raise ValueError('摄入量必须是 0 到 100000 克之间的数字')
+        number = float(value)
+        if not 0 <= number <= 100000:
+            raise ValueError('摄入量必须是 0 到 100000 克之间的数字')
+        amount = round(number, 1)
+        validated[field] = int(amount) if amount.is_integer() else amount
+    return validated
+
+
 def intake_date_bounds():
     """返回滚动 7 天的最早日期和今日。"""
     today = get_china_time().date()
@@ -542,6 +581,7 @@ def default_user_data():
         'daily_intake_records': [],
         'fridge_inventory': [],
         'generation_count': 0,
+        'generation_date': '',
         'shopping_preferences': {
             'province': '',
             'city': '',
@@ -574,6 +614,17 @@ def sanitize_persisted_user_data(data):
         clean['daily_intake_records'] = normalized_records
     else:
         clean['daily_intake_records'] = []
+
+    # 三餐进度只属于当天，避免昨天的餐次让今天第一餐误触发评估。
+    today_iso = today.isoformat()
+    try:
+        generation_count = int(clean.get('generation_count', 0))
+    except (TypeError, ValueError):
+        generation_count = 0
+    if clean.get('generation_date') != today_iso:
+        generation_count = 0
+    clean['generation_count'] = min(3, max(0, generation_count))
+    clean['generation_date'] = today_iso
 
     preferences = clean.get('shopping_preferences')
     if not isinstance(preferences, dict):
@@ -769,7 +820,7 @@ def load_data():
     return default_user_data()
 
 def save_data(data):
-    """保存数据"""
+    """保存数据；返回是否已写入当前账号的持久化存储。"""
     data = sanitize_persisted_user_data(data)
 
     # ① 已登录 → 写入该账号对应后端
@@ -779,10 +830,10 @@ def save_data(data):
             user['id'], data.get('daily_intake_records', [])
         )
         if records_ok and local_save_user_data(user['id'], data):
-            return
+            return True
         print('⚠️ [LocalDB] 保存账号数据失败，降级为本地游客保存')
-
-    if user and is_db_configured():
+        account_save_failed = True
+    elif user and is_db_configured():
         profile = dict(data)
         if cloud_replace_intake_records(user['id'], data.get('daily_intake_records', [])):
             profile.pop('daily_intake_records', None)
@@ -794,21 +845,26 @@ def save_data(data):
         result = db_request('POST', 'user_data', json_body=[payload],
                             extra_headers={'Prefer': 'resolution=merge-duplicates'})
         if result is not None:
-            return
+            return True
         print('⚠️ [DB] 保存账号数据失败，降级为本地保存')
+        account_save_failed = True
+    else:
+        account_save_failed = False
 
     # ② 游客模式（原有逻辑）
     # Vercel 环境使用内存存储（只读文件系统）
     if os.getenv('VERCEL'):
         load_data._memory_data = data
-        return
+        return not account_save_failed
 
     # 本地环境使用文件存储
     try:
         with open('fgai_local_data.json', 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+        return not account_save_failed
     except Exception as e:
         print(f"⚠️ 保存数据失败: {e}")
+        return False
 
 # ====================== AI API 调用 ======================
 def get_user_facing_ai_error(exc):
@@ -1825,7 +1881,8 @@ Please respond entirely in English."""
     except Exception as e:
         return f"生成方案时出错:{str(e)}"
 
-def generate_daily_recommendation(user_intake, population_group, fridge_items, language='zh-CN'):
+def generate_daily_recommendation(user_intake, population_group, fridge_items, language='zh-CN',
+                                  people_num=1, appetite=1.0):
     """基于今日营养摄入缺口 + 现有食材，生成明日饮食推荐（优先补充不足）"""
     assessment = nutrition_assessment(user_intake, population_group, language)
     standard = get_nutrition_standard(population_group)
@@ -1842,7 +1899,10 @@ def generate_daily_recommendation(user_intake, population_group, fridge_items, l
 
     # 冰箱食材列表
     if fridge_items:
-        ingredients_str = ", ".join([f"{item['name']}{item.get('quantity', '')}g" for item in fridge_items[:5]])
+        ingredients_str = ", ".join([
+            f"{item['name']}{item.get('quantity', '')}{item.get('unit', 'g') if item.get('quantity', '') != '' else ''}"
+            for item in fridge_items[:5]
+        ])
     else:
         ingredients_str = ''
 
@@ -1878,6 +1938,12 @@ Actual TODAY intake:
   - Fruits: {user_intake.get('fruits', 0)}g
   - Meat: {user_intake.get('meat', 0)}g
   - Eggs: {user_intake.get('eggs', 0)}g
+
+【Tomorrow's serving target】
+- Serve {people_num} people
+- Personal portion factor: {appetite}
+- Today's intake above is ONE account holder's per-person intake. Assess it as one person.
+- Ingredient quantities for tomorrow must be the TOTAL for all {people_num} diners, scaled by {appetite}.
 
 【Nutrition Gaps — PRIORITIZE supplementing these TOMORROW】
 {deficient_desc}
@@ -1923,6 +1989,12 @@ Please respond entirely in English."""
   - 肉类: {user_intake.get('meat', 0)}g
   - 蛋类: {user_intake.get('eggs', 0)}g
 
+【明日份量目标】
+- 就餐人数：{people_num} 人
+- 个人饭量系数：{appetite}
+- 上述今日摄入是账号本人 1 人的实际摄入，营养缺口必须按单人评估。
+- 明日食材用量必须给出 {people_num} 人的整餐总量，并按 {appetite} 饭量系数调整。
+
 【营养缺口 — 明日优先补充以下类别】
 {deficient_desc}
 
@@ -1949,16 +2021,22 @@ Please respond entirely in English."""
 - 使用结构化标题和列表
 - ⚠️ 重要：在"明日推荐菜品"部分，必须使用有序数字列表格式（1. 2. 3.）
 - 避免冗长解释
-- 每条建议控制在60字以内"""
+- 每条建议控制在60字以内
+- 请全程使用中文回答，除必要的单位和专有名词外不要夹杂英文"""
     
     try:
         api_result = call_ai_api(prompt, api_type="auto")
         if api_result['success']:
             return api_result['content']
         else:
-            return f"AI 生成失败:{api_result.get('error', '未知错误')}"
+            detail = api_result.get('error', 'Unknown error' if language == 'en-US' else '未知错误')
+            if language == 'en-US':
+                return f"AI generation failed: {detail}"
+            return f"AI 生成失败：{detail}"
     except Exception as e:
-        return f"生成推荐时出错:{str(e)}"
+        if language == 'en-US':
+            return f"Error generating recommendation: {str(e)}"
+        return f"生成推荐时出错：{str(e)}"
 
 def get_smart_portion(ingredient_name):
     """智能获取食材份量：先查数据库，未知食材调用AI识别并缓存"""
@@ -2738,7 +2816,11 @@ def update_data():
     current_data = load_data()
     current_data.update(new_data)
     current_data = sanitize_persisted_user_data(current_data)
-    save_data(current_data)
+    if not save_data(current_data):
+        return jsonify({
+            'success': False,
+            'error': '账号数据未能写入数据库，请检查数据库连接后重试'
+        }), 503
     return jsonify({'success': True, 'data': current_data})
 
 @app.route('/api/generate_recipe', methods=['POST'])
@@ -2746,11 +2828,14 @@ def generate_recipe():
     """生成智能食谱"""
     data = request.json
     custom_ingredients = data.get('custom_ingredients', '')
-    people_num = data.get('people_num', 3)
     meal_type = data.get('meal_type', 'home')
-    appetite = data.get('appetite', 1.0)
     use_fridge = data.get('use_fridge', False)
     language = data.get('language', 'zh-CN')  # 🌐 获取语言设置
+
+    try:
+        people_num, appetite = parse_dining_preferences(data, 3, 1.0)
+    except (TypeError, ValueError) as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
     
     # 解析食材
     ingredients = [i.strip() for i in custom_ingredients.split(',') if i.strip()]
@@ -2792,9 +2877,12 @@ def calculate_impact_api():
     """仅计算环保影响，不生成食谱（用于实时更新）"""
     data = request.json
     custom_ingredients = data.get('custom_ingredients', '')
-    people_num = data.get('people_num', 3)
-    appetite = data.get('appetite', 1.0)
     meal_type = data.get('meal_type', 'home')  # 🔑 新增：接收用餐类型
+
+    try:
+        people_num, appetite = parse_dining_preferences(data, 3, 1.0)
+    except (TypeError, ValueError) as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
     
     # 解析食材
     ingredients = [i.strip() for i in custom_ingredients.split(',') if i.strip()]
@@ -2841,8 +2929,14 @@ def daily_recommendation():
     language = data.get('language', 'zh-CN')  # 🌐 获取语言设置
     
     try:
-        recommendation = generate_daily_recommendation(user_intake, population_group, fridge_items, language)
+        people_num, appetite = parse_dining_preferences(data, 1, 1.0)
+        recommendation = generate_daily_recommendation(
+            user_intake, population_group, fridge_items, language,
+            people_num=people_num, appetite=appetite
+        )
         return jsonify({'success': True, 'recommendation': recommendation})
+    except (TypeError, ValueError) as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
@@ -2866,20 +2960,8 @@ def save_intake():
     """保存摄入数据"""
     data = request.get_json(silent=True) or {}
 
-    def parse_intake_value(field):
-        value = data.get(field, 0)
-        if isinstance(value, bool):
-            raise ValueError
-        number = float(value)
-        if not 0 <= number <= 100000:
-            raise ValueError
-        return round(number, 1)
-
     try:
-        validated = {
-            field: parse_intake_value(field)
-            for field in ('vegetables', 'fruits', 'meat', 'eggs')
-        }
+        validated = validate_intake_values(data)
     except (TypeError, ValueError):
         return jsonify({
             'success': False,
@@ -2907,7 +2989,11 @@ def save_intake():
     current_data['daily_intake_records'].append(intake_record)
 
     # 🔐 真实数据保存：今日记录不限条数（三餐 + 加餐/零食），全部真实保留到该账号的数据库
-    save_data(current_data)
+    if not save_data(current_data):
+        return jsonify({
+            'success': False,
+            'error': '摄入记录未能写入账号数据库，请检查数据库连接后重试'
+        }), 503
     
     # 检查是否需要预警
     population_group = current_data.get('population_group', 'adults')
@@ -3028,7 +3114,7 @@ Please respond in a friendly and professional tone in English."""
 
 用户问题:{message}
 
-请用友好、专业的语气回答。"""
+请全程使用中文，以友好、专业的语气回答。除必要的单位和专有名词外，不要夹杂英文。"""
     
     try:
         api_result = call_ai_api(prompt, api_type="auto")
@@ -3068,11 +3154,14 @@ def generate_recipe_stream():
     """生成智能食谱 - SSE流式输出"""
     data = request.json
     custom_ingredients = data.get('custom_ingredients', '')
-    people_num = data.get('people_num', 3)
     meal_type = data.get('meal_type', 'home')
-    appetite = data.get('appetite', 1.0)
     use_fridge = data.get('use_fridge', False)
     language = data.get('language', 'zh-CN')
+
+    try:
+        people_num, appetite = parse_dining_preferences(data, 3, 1.0)
+    except (TypeError, ValueError) as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
 
     ingredients = [i.strip() for i in custom_ingredients.split(',') if i.strip()]
 
@@ -3145,7 +3234,7 @@ Please respond in a friendly and professional tone in English."""
 
 用户问题:{message}
 
-请用友好、专业的语气回答。"""
+请全程使用中文，以友好、专业的语气回答。除必要的单位和专有名词外，不要夹杂英文。"""
 
     def generate():
         full_content = ""
@@ -3234,10 +3323,13 @@ def generate_shopping_list_stream():
     """生成智能采购清单 - SSE流式输出"""
     data = request.json
     dishes = data.get('dishes', '')
-    people_num = data.get('people_num', 3)
     include_budget = data.get('include_budget', True)
     language = data.get('language', 'zh-CN')
     shopping_region = re.sub(r'[\r\n\t]+', ' ', str(data.get('shopping_region', ''))).strip()[:60]
+    try:
+        people_num, _ = parse_dining_preferences(data, 3, 1.0)
+    except (TypeError, ValueError) as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
     if not shopping_region:
         shopping_region = '中国大陆平均市场'
     current_data = load_data()
@@ -3364,7 +3456,12 @@ def generate_daily_recommendation_stream():
     population_group = current_data.get('population_group', 'adults')
     fridge_items = current_data.get('fridge_inventory', [])
 
-    language = request.json.get('language', 'zh-CN') if request.is_json else 'zh-CN'
+    body = request.get_json(silent=True) or {}
+    language = body.get('language', 'zh-CN')
+    try:
+        people_num, appetite = parse_dining_preferences(body, 1, 1.0)
+    except (TypeError, ValueError) as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
 
     today = get_china_time().strftime('%Y-%m-%d')
     all_records = current_data.get('daily_intake_records', [])
@@ -3418,6 +3515,11 @@ def generate_daily_recommendation_stream():
 
 {intake_summary}
 
+【Tomorrow's serving target】
+- Serve {people_num} people with a personal portion factor of {appetite}
+- Today's intake is the account holder's ONE-PERSON intake and must not be multiplied during assessment
+- All ingredient amounts and the combined shopping list must show TOTAL quantities for {people_num} diners, scaled by {appetite}
+
 【Nutrition assessment by group (WHO/food-based dietary reference framework)】
 The SAME intake data may be sufficient for one group but deficient for another:
 {"".join(group_details)}
@@ -3466,6 +3568,11 @@ Please respond entirely in English."""
 
 {intake_summary}
 
+【明日份量目标】
+- 就餐人数：{people_num} 人；个人饭量系数：{appetite}
+- 今日摄入是账号本人 1 人的实际摄入，评估时不得乘以人数
+- 明日食材和综合采购清单必须给出 {people_num} 人总量，并按 {appetite} 饭量系数调整
+
 【各人群营养评估（WHO 健康饮食原则 + 食物膳食指南参考框架）】
 同样的摄入量，对不同人群意味着不同的缺口：
 {"".join(group_details)}
@@ -3489,7 +3596,8 @@ Please respond entirely in English."""
 - 围绕补充各人群的营养缺口
 - 菜品用有序数字列表
 - 每个人群控制在 120 字以内
-- 标注食材具体用量"""
+- 标注食材具体用量
+- 请全程使用中文回答，除必要的单位和专有名词外不要夹杂英文"""
 
             def generate():
                 full_content = ""
@@ -3514,7 +3622,10 @@ Please respond entirely in English."""
             )
 
         else:
-            recommendation = generate_daily_recommendation(user_intake, population_group, fridge_items, language)
+            recommendation = generate_daily_recommendation(
+                user_intake, population_group, fridge_items, language,
+                people_num=people_num, appetite=appetite
+            )
 
             def generate():
                 yield f"data: {json.dumps({'content': recommendation, 'full_content': recommendation, 'done': True}, ensure_ascii=False)}\n\n"
@@ -3593,11 +3704,12 @@ def edit_intake_record(index):
         # 找到原始记录在总列表中的位置
         original_index = records.index(today_records[index])
         
-        # 更新数据
-        records[original_index]['vegetables'] = data.get('vegetables', records[original_index].get('vegetables', 0))
-        records[original_index]['fruits'] = data.get('fruits', records[original_index].get('fruits', 0))
-        records[original_index]['meat'] = data.get('meat', records[original_index].get('meat', 0))
-        records[original_index]['eggs'] = data.get('eggs', records[original_index].get('eggs', 0))
+        try:
+            records[original_index].update(
+                validate_intake_values(data, records[original_index])
+            )
+        except (TypeError, ValueError) as exc:
+            return jsonify({'success': False, 'error': str(exc)}), 400
         meal_type = str(data.get('meal_type') or records[original_index].get('meal_type') or '')
         if meal_type in VALID_MEAL_TYPES:
             records[original_index]['meal_type'] = meal_type
@@ -3646,11 +3758,10 @@ def update_intake_record(index):
         # 找到原始记录在总列表中的位置
         original_index = records.index(today_records[index])
         
-        # 更新数据
-        records[original_index]['vegetables'] = data.get('vegetables', 0)
-        records[original_index]['fruits'] = data.get('fruits', 0)
-        records[original_index]['meat'] = data.get('meat', 0)
-        records[original_index]['eggs'] = data.get('eggs', 0)
+        try:
+            records[original_index].update(validate_intake_values(data))
+        except (TypeError, ValueError) as exc:
+            return jsonify({'success': False, 'error': str(exc)}), 400
         meal_type = str(data.get('meal_type') or records[original_index].get('meal_type') or '')
         if meal_type in VALID_MEAL_TYPES:
             records[original_index]['meal_type'] = meal_type
@@ -3701,11 +3812,13 @@ def get_7days_history():
 @app.route('/api/food_weight/query', methods=['POST'])
 def query_food_weight():
     """查询食材重量 - 优先使用本地数据库，未收录的调用AI"""
-    data = request.json
+    data = request.get_json(silent=True) or {}
     food_name = data.get('food_name', '').strip()
+    language = data.get('language', 'zh-CN')
     
     if not food_name:
-        return jsonify({'success': False, 'error': '请输入食材名称'})
+        error = 'Please enter an ingredient name' if language == 'en-US' else '请输入食材名称'
+        return jsonify({'success': False, 'error': error})
     
     try:
         # 1. 优先从本地数据库查找
@@ -3718,6 +3831,16 @@ def query_food_weight():
             for category in ['vegetables', 'fruits', 'meat', 'eggs', 'grains', 'dairy']:
                 if food_name in weight_db.get(category, {}):
                     item = weight_db[category][food_name]
+                    if language == 'en-US':
+                        result_text = (
+                            f"**{food_name}**: approximately {item['weight_per_unit']} g "
+                            f"per common serving."
+                        )
+                    else:
+                        result_text = (
+                            f"**{food_name}**：常见 1 份约 {item['weight_per_unit']} 克。\n\n"
+                            f"{item.get('note', '')}"
+                        ).strip()
                     return jsonify({
                         'success': True,
                         'source': 'database',
@@ -3725,11 +3848,24 @@ def query_food_weight():
                         'unit': item['unit'],
                         'weight_per_unit': item['weight_per_unit'],
                         'note': item['note'],
-                        'estimated_weight': item['weight_per_unit']  # 默认按1个单位计算
+                        'estimated_weight': item['weight_per_unit'],  # 默认按1个单位计算
+                        'result': result_text
                     })
         
         # 2. 数据库中未找到，调用AI估算
-        prompt = f"""请提供以下常见食物的近似重量参考（帮助用户估算摄入量）：
+        if language == 'en-US':
+            prompt = f"""Give a concise approximate weight reference for this food to help estimate intake:
+
+Food: {food_name}
+
+Use a practical format, for example:
+- 1 medium apple ≈ 200 g
+- 1 standard bowl of cooked rice ≈ 150 g
+- 1 egg ≈ 50 g
+
+For uncommon foods, provide a reasonable estimate. Return only the weight reference and respond entirely in English."""
+        else:
+            prompt = f"""请提供以下常见食物的近似重量参考（帮助用户估算摄入量）：
 
 食材名称：{food_name}
 
@@ -3739,7 +3875,7 @@ def query_food_weight():
 - 1个鸡蛋 ≈ 50g
 - 1片面包 ≈ 30g
 
-如果是不常见的食材，请给出合理的估算。只返回重量信息，不要其他解释。"""
+如果是不常见的食材，请给出合理的估算。只返回重量信息，不要其他解释。请全程使用中文回答。"""
         
         api_result = call_ai_api(prompt, api_type="auto")
         
@@ -3756,10 +3892,13 @@ def query_food_weight():
                 'source': 'ai',
                 'food_name': food_name,
                 'ai_response': result_text,
-                'estimated_weight': estimated_weight
+                'estimated_weight': estimated_weight,
+                'result': result_text
             })
         else:
-            return jsonify({'success': False, 'error': f"AI 查询失败:{api_result.get('error', '未知错误')}"})
+            detail = api_result.get('error', 'Unknown error' if language == 'en-US' else '未知错误')
+            prefix = 'AI query failed: ' if language == 'en-US' else 'AI 查询失败：'
+            return jsonify({'success': False, 'error': f"{prefix}{detail}"})
             
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -3773,7 +3912,10 @@ def batch_estimate_food_weight():
     """
     data = request.json
     ingredients = data.get('ingredients', [])  # 食材列表
-    people_num = data.get('people_num', 1)  # 人数
+    try:
+        people_num, _ = parse_dining_preferences(data, 1, 1.0)
+    except (TypeError, ValueError) as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
     
     if not ingredients:
         return jsonify({'success': False, 'error': '请提供食材列表'})
@@ -4068,10 +4210,13 @@ def generate_shopping_list():
     """生成智能采购清单"""
     data = request.json
     dishes = data.get('dishes', '')
-    people_num = data.get('people_num', 3)
     include_budget = data.get('include_budget', True)
     language = data.get('language', 'zh-CN')  # 🌐 获取语言设置
     shopping_region = re.sub(r'[\r\n\t]+', ' ', str(data.get('shopping_region', ''))).strip()[:60]
+    try:
+        people_num, _ = parse_dining_preferences(data, 3, 1.0)
+    except (TypeError, ValueError) as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
     if not shopping_region:
         shopping_region = '中国大陆平均市场'
     current_data = load_data()
@@ -4187,7 +4332,12 @@ def generate_daily_recommendation_route():
     fridge_items = current_data.get('fridge_inventory', [])
     
     # 🌐 从请求中获取语言设置
-    language = request.json.get('language', 'zh-CN') if request.is_json else 'zh-CN'
+    body = request.get_json(silent=True) or {}
+    language = body.get('language', 'zh-CN')
+    try:
+        people_num, appetite = parse_dining_preferences(body, 1, 1.0)
+    except (TypeError, ValueError) as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
     
     # 获取用户今日总摄入数据
     today = get_china_time().strftime('%Y-%m-%d')
@@ -4229,7 +4379,10 @@ def generate_daily_recommendation_route():
                         
             recommendations = {}
             for group in groups:
-                rec = generate_daily_recommendation(user_intake, group, fridge_items, language)
+                rec = generate_daily_recommendation(
+                    user_intake, group, fridge_items, language,
+                    people_num=people_num, appetite=appetite
+                )
                 recommendations[group_names[group]] = rec
                 
             return jsonify({
@@ -4239,7 +4392,10 @@ def generate_daily_recommendation_route():
                 'user_intake': user_intake
             })
         else:
-            recommendation = generate_daily_recommendation(user_intake, population_group, fridge_items, language)
+            recommendation = generate_daily_recommendation(
+                user_intake, population_group, fridge_items, language,
+                people_num=people_num, appetite=appetite
+            )
             return jsonify({'success': True, 'recommendation': recommendation, 'is_multi_group': False})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -4382,8 +4538,13 @@ def analyze_nutrition():
     """AI 营养分析 - 分析食材/食谱的营养成分"""
     data = request.json
     food_input = data.get('food_input', '').strip()
-    people = data.get('people', 3)
     language = data.get('language', 'zh-CN')  # 🌐 获取语言设置
+    try:
+        people, _ = parse_dining_preferences(
+            {'people_num': data.get('people', 3), 'appetite': 1.0}, 3, 1.0
+        )
+    except (TypeError, ValueError) as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
     
     if not food_input:
         error_msg = '请输入食材或食谱名称' if language == 'zh-CN' else 'Please enter food or recipe name'
@@ -4552,8 +4713,13 @@ def analyze_nutrition_stream():
     """AI 营养分析 - SSE流式输出"""
     data = request.json
     food_input = data.get('food_input', '').strip()
-    people = data.get('people', 3)
     language = data.get('language', 'zh-CN')
+    try:
+        people, _ = parse_dining_preferences(
+            {'people_num': data.get('people', 3), 'appetite': 1.0}, 3, 1.0
+        )
+    except (TypeError, ValueError) as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
 
     if not food_input:
         def error_gen():

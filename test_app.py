@@ -7,6 +7,8 @@ FoodGuardian AI 自动化测试套件
 """
 
 import json
+import base64
+import io
 import os
 import re
 import shutil
@@ -31,7 +33,8 @@ TEST_FIXTURE = {
     'population_group': 'adults',
     'daily_intake_records': [],
     'fridge_inventory': [],
-    'generation_count': 0
+    'generation_count': 0,
+    'generation_date': ''
 }
 
 
@@ -217,6 +220,17 @@ class TestFoodGuardianAI(unittest.TestCase):
             self.assertEqual(resp.status_code, 400)
             self.assertFalse(resp.get_json()['success'])
         self.assertEqual(self._read_test_data()['daily_intake_records'], [])
+
+    @patch('food_guardian_ai_2.save_data', return_value=False)
+    def test_save_intake_reports_database_write_failure(self, _):
+        """每餐保存 → 持久化失败时不得向前端谎报成功。"""
+        response = self._create_client().post('/api/save_intake', json={
+            'vegetables': 100, 'fruits': 50, 'meat': 30, 'eggs': 20,
+            'meal_type': 'lunch'
+        })
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(response.get_json()['success'])
+        self.assertIn('未能写入账号数据库', response.get_json()['error'])
 
     def test_save_intake_no_record_limit(self):
         """🔐 真实数据保存：今日记录超过3条 → 全部保留，营养评估汇总全部记录"""
@@ -405,8 +419,57 @@ class TestFoodGuardianAI(unittest.TestCase):
         done_events = [e for e in events if e.get('done')]
         self.assertGreater(len(done_events), 0, 'Should have at least one done event')
 
+    def test_people_and_appetite_limits_are_enforced(self):
+        """人数最多 20，饭量系数最多 2.0，前后端不可绕过。"""
+        client = self._create_client()
+        for payload in (
+            {'custom_ingredients': '番茄', 'people_num': 21, 'appetite': 1.0},
+            {'custom_ingredients': '番茄', 'people_num': 2, 'appetite': 2.1},
+            {'custom_ingredients': '番茄', 'people_num': 1.5, 'appetite': 1.0},
+        ):
+            response = client.post('/api/generate_recipe_stream', json=payload)
+            self.assertEqual(response.status_code, 400)
+            self.assertFalse(response.get_json()['success'])
+
+        accepted = fga.parse_dining_preferences(
+            {'people_num': 20, 'appetite': 2.0}
+        )
+        self.assertEqual(accepted, (20, 2.0))
+
+    @patch('food_guardian_ai_2.call_ai_api', side_effect=_mock_ai_success)
+    def test_daily_recommendation_keeps_assessment_per_person_and_scales_output(self, mock_ai):
+        """今日评估保持单人口径，明日用量按自定义人数和饭量系数输出。"""
+        client = self._create_client()
+        response = client.post('/api/daily_recommendation', json={
+            'user_intake': {'vegetables': 100, 'fruits': 50, 'meat': 30, 'eggs': 20},
+            'population_group': 'adults',
+            'people_num': 20,
+            'appetite': 2.0,
+            'language': 'zh-CN'
+        })
+        self.assertTrue(response.get_json()['success'])
+        prompt = mock_ai.call_args.args[0]
+        self.assertIn('今日摄入是账号本人 1 人的实际摄入', prompt)
+        self.assertIn('就餐人数：20 人', prompt)
+        self.assertIn('个人饭量系数：2.0', prompt)
+
+    @patch('food_guardian_ai_2.call_ai_api', side_effect=_mock_ai_success)
+    def test_daily_recommendation_uses_english_interface_language(self, mock_ai):
+        """明日推荐 → 英文界面生成全英文提示词。"""
+        response = self._create_client().post('/api/daily_recommendation', json={
+            'user_intake': {'vegetables': 100, 'fruits': 50, 'meat': 30, 'eggs': 20},
+            'population_group': 'adults',
+            'people_num': 2,
+            'appetite': 1.2,
+            'language': 'en-US'
+        })
+        self.assertTrue(response.get_json()['success'])
+        prompt = mock_ai.call_args.args[0]
+        self.assertIn('Please respond entirely in English', prompt)
+        self.assertIn("Today's intake above is ONE account holder", prompt)
+
     @patch('food_guardian_ai_2.call_ai_api_stream', side_effect=_mock_ai_stream)
-    def test_chat_stream(self, _):
+    def test_chat_stream(self, mock_stream):
         """聊天 SSE → 中文"""
         client = self._create_client()
         resp = client.post('/api/chat_stream', json={
@@ -416,9 +479,11 @@ class TestFoodGuardianAI(unittest.TestCase):
         events = self._parse_sse(resp)
         self.assertGreater(len(events), 0)
         self.assertEqual(events[-1]['type'], 'done')
+        prompt = mock_stream.call_args.args[0]
+        self.assertIn('请全程使用中文', prompt)
 
     @patch('food_guardian_ai_2.call_ai_api_stream', side_effect=_mock_ai_stream)
-    def test_chat_stream_english(self, _):
+    def test_chat_stream_english(self, mock_stream):
         """聊天 SSE → 英文"""
         client = self._create_client()
         resp = client.post('/api/chat_stream', json={
@@ -428,6 +493,45 @@ class TestFoodGuardianAI(unittest.TestCase):
         events = self._parse_sse(resp)
         self.assertGreater(len(events), 0)
         self.assertEqual(events[-1]['type'], 'done')
+        prompt = mock_stream.call_args.args[0]
+        self.assertIn('in English', prompt)
+        self.assertNotIn('请全程使用中文', prompt)
+
+    @patch('food_guardian_ai_2.requests.post')
+    def test_image_recognition_upload_flow(self, mock_post):
+        """拍照识菜 → 图片压缩、视觉 API 请求和结果解析均可用。"""
+        from PIL import Image
+        image_buffer = io.BytesIO()
+        Image.new('RGB', (4, 4), (220, 50, 40)).save(image_buffer, format='PNG')
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {
+            'choices': [{'message': {'content': '番茄,鸡蛋'}}]
+        }
+
+        response = self._create_client().post('/api/image_recognize', json={
+            'image_base64': base64.b64encode(image_buffer.getvalue()).decode('ascii'),
+            'language': 'zh-CN'
+        })
+        body = response.get_json()
+        self.assertTrue(body['success'])
+        self.assertEqual(body['ingredients'], '番茄,鸡蛋')
+        self.assertEqual(mock_post.call_args.kwargs['json']['model'], 'glm-4v-flash')
+
+    @patch('food_guardian_ai_2.requests.post')
+    def test_voice_recognition_upload_flow(self, mock_post):
+        """语音识别 → 音频上传、ASR 参数和文本返回均可用。"""
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {'text': '今天吃什么'}
+
+        response = self._create_client().post(
+            '/api/voice_recognize',
+            data={'audio': (io.BytesIO(b'RIFF-test-wave'), 'recording.wav'), 'language': 'zh'},
+            content_type='multipart/form-data'
+        )
+        body = response.get_json()
+        self.assertTrue(body['success'])
+        self.assertEqual(body['text'], '今天吃什么')
+        self.assertEqual(mock_post.call_args.kwargs['data']['model'], 'glm-asr-2512')
 
     @patch('food_guardian_ai_2.call_ai_api_stream', side_effect=_mock_ai_stream)
     def test_shopping_list_stream(self, mock_stream):
@@ -451,7 +555,7 @@ class TestFoodGuardianAI(unittest.TestCase):
 
     @patch('food_guardian_ai_2.call_ai_api',
            return_value={'success': True, 'content': '- 1份星云菜 ≈ 123g', 'error': None})
-    def test_food_weight_query_ai_fallback(self, _):
+    def test_food_weight_query_ai_fallback(self, mock_ai):
         """食材重量查询 → 本地库未收录时 AI 估算并提取克数"""
         client = self._create_client()
         resp = client.post('/api/food_weight/query', json={'food_name': '星云菜'})
@@ -459,6 +563,19 @@ class TestFoodGuardianAI(unittest.TestCase):
         self.assertTrue(body['success'])
         self.assertEqual(body['source'], 'ai')
         self.assertEqual(body['estimated_weight'], 123)
+        self.assertEqual(body['result'], '- 1份星云菜 ≈ 123g')
+        self.assertIn('请全程使用中文', mock_ai.call_args.args[0])
+
+    @patch('food_guardian_ai_2.call_ai_api',
+           return_value={'success': True, 'content': '1 serving is about 145 g', 'error': None})
+    def test_food_weight_query_uses_interface_language(self, mock_ai):
+        """重量查询 → 英文界面要求 AI 全程英文并返回可渲染 result。"""
+        body = self._create_client().post('/api/food_weight/query', json={
+            'food_name': 'nebula greens', 'language': 'en-US'
+        }).get_json()
+        self.assertTrue(body['success'])
+        self.assertEqual(body['result'], '1 serving is about 145 g')
+        self.assertIn('respond entirely in English', mock_ai.call_args.args[0])
 
     # ============================================================
     # CRUD (Data & CRUD)
@@ -511,6 +628,21 @@ class TestFoodGuardianAI(unittest.TestCase):
         self.assertEqual(len(records), 1)
         self.assertEqual(records[0]['date'], day_7)
         self.assertNotIn(day_8, [record['date'] for record in self._read_test_data()['daily_intake_records']])
+
+    def test_generation_progress_is_scoped_to_current_day(self):
+        """三餐进度 → 跨日自动归零，同一天保留且最多为 3。"""
+        today = fga.datetime(2026, 9, 21, 9, 0, tzinfo=fga.CHINA_TZ)
+        yesterday = (today - fga.timedelta(days=1)).date().isoformat()
+        with patch('food_guardian_ai_2.get_china_time', return_value=today):
+            stale = fga.sanitize_persisted_user_data({
+                'generation_count': 2, 'generation_date': yesterday
+            })
+            current = fga.sanitize_persisted_user_data({
+                'generation_count': 9, 'generation_date': today.date().isoformat()
+            })
+        self.assertEqual(stale['generation_count'], 0)
+        self.assertEqual(stale['generation_date'], '2026-09-21')
+        self.assertEqual(current['generation_count'], 3)
 
     def test_fridge_add_and_list(self):
         """冰箱 CRUD"""
@@ -596,7 +728,7 @@ class TestFoodGuardianAI(unittest.TestCase):
         self.assertIn('水果: 120g', captured['prompt'])
         self.assertIn('肉类: 110g', captured['prompt'])
         self.assertIn('蛋类: 30g', captured['prompt'])
-        self.assertIn('鸡蛋12g', captured['prompt'])
+        self.assertIn('鸡蛋12个', captured['prompt'])
 
     def test_calculate_impact(self):
         """环保影响 → 正常返回"""
@@ -627,6 +759,16 @@ class TestFoodGuardianAI(unittest.TestCase):
         # 注意: 该端点始终返回 success=True, 错误信息在 recommendation 字段中
         self.assertTrue(data['success'])
         self.assertIn('AI 生成失败', data['recommendation'])
+
+    @patch('food_guardian_ai_2.call_ai_api', side_effect=_mock_ai_failure)
+    def test_daily_recommendation_api_failure_is_english_in_english_mode(self, _):
+        data = self._create_client().post('/api/daily_recommendation', json={
+            'user_intake': {'vegetables': 100, 'fruits': 50, 'meat': 30, 'eggs': 20},
+            'population_group': 'adults', 'language': 'en-US'
+        }).get_json()
+        self.assertTrue(data['success'])
+        self.assertIn('AI generation failed', data['recommendation'])
+        self.assertNotIn('生成失败', data['recommendation'])
 
     @patch('food_guardian_ai_2.call_ai_api', side_effect=_mock_ai_failure)
     def test_chat_api_failure(self, _):
@@ -684,7 +826,7 @@ class TestFrontendMarkup(unittest.TestCase):
         """食谱页 → 三次生成后的自动评估/明日推荐链路仍在"""
         html = self._read_index()
         self.assertIn('class="automation-panel"', html)
-        self.assertIn('autoIntakeAndAssess(customIngredients, peopleNum)', html)
+        self.assertIn('autoIntakeAndAssess(customIngredients, peopleNum, appetite)', html)
         self.assertIn('generateDailyRecommendation()', html)
 
     def test_recipe_three_generation_frontend_order(self):
@@ -693,20 +835,29 @@ class TestFrontendMarkup(unittest.TestCase):
         generate_start = html.index('async function generateRecipe()')
         next_section = html.index('// ==================== 营养分析功能', generate_start)
         generate_block = html[generate_start:next_section]
+        self.assertIn("if (appData.generation_date !== today)", generate_block)
+        self.assertIn("if ((appData.generation_count || 0) >= 3)", generate_block)
         self.assertIn('if (currentMealCount <= 2)', generate_block)
-        self.assertIn('await autoIntakeOnly(customIngredients, peopleNum, currentMealCount);', generate_block)
+        self.assertIn('intakeSaved = await autoIntakeOnly(customIngredients, peopleNum, currentMealCount, appetite);', generate_block)
+        self.assertIn('if (intakeSaved)', generate_block)
+        self.assertNotIn('appData.generation_count--', generate_block)
         self.assertLess(
-            generate_block.index('await autoIntakeAndAssess(customIngredients, peopleNum);'),
-            generate_block.index('await generateDailyRecommendation();')
+            generate_block.index('intakeSaved = await autoIntakeAndAssess(customIngredients, peopleNum, appetite);'),
+            generate_block.index('await generateDailyRecommendation({ peopleNum, appetite });')
         )
 
         assess_start = html.index('async function autoIntakeAndAssess')
         assess_end = html.index('// 更新今日饮食摄入记录输入框', assess_start)
         assess_block = html[assess_start:assess_end]
         self.assertIn("await safeApiCall('/api/save_intake'", assess_block)
+        self.assertLess(
+            assess_block.index("await safeApiCall('/api/save_intake'"),
+            assess_block.index('await loadData();')
+        )
+        self.assertIn('const todayRecords = (appData.daily_intake_records || []).filter', assess_block)
         self.assertIn('await performNutritionAssessment(totalIntake);', assess_block)
 
-        daily_start = html.index('async function generateDailyRecommendation()')
+        daily_start = html.index('async function generateDailyRecommendation(options = {})')
         daily_end = html.index('// ==================== 食材重量查询', daily_start)
         daily_block = html[daily_start:daily_end]
         self.assertIn("fetch('/api/generate_daily_recommendation_stream'", daily_block)
@@ -714,7 +865,7 @@ class TestFrontendMarkup(unittest.TestCase):
     def test_auto_intake_uses_per_person_age_group_portions(self):
         """自动摄入 → 按人群个人份量估算，不被用餐人数放大"""
         html = self._read_index()
-        self.assertIn('function getPerMealIntakePortions()', html)
+        self.assertIn('function getPerMealIntakePortions(appetiteFactor = 1.0)', html)
         self.assertIn('adults: { vegetables: 200, fruits: 110, meat: 45, eggs: 20 }', html)
         self.assertIn('teens: { vegetables: 180, fruits: 110, meat: 45, eggs: 30 }', html)
         self.assertIn('children: { vegetables: 150, fruits: 90, meat: 30, eggs: 20 }', html)
@@ -724,6 +875,18 @@ class TestFrontendMarkup(unittest.TestCase):
         self.assertNotIn('eggs *= peopleNum;', html)
         self.assertNotIn('const baseMeat = 80;', html)
         self.assertNotIn('const baseEgg = 30;', html)
+        self.assertGreaterEqual(html.count("food.includes('西兰花')"), 2)
+
+    def test_recommendation_controls_and_intake_scope_are_explicit(self):
+        """推荐人数/饭量可配置，摄入记录明确为账号本人单人口径。"""
+        html = self._read_index()
+        self.assertIn('id="daily-rec-people"', html)
+        self.assertIn('id="daily-rec-appetite"', html)
+        self.assertIn('max="20"', html)
+        self.assertIn('max="2.0"', html)
+        self.assertIn('home.intake_scope_note', html)
+        self.assertIn('people_num: peopleNum', html)
+        self.assertIn('appetite\n', html)
 
     def test_frontend_result_containers_do_not_clip_content(self):
         """结果容器 → 不使用固定高度裁切长内容"""
@@ -760,6 +923,26 @@ class TestFrontendMarkup(unittest.TestCase):
             r'@media \(min-width: 1180px\) \{[\s\S]*?\.page-container \{[\s\S]*?margin-left:\s*calc\(174px'
         )
         self.assertEqual(html.count('id="recording-progress-fill"'), 1)
+
+    def test_voice_ai_result_labels_follow_interface_language(self):
+        """语音问答 → 问题、回答中和回答完成标题全部使用 i18n。"""
+        html = self._read_index()
+        start = html.index('async function confirmAndAskAI()')
+        end = html.index('// ==================== 账号系统', start)
+        block = html[start:end]
+        for key in ('voice.question_label', 'voice.answer_title', 'voice.answering_title'):
+            self.assertIn(key, block)
+        self.assertNotIn("'问题：' + voiceRecognizedText", block)
+        self.assertNotIn("displayEl.value = '✅ AI 回答：", block)
+        self.assertNotIn("displayEl.value = '🤖 AI 回答中", block)
+
+    def test_food_weight_request_sends_current_language(self):
+        """重量查询 → 前端把当前界面语言传给后端。"""
+        html = self._read_index()
+        start = html.index('async function queryFoodWeight()')
+        end = html.index('// ==================== 首页保存摄入', start)
+        block = html[start:end]
+        self.assertIn('language: getCurrentLanguage()', block)
 
     def test_navigation_and_shopping_region_controls(self):
         """导航与采购页 → 语义化按钮、完整地区控件和本地偏好存储"""

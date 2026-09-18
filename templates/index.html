@@ -1707,6 +1707,136 @@
             overflow: hidden;
         }
 
+        .intake-table-scroll {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 8px;
+        }
+
+        .intake-table {
+            width: 100%;
+            min-width: 760px;
+            border-collapse: collapse;
+        }
+
+        .intake-table th,
+        .intake-table td {
+            padding: 10px;
+            text-align: center;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .intake-table th {
+            background: var(--primary);
+            color: #fff;
+            font-weight: 760;
+        }
+
+        .intake-table tr {
+            border-bottom: 1px solid rgba(37, 48, 38, 0.10);
+        }
+
+        .intake-table tr:last-child {
+            border-bottom: 0;
+        }
+
+        .intake-table select,
+        .intake-table input {
+            box-sizing: border-box;
+            min-height: 34px;
+            border: 1px solid rgba(37, 48, 38, 0.14);
+            border-radius: 6px;
+            background: #fff;
+        }
+
+        .intake-table input {
+            width: 72px;
+            padding: 5px 6px;
+            text-align: center;
+        }
+
+        .intake-table select {
+            min-width: 82px;
+            padding: 6px;
+        }
+
+        .intake-action-cell {
+            min-width: 82px;
+        }
+
+        .intake-action-stack {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .intake-action-btn {
+            width: 56px;
+            min-width: 56px;
+            min-height: 34px;
+            border: none;
+            border-radius: 7px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.1;
+            padding: 6px 8px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .intake-action-btn.save { background: var(--success); }
+        .intake-action-btn.delete { background: var(--danger); }
+
+        .history-day-card {
+            margin-bottom: 18px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.58);
+            border: 1px solid rgba(37, 48, 38, 0.10);
+            border-radius: 12px;
+        }
+
+        .history-day-title {
+            font-weight: 760;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .history-intake-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+            gap: 10px;
+        }
+
+        .history-intake-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-width: 0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #FFFEFB;
+            border: 1px solid rgba(37, 48, 38, 0.08);
+            color: var(--text-primary);
+            font-size: 14px;
+            line-height: 1.25;
+        }
+
+        .history-food-label,
+        .history-food-value {
+            white-space: nowrap;
+        }
+
+        .history-food-value {
+            font-weight: 760;
+        }
+
         .guided-panel {
             display: grid;
             grid-template-columns: 1fr;
@@ -1914,6 +2044,17 @@
             line-height: 1.55;
         }
 
+        .daily-rec-controls {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 14px;
+            margin: 18px 0;
+        }
+
+        .daily-rec-controls .input-group {
+            margin-bottom: 0;
+        }
+
         .home-start-button {
             min-height: 52px !important;
             font-size: 16px !important;
@@ -2052,11 +2193,32 @@
                 padding-inline: 4px;
             }
             .shopping-form-grid,
-            .shopping-location-panel {
+            .shopping-location-panel,
+            .daily-rec-controls {
                 grid-template-columns: 1fr;
             }
             .shopping-location-note {
                 grid-column: 1;
+            }
+            .intake-table {
+                min-width: 720px;
+            }
+            .intake-action-stack {
+                flex-direction: column;
+                gap: 7px;
+            }
+            .intake-action-btn {
+                width: 58px;
+                min-width: 58px;
+                min-height: 38px;
+                font-size: 13px;
+            }
+            .history-intake-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .history-intake-item {
+                padding: 10px;
+                font-size: 14px;
             }
             #auth-modal,
             #recovery-code-modal,
@@ -2122,6 +2284,9 @@
             }
             .recipe-action-grid {
                 grid-template-columns: 1fr !important;
+            }
+            .history-intake-grid {
+                grid-template-columns: 1fr;
             }
             #image-preview-area { min-height: 190px !important; }
         }
@@ -2284,6 +2449,17 @@
                 <div class="card-title" data-i18n="home.daily_recommendation_title">明日饮食推荐</div>
                 <div class="card-subtitle" data-i18n="home.daily_recommendation_subtitle">基于今日营养状况和冰箱食材，AI 为您生成明日专属饮食建议</div>
 
+                <div class="daily-rec-controls">
+                    <div class="input-group">
+                        <label class="input-label" for="daily-rec-people" data-i18n="home.daily_rec_people_label">明日就餐人数</label>
+                        <input type="number" id="daily-rec-people" class="input-field" min="1" max="20" step="1" value="1">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="daily-rec-appetite" data-i18n="home.daily_rec_appetite_label">个人饭量系数</label>
+                        <input type="number" id="daily-rec-appetite" class="input-field" min="0.7" max="2.0" step="0.1" value="1.0">
+                    </div>
+                </div>
+
                 <button class="btn btn-primary" onclick="generateDailyRecommendation()" id="daily-rec-btn" style="width: 100%; display: block; visibility: visible;" data-i18n="home.generate_daily_rec_button">
                     AI 生成明日推荐
                 </button>
@@ -2318,6 +2494,7 @@
             <div class="card" id="home-intake-card">
                 <div class="card-title" data-i18n="home.intake_record_title">今日饮食摄入记录</div>
                 <div class="card-subtitle" data-i18n="home.intake_record_subtitle">请录入您今日已摄入的各类食材重量(克)</div>
+                <div class="senior-note" data-i18n="home.intake_scope_note">营养评估按账号本人计算，请填写本人实际吃下的克数，不要填写整桌总量。</div>
 
                 <div class="input-group">
                     <label class="input-label" for="intake-meal-type-home" data-i18n="home.meal_type_label">本次餐次</label>
@@ -2425,7 +2602,7 @@
                 <!-- 饭量系数 -->
                 <div class="input-group">
                     <label class="input-label">个人饭量系数: <span id="appetite-value">1.0</span></label>
-                    <input type="range" class="slider" id="appetite-slider" min="0.7" max="1.4" step="0.1" value="1.0" oninput="updateAppetiteValue(this.value); updateImpactRealtime()">
+                    <input type="range" class="slider" id="appetite-slider" min="0.7" max="2.0" step="0.1" value="1.0" oninput="updateAppetiteValue(this.value); updateImpactRealtime()">
                     <div class="card-subtitle" style="margin-top: 8px;" data-i18n="recipe.appetite_subtitle">如果你家人饭量偏大/偏小,可以微调基础份量系数。</div>
                 </div>
 
@@ -2891,6 +3068,7 @@
             daily_intake_records: [],
             fridge_inventory: [],
             generation_count: 0,
+            generation_date: '',
             shopping_preferences: { province: '', city: '', price_samples: [] }
         };
 
@@ -3422,6 +3600,7 @@
                 
                 // 1. 重置计数器为0
                 appData.generation_count = 0;
+                appData.generation_date = getChinaDate();
                 console.log('   ✅ 计数器已重置为0');
                 
                 // 2. 🆕 关键修复：清空今日的摄入记录
@@ -3555,6 +3734,18 @@
                 return;
             }
 
+            const today = getChinaDate();
+            if (appData.generation_date !== today) {
+                appData.generation_date = today;
+                appData.generation_count = 0;
+                await saveData();
+                updateGenerationCounterDisplay(0);
+            }
+            if ((appData.generation_count || 0) >= 3) {
+                showToast(window.i18n ? window.i18n.t('common.daily_meals_complete') : '今日三餐已完成，请明天继续或先重置进度');
+                return;
+            }
+
             const peopleNum = parseInt(document.getElementById('people-slider').value);
             const mealType = document.querySelector('input[name="meal-type"]:checked').value;
             const appetite = parseFloat(document.getElementById('appetite-slider').value);
@@ -3633,18 +3824,6 @@
                 console.error('❌ 生成食谱失败:', error);
                 const msgTemplate = window.i18n ? window.i18n.t('common.network_error_details') : '❌ 网络错误: {error}\n\n请检查:\n1. 服务器是否运行\n2. 网络连接是否正常\n3. API密钥是否有效';
                 showToast(msgTemplate.replace('{error}', errorMsg));
-
-                try {
-                    await loadData();
-                    if (appData.generation_count > 0) {
-                        appData.generation_count--;
-                        await saveData();
-                        updateGenerationCounterDisplay(appData.generation_count);
-                        console.log('⚠️ API调用失败，已回滚计数器');
-                    }
-                } catch (rollbackError) {
-                    console.error('回滚计数器失败:', rollbackError);
-                }
                 // 🔑 出错时把 fullContent 和 recipeImpact 清空，跳过后续处理
                 fullContent = '';
                 recipeImpact = null;
@@ -3663,34 +3842,42 @@
                     appData.water_saved = (appData.water_saved || 0) + recipeImpact.water;
                     appData.co2_reduced = (appData.co2_reduced || 0) + recipeImpact.carbon;
 
-                    appData.generation_count = (appData.generation_count || 0) + 1;
                     await saveData();
                     updateUI();
 
                     showToast(window.i18n ? window.i18n.t('common.recipe_generated') : '✅ 食谱生成成功');
                     document.getElementById('recipe-result').scrollIntoView({ behavior: 'smooth' });
 
-                    const currentMealCount = appData.generation_count || 0;
-                    updateGenerationCounterDisplay(currentMealCount);
+                    const currentMealCount = (appData.generation_count || 0) + 1;
+                    let intakeSaved = false;
 
                     if (currentMealCount <= 2) {
                         const msgTemplate = window.i18n ? window.i18n.t('common.meal_generated_auto_intake') : '📝 第{num}餐食谱生成，正在自动录入摄入数据...';
                         showToast(msgTemplate.replace('{num}', currentMealCount));
-                        await autoIntakeOnly(customIngredients, peopleNum, currentMealCount);
-                        await loadData();
+                        intakeSaved = await autoIntakeOnly(customIngredients, peopleNum, currentMealCount, appetite);
                     } else {
                         showToast(window.i18n ? window.i18n.t('common.auto_intake_progress') : '🎉 第3餐食谱生成，正在自动录入并执行营养评估...');
-                        await autoIntakeAndAssess(customIngredients, peopleNum);
+                        intakeSaved = await autoIntakeAndAssess(customIngredients, peopleNum, appetite);
+                    }
+
+                    if (intakeSaved) {
                         await loadData();
+                        appData.generation_date = today;
+                        appData.generation_count = currentMealCount;
+                        await saveData();
+                        updateGenerationCounterDisplay(currentMealCount);
                         updateUI();
-                        showToast(window.i18n ? window.i18n.t('common.generating_recommendation') : '🍽️ 正在为您生成明日饮食推荐...');
-                        try {
-                            await generateDailyRecommendation();
-                        } catch (recError) {
-                            console.error('⚠️ 自动生成饮食推荐失败（不影响食谱生成）:', recError);
+
+                        if (currentMealCount === 3) {
+                            showToast(window.i18n ? window.i18n.t('common.generating_recommendation') : '🍽️ 正在为您生成明日饮食推荐...');
+                            try {
+                                await generateDailyRecommendation({ peopleNum, appetite });
+                            } catch (recError) {
+                                console.error('⚠️ 自动生成饮食推荐失败（不影响食谱生成）:', recError);
+                            }
+                            await loadData();
+                            updateUI();
                         }
-                        await loadData();
-                        updateUI();
                     }
                 } catch (postError) {
                     console.error('⚠️ 后处理失败（不影响按钮恢复）:', postError);
@@ -3852,7 +4039,7 @@
             }
         }
         
-        function getPerMealIntakePortions() {
+        function getPerMealIntakePortions(appetiteFactor = 1.0) {
             const group = (appData && appData.population_group) || 'adults';
             const portionsByGroup = {
                 adults: { vegetables: 200, fruits: 110, meat: 45, eggs: 20 },
@@ -3860,12 +4047,16 @@
                 children: { vegetables: 150, fruits: 90, meat: 30, eggs: 20 },
                 elderly: { vegetables: 150, fruits: 90, meat: 30, eggs: 20 }
             };
-            return portionsByGroup[group] || portionsByGroup.adults;
+            const base = portionsByGroup[group] || portionsByGroup.adults;
+            const factor = Math.min(2.0, Math.max(0.7, Number(appetiteFactor) || 1.0));
+            return Object.fromEntries(
+                Object.entries(base).map(([key, grams]) => [key, Math.round(grams * factor)])
+            );
         }
 
         // 第1-2次生成：只自动录入摄入数据，不评估
         // ==================== 自动录入摄入数据（简化版 - 完全照搬Python逻辑）====================
-        async function autoIntakeOnly(ingredients, peopleNum, count) {
+        async function autoIntakeOnly(ingredients, peopleNum, count, appetiteFactor = 1.0) {
             try {
                 console.log(`\n========== 开始自动录入摄入数据 ==========`);
                 
@@ -3877,7 +4068,7 @@
                         
                 if (ingredientList.length === 0) {
                     console.log('⚠️ 用户未输入食材，跳过录入');
-                    return;
+                    return false;
                 }
                 
                 console.log(`📝 识别到食材：${ingredientList}`);
@@ -3889,7 +4080,7 @@
                 let eggs = 0;
                 
                 // 按“每人每餐”估算，营养评估标准是每人每天，不能乘用餐人数。
-                const perMealPortions = getPerMealIntakePortions();
+                const perMealPortions = getPerMealIntakePortions(appetiteFactor);
                 const baseVeg = perMealPortions.vegetables;
                 const baseFruit = perMealPortions.fruits;
                 const baseMeat = perMealPortions.meat;
@@ -3904,6 +4095,7 @@
                         food.includes('笋') || food.includes('菇') || food.includes('豆') || 
                         food.includes('葱') || food.includes('蒜') || food.includes('姜') || 
                         food.includes('辣椒') || food.includes('香菜') || 
+                        food.includes('西兰花') || food.includes('花椰菜') ||
                         food.includes('番茄') || food.includes('西红柿') || food.includes('土豆') || 
                         food.includes('马铃薯') || food.includes('白菜') || food.includes('菠菜') || 
                         food.includes('生菜') || food.includes('油麦') || food.includes('芹菜') || 
@@ -3985,7 +4177,7 @@
                     console.log('  ⚠️ 未识别到具体食材，将保留空值');
                     const msg = window.i18n ? window.i18n.t('common.recognition_no_result') : '⚠️ 未能识别食材，请手动输入';
                     showToast(msg);
-                    return;
+                    return false;
                 }
                 
                 // 💾 构建摄入记录
@@ -4009,25 +4201,28 @@
                     await loadTodayIntakeTable();
                     
                     console.log(`✅ [自动录入完成] 第${count}餐数据已保存`);
+                    return true;
                 } else {
                     console.error('  ❌ 保存失败:', saveResult.error);
                     const errorMsg = window.i18n ? window.i18n.t('common.save_failed') : '❌ 保存失败';
                     showToast(errorMsg + ': ' + saveResult.error);
+                    return false;
                 }
             } catch (error) {
                 console.error('[自动录入异常]:', error);
                 const errorMsg = window.i18n ? window.i18n.t('common.auto_intake_failed') : '❌ 自动录入失败';
                 showToast(errorMsg + ': ' + error.message);
+                return false;
             }
         }
                 
         // 降级方案：使用旧的关键词匹配方法
-        async function fallbackEstimateAndSave(ingredientList, peopleNum, count) {
+        async function fallbackEstimateAndSave(ingredientList, peopleNum, count, appetiteFactor = 1.0) {
             let vegetables = 0;
             let fruits = 0;
             let meat = 0;
             let eggs = 0;
-            const perMealPortions = getPerMealIntakePortions();
+            const perMealPortions = getPerMealIntakePortions(appetiteFactor);
                     
             ingredientList.forEach(ingredient => {
                 if (/[菜萝卜瓜笋菇豆葱姜蒜辣椒]/.test(ingredient)) {
@@ -4058,7 +4253,7 @@
         }
         
         // 自动录入饮食记录并进行评估（参考原始Python文件逻辑）
-        async function autoIntakeAndAssess(ingredients, peopleNum) {
+        async function autoIntakeAndAssess(ingredients, peopleNum, appetiteFactor = 1.0) {
             const msg = window.i18n ? window.i18n.t('common.auto_intake_progress_msg') : '🔄 正在自动录入饮食记录...';
             showToast(msg);
             
@@ -4074,7 +4269,7 @@
                         
                 if (ingredientList.length === 0) {
                     console.log('⚠️ 用户未输入食材，跳过录入');
-                    return;
+                    return false;
                 }
                 
                 console.log(`📝 识别到食材：${ingredientList}`);
@@ -4086,7 +4281,7 @@
                 let eggs = 0;
                 
                 // 按“每人每餐”估算，保持与前两餐自动录入口径一致。
-                const perMealPortions = getPerMealIntakePortions();
+                const perMealPortions = getPerMealIntakePortions(appetiteFactor);
                 const baseVeg = perMealPortions.vegetables;
                 const baseFruit = perMealPortions.fruits;
                 const baseMeat = perMealPortions.meat;
@@ -4101,6 +4296,7 @@
                         food.includes('笋') || food.includes('菇') || food.includes('豆') || 
                         food.includes('葱') || food.includes('蒜') || food.includes('姜') || 
                         food.includes('辣椒') || food.includes('香菜') || 
+                        food.includes('西兰花') || food.includes('花椰菜') ||
                         food.includes('番茄') || food.includes('西红柿') || food.includes('土豆') || 
                         food.includes('马铃薯') || food.includes('白菜') || food.includes('菠菜') || 
                         food.includes('生菜') || food.includes('油麦') || food.includes('芹菜') || 
@@ -4182,7 +4378,7 @@
                     console.log('  ⚠️ 未识别到具体食材，将保留空值');
                     const msg = window.i18n ? window.i18n.t('common.recognition_no_result') : '⚠️ 未能识别食材，请手动输入';
                     showToast(msg);
-                    return;
+                    return false;
                 }
                 
                 // 💾 构建摄入记录
@@ -4230,15 +4426,18 @@
                     await performNutritionAssessment(totalIntake);
                     
                     console.log('✅ [自动评估完成]');
+                    return true;
                 } else {
                     console.error('  ❌ 保存失败:', saveResult.error);
                     const errorMsg = window.i18n ? window.i18n.t('common.save_failed') : '❌ 保存失败';
                     showToast(errorMsg + ': ' + saveResult.error);
+                    return false;
                 }
             } catch (error) {
                 console.error('[自动录入异常]:', error);
                 const errorMsg = window.i18n ? window.i18n.t('common.auto_intake_failed') : '❌ 自动录入失败';
                 showToast(errorMsg + ': ' + error.message);
+                return false;
             }
         }
         
@@ -4656,7 +4855,7 @@
             return window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
         }
         
-        async function generateDailyRecommendation() {
+        async function generateDailyRecommendation(options = {}) {
             const btn = document.getElementById('daily-rec-btn');
             if (!btn) {
                 console.error('❌ 找不到 daily-rec-btn 按钮元素');
@@ -4677,11 +4876,24 @@
 
             try {
                 const currentLang = getCurrentLanguage();
+                const peopleInput = document.getElementById('daily-rec-people');
+                const appetiteInput = document.getElementById('daily-rec-appetite');
+                const requestedPeople = options.peopleNum ?? peopleInput?.value ?? 1;
+                const requestedAppetite = options.appetite ?? appetiteInput?.value ?? 1.0;
+                const peopleNum = Math.min(20, Math.max(1, Math.round(Number(requestedPeople) || 1)));
+                const appetite = Math.min(2.0, Math.max(0.7, Number(requestedAppetite) || 1.0));
+
+                if (peopleInput) peopleInput.value = peopleNum;
+                if (appetiteInput) appetiteInput.value = appetite.toFixed(1);
 
                 const response = await fetch('/api/generate_daily_recommendation_stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ language: currentLang })
+                    body: JSON.stringify({
+                        language: currentLang,
+                        people_num: peopleNum,
+                        appetite
+                    })
                 });
 
                 if (!response.ok) {
@@ -4736,7 +4948,10 @@
                 const response = await fetch('/api/food_weight/query', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ food_name: foodName })
+                    body: JSON.stringify({
+                        food_name: foodName,
+                        language: getCurrentLanguage()
+                    })
                 });
 
                 const result = await response.json();
@@ -4807,9 +5022,10 @@
                     const currentData = await loadData();
                     const todayRecords = (currentData.daily_intake_records || []).filter(r => r.date === today);
                     if (todayRecords.length > 0) {
-                        const countMsg = window.i18n
-                            ? `📊 今日已累计 ${todayRecords.length} 条摄入记录，全部真实保存`
-                            : `📊 ${todayRecords.length} records logged today, all saved to your account`;
+                        const countTemplate = window.i18n
+                            ? window.i18n.t('common.intake_records_saved')
+                            : 'Today has {count} saved intake record(s)';
+                        const countMsg = countTemplate.replace('{count}', todayRecords.length);
                         setTimeout(() => showToast(countMsg), 1000);
                     }
                 }
@@ -4904,61 +5120,59 @@
                     const eggText = window.i18n ? window.i18n.t('home.eggs_header') : '蛋类(g)';
                     const actionText = window.i18n ? window.i18n.t('home.actions_header') : '操作';
                     
-                    let html = '<div style="overflow-x: auto;">';
-                    html += '<table style="width: 100%; border-collapse: collapse;">';
-                    html += '<thead><tr style="background: var(--primary); color: white;">';
-                    html += `<th style="padding: 10px;">${noText}</th>`;
-                    html += `<th style="padding: 10px;">${timeText}</th>`;
-                    html += `<th style="padding: 10px;">${mealText}</th>`;
-                    html += `<th style="padding: 10px;">${vegText}</th>`;
-                    html += `<th style="padding: 10px;">${fruText}</th>`;
-                    html += `<th style="padding: 10px;">${meatText}</th>`;
-                    html += `<th style="padding: 10px;">${eggText}</th>`;
-                    html += `<th style="padding: 10px;">${actionText}</th>`;
+                    let html = '<div class="intake-table-scroll">';
+                    html += '<table class="intake-table">';
+                    html += '<thead><tr>';
+                    html += `<th>${noText}</th>`;
+                    html += `<th>${timeText}</th>`;
+                    html += `<th>${mealText}</th>`;
+                    html += `<th>${vegText}</th>`;
+                    html += `<th>${fruText}</th>`;
+                    html += `<th>${meatText}</th>`;
+                    html += `<th>${eggText}</th>`;
+                    html += `<th class="intake-action-cell">${actionText}</th>`;
                     html += '</tr></thead><tbody>';
                             
                     displayRecords.forEach((record, index) => {
                         // 找到原始记录在总列表中的索引
                         const originalIndex = todayRecords.indexOf(record);
                                 
-                        html += '<tr style="border-bottom: 1px solid #eee;">';
-                        html += `<td style="padding: 8px; text-align: center;">${index + 1}</td>`;
-                        html += `<td style="padding: 8px; text-align: center;">${record.time}</td>`;
-                        html += `<td style="padding: 8px; text-align: center;">`;
-                        html += `<select id="edit-meal-${originalIndex}" style="min-width: 76px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">`;
+                        html += '<tr>';
+                        html += `<td>${index + 1}</td>`;
+                        html += `<td>${record.time}</td>`;
+                        html += `<td>`;
+                        html += `<select id="edit-meal-${originalIndex}">`;
                         ['breakfast', 'lunch', 'dinner', 'snack'].forEach(type => {
                             html += `<option value="${type}" ${record.meal_type === type ? 'selected' : ''}>${getMealLabel(type)}</option>`;
                         });
                         html += `</select></td>`;
                         
                         // 🆕 关键改进：使用可编辑的输入框，让用户可以手动修改
-                        html += `<td style="padding: 8px; text-align: center;">`;
-                        html += `<input type="number" id="edit-veg-${originalIndex}" value="${record.vegetables}" min="0" step="10" `;
-                        html += `style="width: 70px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;" />`;
+                        html += `<td>`;
+                        html += `<input type="number" id="edit-veg-${originalIndex}" value="${record.vegetables}" min="0" step="10" />`;
                         html += `</td>`;
                         
-                        html += `<td style="padding: 8px; text-align: center;">`;
-                        html += `<input type="number" id="edit-fru-${originalIndex}" value="${record.fruits}" min="0" step="10" `;
-                        html += `style="width: 70px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;" />`;
+                        html += `<td>`;
+                        html += `<input type="number" id="edit-fru-${originalIndex}" value="${record.fruits}" min="0" step="10" />`;
                         html += `</td>`;
                         
-                        html += `<td style="padding: 8px; text-align: center;">`;
-                        html += `<input type="number" id="edit-meat-${originalIndex}" value="${record.meat}" min="0" step="10" `;
-                        html += `style="width: 70px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;" />`;
+                        html += `<td>`;
+                        html += `<input type="number" id="edit-meat-${originalIndex}" value="${record.meat}" min="0" step="10" />`;
                         html += `</td>`;
                         
-                        html += `<td style="padding: 8px; text-align: center;">`;
-                        html += `<input type="number" id="edit-egg-${originalIndex}" value="${record.eggs}" min="0" step="10" `;
-                        html += `style="width: 70px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;" />`;
+                        html += `<td>`;
+                        html += `<input type="number" id="edit-egg-${originalIndex}" value="${record.eggs}" min="0" step="10" />`;
                         html += `</td>`;
                         
                         // 🌐 获取按钮的国际化文本
                         const saveText = window.i18n ? window.i18n.t('common.save') : '💾 保存';
                         const deleteText = window.i18n ? window.i18n.t('common.delete') : '🗑️ 删除';
                         
-                        html += `<td style="padding: 8px; text-align: center;">`;
-                        html += `<button onclick="saveEditedRecord(${originalIndex})" style="background: var(--success); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 4px;">${saveText}</button>`;
-                        html += `<button onclick="deleteIntakeRecord(${originalIndex})" style="background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">${deleteText}</button>`;
+                        html += `<td class="intake-action-cell">`;
+                        html += `<div class="intake-action-stack">`;
+                        html += `<button class="intake-action-btn save" onclick="saveEditedRecord(${originalIndex})">${saveText}</button>`;
+                        html += `<button class="intake-action-btn delete" onclick="deleteIntakeRecord(${originalIndex})">${deleteText}</button>`;
+                        html += `</div>`;
                         html += `</td>`;
                         html += '</tr>';
                     });
@@ -5070,15 +5284,15 @@
                     } else {
                         let html = '';
                         result.history.forEach(day => {
-                            html += `<div style="margin-bottom: 20px; padding: 16px; background: rgba(255,255,255,0.5); border-radius: 12px;">`;
+                            html += `<div class="history-day-card">`;
                             // 🌐 国际化：显示记录数标签
                             const recordCountLabel = window.i18n ? window.i18n.t('home.record_count_label') : '条记录';
-                            html += `<div style="font-weight: 600; margin-bottom: 8px;">📅 ${day.date} (${day.record_count}${recordCountLabel})</div>`;
-                            html += `<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">`;
-                            html += `<div>🥬 蔬菜: ${day.vegetables}g</div>`;
-                            html += `<div>🍎 水果: ${day.fruits}g</div>`;
-                            html += `<div>🥩 肉类: ${day.meat}g</div>`;
-                            html += `<div>🥚 蛋类: ${day.eggs}g</div>`;
+                            html += `<div class="history-day-title">📅 ${day.date} (${day.record_count}${recordCountLabel})</div>`;
+                            html += `<div class="history-intake-grid">`;
+                            html += `<div class="history-intake-item"><span class="history-food-label">🥬 蔬菜</span><span class="history-food-value">${day.vegetables}g</span></div>`;
+                            html += `<div class="history-intake-item"><span class="history-food-label">🍎 水果</span><span class="history-food-value">${day.fruits}g</span></div>`;
+                            html += `<div class="history-intake-item"><span class="history-food-label">🥩 肉类</span><span class="history-food-value">${day.meat}g</span></div>`;
+                            html += `<div class="history-intake-item"><span class="history-food-label">🥚 蛋类</span><span class="history-food-value">${day.eggs}g</span></div>`;
                             html += `</div></div>`;
                         });
                         content.innerHTML = html;
@@ -5150,7 +5364,7 @@
             
             try {
                 // 调用自动录入函数
-                await autoIntakeOnly(ingredientsText, peopleNum, 1);
+                await autoIntakeOnly(ingredientsText, peopleNum, 1, 1.0);
                 console.log('   ✅ 自动录入完成');
                 const msg = window.i18n ? window.i18n.t('common.operation_success') : '✅ 识别并录入成功！';
                 showToast(msg);
@@ -5677,7 +5891,8 @@
             // 显示 AI 正在回复
             const displayEl = document.getElementById('voice-input-display');
             const thinkingMsg = window.i18n ? window.i18n.t('voice.ai_thinking') : '🤖 AI 正在思考...\n\n';
-            displayEl.value = thinkingMsg + '问题：' + voiceRecognizedText + '\n\n';
+            const questionLabel = window.i18n ? window.i18n.t('voice.question_label') : '问题：';
+            displayEl.value = thinkingMsg + questionLabel + voiceRecognizedText + '\n\n';
 
             try {
                 const currentLanguage = window.i18n ? window.i18n.getCurrentLanguage() : 'zh-CN';
@@ -5704,12 +5919,14 @@
                     }
                     if (data.done) {
                         fullContent = data.full_content || data.content || fullContent;
-                        displayEl.value = '✅ AI 回答：\n\n问题：' + voiceRecognizedText + '\n\n' + fullContent;
+                        const answerTitle = window.i18n ? window.i18n.t('voice.answer_title') : '✅ AI 回答：';
+                        displayEl.value = answerTitle + '\n\n' + questionLabel + voiceRecognizedText + '\n\n' + fullContent;
                         const msg = window.i18n ? window.i18n.t('common.operation_success') : '✅ AI 已回答';
                         showToast(msg);
                     } else if (data.content) {
                         fullContent += data.content;
-                        displayEl.value = '🤖 AI 回答中...\n\n问题：' + voiceRecognizedText + '\n\n' + fullContent;
+                        const answeringTitle = window.i18n ? window.i18n.t('voice.answering_title') : '🤖 AI 回答中...';
+                        displayEl.value = answeringTitle + '\n\n' + questionLabel + voiceRecognizedText + '\n\n' + fullContent;
                         // 滚动到最新内容
                         displayEl.scrollTop = displayEl.scrollHeight;
                     }
@@ -5952,7 +6169,7 @@
             }
             currentUser = null;
             updateAuthUI();
-            showToast(window.i18n ? window.i18n.t('auth.logout_success') : '👋 已退出登录');
+            showToast(window.i18n ? window.i18n.t('auth.logout_success') : '已退出登录');
             // 🔧 时序修复：先等数据切换完成再处理弹窗（强制登录模式下 loadData 会自动重开登录门，游客模式才关闭）
             await loadData();
             tryCloseAuthModal();

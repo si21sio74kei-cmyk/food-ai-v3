@@ -104,6 +104,8 @@
     "reset_stats_button": "Reset Statistics",
     "daily_recommendation_title": "Tomorrow's Dietary Recommendation",
     "daily_recommendation_subtitle": "AI generates personalized dietary suggestions for tomorrow based on today's nutrition status and fridge ingredients",
+    "daily_rec_people_label": "Tomorrow's diners (max 20)",
+    "daily_rec_appetite_label": "Personal portion factor (max 2.0)",
     "daily_rec_result_title": "Recommendation Results",
     "generate_daily_rec_button": "AI Generate Tomorrow's Recommendation",
     "food_weight_query_title": "Food Weight Query",
@@ -112,6 +114,7 @@
     "query_button": "Query",
     "intake_record_title": "Today's Dietary Intake Record",
     "intake_record_subtitle": "Please enter the weight (grams) of various foods you've consumed today",
+    "intake_scope_note": "Assessment is for the account holder. Enter what you personally ate, not the total amount served to the table.",
     "vegetables_label": "Vegetables (g)",
     "fruits_label": "Fruits (g)",
     "meat_label": "Meat (g)",
@@ -350,7 +353,9 @@
     "ai_recognition_complete": "AI recognition complete! Please check the ingredient list above. If inaccurate, you can manually edit, then click \"Confirm and Record Intake Data\" button.",
     "network_error_details": "Network error: {error}\n\nPlease check:\n1. Server is running\n2. Network connection is normal\n3. API key is valid",
     "meal_generated_auto_intake": "Meal {num} recipe generated, auto-recording intake data...",
+    "daily_meals_complete": "Today's three meals are complete. Continue tomorrow or reset the progress first.",
     "meal_intake_recorded": "Meal {num} recorded: Vegetables {veg}g, Fruits {fru}g, Meat {meat}g, Eggs {egg}g",
+    "intake_records_saved": "{count} intake record(s) logged today and saved to your account",
     "meal_auto_intake_rule": "#{num}: Dietary record auto-recorded (based on rules)",
     "error_server": "Server error",
     "error_ai_reply": "AI reply failed",
@@ -435,7 +440,10 @@
     "recognition_failed": "Voice recognition failed",
     "recognition_error": "Recognition error:",
     "re_record": "Re-record",
-    "ai_thinking": "AI is thinking about your question, please wait...\n\n"
+    "ai_thinking": "AI is thinking about your question, please wait...\n\n",
+    "question_label": "Question: ",
+    "answer_title": "AI Answer:",
+    "answering_title": "AI is answering..."
   },
   "shopping": {
     "title": "Smart Shopping List",

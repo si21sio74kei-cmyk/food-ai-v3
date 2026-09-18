@@ -205,6 +205,17 @@ def main():
             const longRecipe = `# 第二次测试食谱\n\n## 食材\n- 西兰花 200g\n- 鸡蛋 2个\n- 番茄 2个\n\n## 做法\n1. 清洗并切配食材。\n2. 先炒鸡蛋，再加入番茄和西兰花。\n3. 小火收汁后装盘。\n\n## 营养说明\n这是一段较长内容，用来测试容器是否会被截断。`.repeat(8);
             const dailyRec = `# 明日饮食推荐\n\n1. 早餐增加水果和鸡蛋。\n2. 午餐补充深色蔬菜。\n3. 晚餐控制肉类摄入。`.repeat(6);
             const shoppingList = `## 广东省 深圳市南山区采购预算\n\n- 番茄 500g，参考单价 8-12 元/kg，小计 4-6 元\n- 鸡蛋 6个，参考单价 1.2-1.8 元/个，小计 7.2-10.8 元\n\n**预计总价：18-26 元**\n\n实际价格会因门店、季节和品牌而变化。`;
+            const todayForQa = window.getChinaDate ? getChinaDate() : new Date().toISOString().slice(0, 10);
+            const qaIntakeRecord = {
+                date: todayForQa,
+                time: '13:24',
+                meal_type: 'lunch',
+                vegetables: 0,
+                fruits: 0,
+                meat: 180,
+                eggs: 0
+            };
+            const qaIntakeRecords = [qaIntakeRecord];
 
             function sseResponse(events) {
                 const encoder = new TextEncoder();
@@ -223,6 +234,50 @@ def main():
             window.fetch = async (url, options = {}) => {
                 const path = String(url);
                 window.__qaFetchCounts[path] = (window.__qaFetchCounts[path] || 0) + 1;
+                const method = String(options.method || 'GET').toUpperCase();
+                if (path.endsWith('/api/data')) {
+                    if (method === 'POST') {
+                        return new Response(JSON.stringify({ success: true }), {
+                            status: 200,
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                    }
+                    return new Response(JSON.stringify({
+                        success: true,
+                        authEnabled: true,
+                        user: window.currentUser || currentUser || null,
+                        data: {
+                            nickname: '',
+                            waste_reduced: 0,
+                            water_saved: 0,
+                            co2_reduced: 0,
+                            population_group: 'all',
+                            daily_intake_records: qaIntakeRecords,
+                            fridge_inventory: [],
+                            generation_count: appData.generation_count || 0,
+                            generation_date: todayForQa
+                        }
+                    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                }
+                if (path.includes('/api/intake/history/7days')) {
+                    return new Response(JSON.stringify({
+                        success: true,
+                        history: [{
+                            date: todayForQa,
+                            vegetables: 0,
+                            fruits: 0,
+                            meat: 180,
+                            eggs: 0,
+                            record_count: 1
+                        }]
+                    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                }
+                if (path.includes('/api/auth/logout')) {
+                    return new Response(JSON.stringify({ success: true }), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
                 if (path.includes('/api/generate_recipe_stream')) {
                     return sseResponse([
                         { content: longRecipe.slice(0, 900) },
@@ -231,19 +286,33 @@ def main():
                     ]);
                 }
                 if (path.includes('/api/generate_daily_recommendation_stream')) {
+                    window.__qaLastDailyBody = JSON.parse(options.body || '{}');
                     return sseResponse([{ content: dailyRec }, { done: true, full_content: dailyRec }]);
                 }
                 if (path.includes('/api/generate_shopping_list_stream')) {
                     return sseResponse([{ content: shoppingList }, { done: true, full_content: shoppingList }]);
                 }
                 if (path.includes('/api/save_intake')) {
+                    const body = JSON.parse(options.body || '{}');
+                    qaIntakeRecords.push({
+                        ...body,
+                        date: todayForQa,
+                        time: `1${qaIntakeRecords.length}:00`
+                    });
+                    const total = qaIntakeRecords.reduce((sum, record) => ({
+                        vegetables: sum.vegetables + Number(record.vegetables || 0),
+                        fruits: sum.fruits + Number(record.fruits || 0),
+                        meat: sum.meat + Number(record.meat || 0),
+                        eggs: sum.eggs + Number(record.eggs || 0)
+                    }), { vegetables: 0, fruits: 0, meat: 0, eggs: 0 });
                     return new Response(JSON.stringify({
                         success: true,
-                        total_intake: { vegetables: 400, fruits: 220, meat: 90, eggs: 60 },
+                        total_intake: total,
                         warnings: []
                     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
                 }
                 if (path.includes('/api/nutrition_assess')) {
+                    window.__qaLastAssessmentBody = JSON.parse(options.body || '{}');
                     return new Response(JSON.stringify({
                         success: true,
                         report: '# 营养评估\n\n今日摄入整体均衡，蔬菜和水果达到推荐区间。'
@@ -353,13 +422,24 @@ def main():
                 count: appData.generation_count,
                 htmlLength: document.getElementById('recipe-content').innerHTML.length,
                 dailyLength: document.getElementById('daily-recommendation-content').innerText.length,
+                savedRecipeMeals: qaIntakeRecords.filter(record => record.source === 'recipe').length,
+                assessmentBody: window.__qaLastAssessmentBody,
                 badOverflow: findBadOverflow()
             };
             switchPage('home');
             await wait(180);
+            document.getElementById('daily-rec-people').value = '20';
+            document.getElementById('daily-rec-appetite').value = '2.0';
+            await generateDailyRecommendation();
+            await wait(180);
             const afterThirdHomePage = {
                 daily: box('#daily-rec-result-container'),
                 assessment: box('#home-assessment-result-container'),
+                dailyControls: {
+                    people: document.getElementById('daily-rec-people').value,
+                    appetite: document.getElementById('daily-rec-appetite').value,
+                    requestBody: window.__qaLastDailyBody
+                },
                 badOverflow: findBadOverflow()
             };
 
@@ -391,12 +471,57 @@ def main():
                 })()
             };
 
+            switchPage('home');
+            await loadTodayIntakeTable();
+            await wait(180);
+            const actionButtons = [...document.querySelectorAll('.intake-action-stack')].map(stack => {
+                const buttons = [...stack.querySelectorAll('.intake-action-btn')].map(btn => {
+                    const r = btn.getBoundingClientRect();
+                    return {
+                        text: btn.innerText,
+                        width: Math.round(r.width),
+                        height: Math.round(r.height),
+                        display: getComputedStyle(btn).display
+                    };
+                });
+                return {
+                    buttons,
+                    sameWidth: buttons.length === 2 && Math.abs(buttons[0].width - buttons[1].width) <= 1
+                };
+            });
+            await view7DaysHistory();
+            await wait(180);
+            const historyItems = [...document.querySelectorAll('.history-intake-item')].map(item => {
+                const label = item.querySelector('.history-food-label').getBoundingClientRect();
+                const value = item.querySelector('.history-food-value').getBoundingClientRect();
+                const itemRect = item.getBoundingClientRect();
+                return {
+                    text: item.innerText,
+                    itemWidth: Math.round(itemRect.width),
+                    labelTop: Math.round(label.top),
+                    valueTop: Math.round(value.top),
+                    sameRow: Math.abs(label.top - value.top) <= 3,
+                    valueInside: value.right <= itemRect.right + 1 && value.left >= itemRect.left - 1
+                };
+            });
+            closeHistoryModal();
+            await handleLogout();
+            await wait(180);
+            const intakeHistoryAndLogout = {
+                actionButtons,
+                allActionButtonsSameWidth: actionButtons.every(row => row.sameWidth),
+                historyItems,
+                allHistoryValuesSameRow: historyItems.every(item => item.sameRow && item.valueInside),
+                logoutToast: document.getElementById('toast').textContent
+            };
+
             return {
                 viewport: { width: innerWidth, height: innerHeight },
                 pages,
                 recipe: { afterFirst, afterConcurrent, afterThirdRecipePage, afterThirdHomePage },
                 chat,
                 shopping,
+                intakeHistoryAndLogout,
                 bodyOverflow: document.documentElement.scrollWidth - window.innerWidth
             };
         })()
@@ -423,7 +548,7 @@ def main():
             mobile_matrix[label] = runtime_eval(
                 ws,
                 """
-                (() => {
+                (async () => {
                   const rect = (el) => {
                     if (!el) return null;
                     const r = el.getBoundingClientRect();
@@ -455,6 +580,33 @@ def main():
                       } : null
                     };
                   }
+                  switchPage('home');
+                  await loadTodayIntakeTable();
+                  await new Promise(r => setTimeout(r, 120));
+                  const actionButtons = [...document.querySelectorAll('.intake-action-stack')].map(stack => {
+                    const buttons = [...stack.querySelectorAll('.intake-action-btn')].map(btn => {
+                      const r = btn.getBoundingClientRect();
+                      return { text: btn.innerText, width: Math.round(r.width), height: Math.round(r.height) };
+                    });
+                    return {
+                      buttons,
+                      sameWidth: buttons.length === 2 && Math.abs(buttons[0].width - buttons[1].width) <= 1
+                    };
+                  });
+                  await view7DaysHistory();
+                  await new Promise(r => setTimeout(r, 120));
+                  const historyItems = [...document.querySelectorAll('.history-intake-item')].map(item => {
+                    const label = item.querySelector('.history-food-label').getBoundingClientRect();
+                    const value = item.querySelector('.history-food-value').getBoundingClientRect();
+                    const itemRect = item.getBoundingClientRect();
+                    return {
+                      text: item.innerText,
+                      itemWidth: Math.round(itemRect.width),
+                      sameRow: Math.abs(label.top - value.top) <= 3,
+                      valueInside: value.right <= itemRect.right + 1 && value.left >= itemRect.left - 1
+                    };
+                  });
+                  closeHistoryModal();
 
                   const authModal = document.getElementById('auth-modal');
                   const previousAuthDisplay = authModal.style.display;
@@ -529,6 +681,12 @@ def main():
                         lastNavItem.right <= navRect.right + 1
                       )
                     },
+                    intakeHistory: {
+                      actionButtons,
+                      allActionButtonsSameWidth: actionButtons.every(row => row.sameWidth),
+                      historyItems,
+                      allHistoryValuesSameRow: historyItems.every(item => item.sameRow && item.valueInside)
+                    },
                     auth: {
                       panel: authPanel,
                       horizontalDifference: authPanel
@@ -564,10 +722,59 @@ def main():
             "mobile": mobile_matrix,
             "screenshots": [desktop_shot, voice_shot, *mobile_screenshots],
         }
+
+        assert register_result["recoveryVisible"], "Registration recovery code was not shown"
+        assert desktop_result["bodyOverflow"] <= 0, "Desktop page has horizontal overflow"
+        third_recipe = desktop_result["recipe"]["afterThirdRecipePage"]
+        assert third_recipe["count"] == 3
+        assert third_recipe["savedRecipeMeals"] == 3
+        expected_three_meal_total = {
+            "vegetables": 1200,
+            "fruits": 0,
+            "meat": 315,
+            "eggs": 60,
+        }
+        assert third_recipe["assessmentBody"]["user_intake"] == expected_three_meal_total, (
+            "Third-meal assessment did not receive the full saved-day total: "
+            f"{third_recipe['assessmentBody']['user_intake']}"
+        )
+        daily_controls = desktop_result["recipe"]["afterThirdHomePage"]["dailyControls"]
+        assert daily_controls["requestBody"].get("people_num") == 20
+        assert daily_controls["requestBody"].get("appetite") == 2
+        intake_check = desktop_result["intakeHistoryAndLogout"]
+        assert intake_check["allActionButtonsSameWidth"]
+        assert intake_check["allHistoryValuesSameRow"]
+        assert intake_check["logoutToast"] == "已退出登录"
+
+        for label, viewport in mobile_matrix.items():
+            assert viewport["bodyOverflow"] <= 0, f"{label}: body horizontal overflow"
+            assert viewport["nav"]["allItemsVisible"], f"{label}: navigation item clipped"
+            assert viewport["nav"]["scrollOverflow"] <= 0, f"{label}: navigation overflow"
+            assert viewport["intakeHistory"]["allActionButtonsSameWidth"], (
+                f"{label}: intake action button widths differ"
+            )
+            assert viewport["intakeHistory"]["allHistoryValuesSameRow"], (
+                f"{label}: history gram value wrapped or clipped"
+            )
+            assert viewport["auth"]["fitsViewport"], f"{label}: auth modal is clipped"
+            assert viewport["auth"]["scroll"]["actionReachable"], (
+                f"{label}: auth action is unreachable"
+            )
+            assert viewport["imageModal"]["fitsViewport"], f"{label}: image modal is clipped"
+            assert viewport["imageModal"]["scroll"]["actionsReachable"], (
+                f"{label}: image actions are unreachable"
+            )
+            for page_name, page_data in viewport["pages"].items():
+                assert page_data["bodyOverflow"] <= 0, f"{label}/{page_name}: body overflow"
+                assert page_data["pageOverflow"] <= 0, f"{label}/{page_name}: page overflow"
+                assert page_data["pageGaps"]["difference"] <= 1, (
+                    f"{label}/{page_name}: asymmetric page margins"
+                )
+
         report_path = os.path.join(ROOT, "_frontend_cdp_qa_report.json")
         with open(report_path, "w", encoding="utf-8") as f:
             json.dump(report, f, ensure_ascii=False, indent=2)
-        print(json.dumps(report, ensure_ascii=False, indent=2))
+        print(json.dumps(report, ensure_ascii=True, indent=2))
     finally:
         proc.terminate()
         try:
