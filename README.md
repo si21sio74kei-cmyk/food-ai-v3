@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.jng" width="128" height="128" alt="FoodGuardian AI Logo" style="border-radius: 28px;">
+  <img src="https://raw.githubusercontent.com/si21sio74kei-cmyk/food-ai-v3/main/assets/logo.jpg" width="128" height="128" alt="FoodGuardian AI Logo" style="border-radius: 28px;">
 </p>
 
 # 🌿 FoodGuardian AI - 智能食谱与家庭环保助手
