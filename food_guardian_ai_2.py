@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-FoodGuardian AI v2.0 - 智能食谱助手 (Web版)
+FoodGuardian AI v3.0 - 智能食谱助手 (Web版)
 Modern Web Application with iOS-style UI
 
 运行方式:
