@@ -76,27 +76,27 @@
 
 1. **基准消耗量计算**：
 
-   $$
-   \text{Total Portion} = \sum_{i=1}^{n} \left( \text{BasePortion}_i \times \text{People} \times \text{Multiplier}_{\text{meal}} \times \text{Factor}_{\text{appetite}} \right)
-   $$
+   <p align="center">
+     <code>Total Portion = Σ (BasePortion × People × Multiplier × Appetite)</code>
+   </p>
 
 2. **避免浪费量（传统家庭平均浪费率约** $25\%$**）**：
 
-   $$
-   \text{Waste Reduced (g)} = \text{Total Portion} \times 0.25
-   $$
+   <p align="center">
+     <code>Waste Reduced (g) = Total Portion × 0.25</code>
+   </p>
 
 3. **水资源节约量（中国膳食加权平均每克食材水足迹约** $0.5\text{ L}$**）**：
 
-   $$
-   \text{Water Saved (L)} = \text{Waste Reduced} \times 0.5
-   $$
+   <p align="center">
+     <code>Water Saved (L) = Waste Reduced × 0.5</code>
+   </p>
 
 4. **碳排放减少量（中国膳食混合平均碳排放强度约** $3.0\text{ g CO}_2\text{e/g}$**）**：
 
-   $$
-   \text{CO}_2\text{ Reduced (g)} = \text{Waste Reduced} \times 3.0
-   $$
+   <p align="center">
+     <code>CO₂ Reduced (g) = Waste Reduced × 3.0</code>
+   </p>
 
 ### 2. 人群营养摄入参考基准 (每日标准)
 
