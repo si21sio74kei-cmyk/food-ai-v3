@@ -18,7 +18,7 @@
 
 ## 📸 核心效果预览
 
-> 💡 **5秒看懂 FoodGuardian AI**：拍照秒级识别食材 $\rightarrow$ 实时 SSE 流式打字生成减损食谱 $\rightarrow$ 基于 FAO 模型动态量化水/碳节约量。
+> 💡 **5秒看懂 FoodGuardian AI**：拍照秒级识别食材 → 实时 SSE 流式打字生成减损食谱 → 基于 FAO 模型动态量化水/碳节约量。
 
 <!-- 建议录制 10 秒操作 GIF 放入 assets/demo.gif，将下方注释解开即可展示 -->
 <!-- ![FoodGuardian AI 交互动图](assets/demo.gif) -->
@@ -78,15 +78,15 @@
 
   `Total Portion = Σ (BasePortion × People × Multiplier × Appetite)`
 
-2. **避免浪费量（传统家庭平均浪费率约** $25\%$**）**：
+2. **避免浪费量（传统家庭平均浪费率约 25%）**：
 
   `Waste Reduced (g) = Total Portion × 0.25`
 
-3. **水资源节约量（中国膳食加权平均每克食材水足迹约** $0.5\text{ L}$**）**：
+3. **水资源节约量（中国膳食加权平均每克食材水足迹约 0.5 L）**：
 
   `Water Saved (L) = Waste Reduced × 0.5`
 
-4. **碳排放减少量（中国膳食混合平均碳排放强度约** $3.0\text{ g CO}_2\text{e/g}$**）**：
+4. **碳排放减少量（中国膳食混合平均碳排放强度约 3.0 g CO₂e/g）**：
 
   `CO₂ Reduced (g) = Waste Reduced × 3.0`
 
